@@ -14,7 +14,7 @@
 body{font-family:'Fira Sans',sans-serif;background:var(--bg);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 @keyframes carbonShift{0%{background-position:0 0}100%{background-position:8px 8px}}
 @keyframes neonPulse{0%,100%{text-shadow:0 0 10px var(--pink),0 0 30px var(--pink),0 0 60px rgba(255,20,147,.5)}50%{text-shadow:0 0 20px var(--pink),0 0 50px var(--pink),0 0 90px rgba(255,20,147,.8)}}
-body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(255,255,255,.02)25%,transparent 25%,transparent 50%,rgba(255,255,255,.02)50%,rgba(255,255,255,.02)75%,transparent 75%),linear-gradient(-45deg,rgba(255,255,255,.02)25%,transparent 25%,transparent 50%,rgba(255,255,255,.02)50%,rgba(255,255,255,.02)75%,transparent 75%);background-size:8px 8px;animation:carbonShift 2s linear infinite;z-index:0}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(255,255,255,.02)25%,transparent 25%,transparent 50%,rgba(255,255,255,.02)50%,rgba(255,255,255,.02)75%,transparent 75%,transparent);background-size:8px 8px;animation:carbonShift 20s linear infinite;pointer-events:none}
 .container{position:relative;z-index:1;text-align:center;max-width:500px}
 h1{font-family:'Oswald';font-size:3rem;font-weight:700;color:var(--pink);animation:neonPulse 2.5s ease-in-out infinite;margin-bottom:8px}
 .sub{font-family:'Oswald';font-size:.9rem;color:var(--pink);letter-spacing:4px;opacity:.7;margin-bottom:40px}
@@ -28,7 +28,7 @@ h1{font-family:'Oswald';font-size:3rem;font-weight:700;color:var(--pink);animati
 <body>
 <div class="container">
   <h1>Top_Secret</h1>
-  <div class="sub">Ne_tot_brat • GT Tires Service</div>
+  <div class="sub">GT Tires Service • Велика Димарка</div>
   <div class="links">
     <a href="gt-tires-v4.html" class="link-btn">
       <span class="icon">🔧</span>Адмін-панель
