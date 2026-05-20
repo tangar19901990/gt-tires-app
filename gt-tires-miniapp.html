@@ -14,10 +14,26 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Fira Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:90px}
 @keyframes carbonShift{0%{background-position:0 0}100%{background-position:8px 8px}}
-.header{background:#0a0a0a;padding:14px 16px;text-align:center;position:relative;overflow:hidden;border-bottom:2px solid var(--pink)}
-.header::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(255,255,255,.03)25%,transparent 25%,transparent 50%,rgba(255,255,255,.03)50%,rgba(255,255,255,.03)75%,transparent 75%),linear-gradient(-45deg,rgba(255,255,255,.03)25%,transparent 25%,transparent 50%,rgba(255,255,255,.03)50%,rgba(255,255,255,.03)75%,transparent 75%);background-size:8px 8px;animation:carbonShift 2s linear infinite}
-.header h1{font-family:'Oswald';font-size:1.6rem;font-weight:700;color:var(--pink);position:relative;text-shadow:0 0 10px var(--pink),0 0 30px rgba(255,20,147,.4)}
-.header .sub{font-family:'Oswald';font-size:.7rem;color:var(--pink);letter-spacing:3px;margin-top:2px;position:relative;opacity:.7}
+@keyframes wheelSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes redSweep{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+@keyframes logoGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(211,47,47,.6))}50%{filter:drop-shadow(0 0 16px rgba(211,47,47,.9))}}
+.header{background:linear-gradient(135deg,#1a0505 0%,#0a0a0a 50%,#1a0505 100%);padding:18px 16px;text-align:center;position:relative;overflow:hidden;border-bottom:3px solid var(--red)}
+/* carbon texture */
+.header::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(255,255,255,.025)25%,transparent 25%,transparent 50%,rgba(255,255,255,.025)50%,rgba(255,255,255,.025)75%,transparent 75%),linear-gradient(-45deg,rgba(255,255,255,.025)25%,transparent 25%,transparent 50%,rgba(255,255,255,.025)50%,rgba(255,255,255,.025)75%,transparent 75%);background-size:8px 8px;animation:carbonShift 2s linear infinite}
+/* red light sweep */
+.header::after{content:'';position:absolute;top:0;left:0;width:30%;height:100%;background:linear-gradient(90deg,transparent,rgba(211,47,47,.25),transparent);animation:redSweep 4s ease-in-out infinite;pointer-events:none}
+.header-logo{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:12px}
+.header-wheel{width:54px;height:54px;flex-shrink:0;animation:wheelSpin 6s linear infinite,logoGlow 3s ease-in-out infinite}
+.header-text{text-align:left}
+.header-text h1{font-family:'Oswald';font-size:2rem;font-weight:700;line-height:1;letter-spacing:1px}
+.header-text h1 .gt{color:var(--red);text-shadow:0 0 12px rgba(211,47,47,.7)}
+.header-text h1 .ires{color:#fff;text-shadow:0 0 12px rgba(255,255,255,.3)}
+.header-text .svc{font-family:'Oswald';font-size:.65rem;font-weight:600;color:var(--red);letter-spacing:5px;margin-top:1px}
+.header-tag{position:relative;z-index:2;font-family:'Oswald';font-size:.62rem;color:#ccc;letter-spacing:2px;margin-top:8px;text-transform:uppercase}
+/* feature badges */
+.features{display:flex;justify-content:space-around;padding:10px 8px;background:var(--card);border-bottom:1px solid var(--border);gap:4px}
+.feature{flex:1;text-align:center;font-size:.55rem;color:var(--dim);line-height:1.2}
+.feature .f-ic{font-size:1.2rem;display:block;margin-bottom:3px}
 .tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border)}
 .tabs button{flex:1;padding:10px 4px;background:none;border:none;color:var(--dim);font-size:.72rem;font-family:'Fira Sans';cursor:pointer;position:relative;transition:.2s}
 .tabs button.active{color:var(--red-light)}
@@ -53,47 +69,88 @@ body{font-family:'Fira Sans',sans-serif;background:var(--bg);color:var(--text);m
 .about-card{background:var(--card);border-radius:12px;padding:16px;margin:8px 0}
 .about-card h3{font-family:'Oswald';color:var(--red-light);margin-bottom:8px}
 .about-card p{font-size:.85rem;color:var(--dim);line-height:1.5}
+.call-fab{display:block;text-align:center;margin-top:16px;padding:16px;background:var(--green);color:#fff;text-decoration:none;border-radius:14px;font-weight:600;font-size:1rem;box-shadow:0 4px 15px rgba(76,175,80,.3)}
+.call-fab:active{transform:scale(.98)}
 </style>
 </head>
 <body>
-<div class="header"><h1>Top_Secret</h1><div class="sub">Ne_tot_brat • GT Tires Service</div></div>
+<div class="header">
+  <div class="header-logo">
+    <svg class="header-wheel" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <!-- outer red ring with neon -->
+      <circle cx="50" cy="50" r="48" fill="#0a0a0a" stroke="#D32F2F" stroke-width="3.5"/>
+      <circle cx="50" cy="50" r="48" fill="none" stroke="#ff5252" stroke-width="1" opacity="0.6"/>
+      <!-- tire tread dashes -->
+      <circle cx="50" cy="50" r="44" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="2 4" opacity="0.25"/>
+      <!-- rim base -->
+      <circle cx="50" cy="50" r="38" fill="#141414" stroke="#333" stroke-width="1"/>
+      <!-- alloy spokes (10, like sport rim) -->
+      <g stroke="#d8d8d8" stroke-width="4" stroke-linecap="round">
+        <line x1="50" y1="50" x2="50" y2="14"/>
+        <line x1="50" y1="50" x2="71" y2="21"/>
+        <line x1="50" y1="50" x2="85" y2="42"/>
+        <line x1="50" y1="50" x2="79" y2="68"/>
+        <line x1="50" y1="50" x2="62" y2="84"/>
+        <line x1="50" y1="50" x2="38" y2="84"/>
+        <line x1="50" y1="50" x2="21" y2="68"/>
+        <line x1="50" y1="50" x2="15" y2="42"/>
+        <line x1="50" y1="50" x2="29" y2="21"/>
+      </g>
+      <!-- hub -->
+      <circle cx="50" cy="50" r="13" fill="#1a1a1a" stroke="#D32F2F" stroke-width="2.5"/>
+      <circle cx="50" cy="50" r="13" fill="none" stroke="#ff5252" stroke-width="0.8" opacity="0.7"/>
+      <circle cx="50" cy="50" r="5" fill="#D32F2F"/>
+      <!-- lug nuts -->
+      <g fill="#888">
+        <circle cx="50" cy="42" r="1.3"/>
+        <circle cx="57" cy="47" r="1.3"/>
+        <circle cx="54" cy="56" r="1.3"/>
+        <circle cx="46" cy="56" r="1.3"/>
+        <circle cx="43" cy="47" r="1.3"/>
+      </g>
+    </svg>
+    <div class="header-text">
+      <h1><span class="gt">GT</span><span class="ires">IRES</span></h1>
+      <div class="svc">SERVICE</div>
+    </div>
+  </div>
+  <div class="header-tag">⚡ Професійний сервіс для вашого авто</div>
+</div>
+<div class="features">
+  <div class="feature"><span class="f-ic">🛡️</span>Якість<br>Гарантія</div>
+  <div class="feature"><span class="f-ic">🎧</span>Консультація<br>підтримка</div>
+  <div class="feature"><span class="f-ic">⚡</span>Швидкий<br>сервіс</div>
+  <div class="feature"><span class="f-ic">⚙️</span>Монтаж<br>балансування</div>
+  <div class="feature"><span class="f-ic">🔧</span>Ремонт<br>будь-який</div>
+</div>
 <div class="tabs">
-  <button class="active" data-tab="calc">🧮 Калькулятор</button>
-  <button data-tab="price">📋 Прайс</button>
-  <button data-tab="about">ℹ️ Про нас</button>
+  <button class="active" data-tab="legkovi">🚗 Легкові</button>
+  <button data-tab="vantazhni">🚛 Вантажні</button>
+  <button data-tab="bu">🛞 Шини б/в</button>
+  <button data-tab="about">📞 Контакти</button>
 </div>
-<div class="section active" id="sec-calc">
-  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук послуги..." id="calcSearch" oninput="renderCalcList()"></div>
-  <div class="cat-tiles" id="calcCats"></div>
-  <div id="calcList"></div>
+
+<div class="section active" id="sec-legkovi">
+  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук (R16, седан...)" id="legSearch" oninput="renderLeg()"></div>
+  <table class="price-tbl" id="legTable"></table>
 </div>
-<div class="section" id="sec-price">
-  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук..." id="priceSearch" oninput="renderPriceTable()"></div>
-  <div class="cat-tiles" id="priceCats"></div>
-  <table class="price-tbl" id="priceTable"></table>
+
+<div class="section" id="sec-vantazhni">
+  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук (R22.5...)" id="vanSearch" oninput="renderVan()"></div>
+  <table class="price-tbl" id="vanTable"></table>
 </div>
+
+<div class="section" id="sec-bu">
+  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук розміру (205/55...)" id="buSearch" oninput="renderBu()"></div>
+  <div id="buList"></div>
+</div>
+
 <div class="section" id="sec-about">
   <div class="about-card"><h3>🔒 Top_Secret</h3><p>Професійний шиномонтаж легкових, вантажних, сільгосп та спецтехніки. Ремонт шин, балансування, рихтування дисків.</p></div>
-  <div class="about-card"><h3>📍 Адреса</h3><p>Велика Димерка, Київська обл.</p></div>
+  <div class="about-card"><h3>📍 Адреса</h3><p>Велика Димерка, вул. Соборна 106<br>Tir Parking</p></div>
   <div class="about-card"><h3>🕐 Графік</h3><p>Пн-Сб: 08:00 — 20:00<br>Нд: 09:00 — 18:00</p></div>
-  <div class="about-card"><h3>📞 Контакти</h3><p>Телефон: +380XXXXXXXXX<br>Telegram: @top_secret_tires</p></div>
-</div>
-<div class="cart-bar" id="cartBar">
-  <div style="display:flex;align-items:center;gap:8px"><div class="cart-count" id="cartCount">0</div><div class="cart-total" id="cartTotal">0₴</div></div>
-  <div style="display:flex;gap:6px">
-    <button class="cart-btn" style="background:var(--card);border:1px solid var(--border);padding:8px" onclick="toggleCartView()">📝</button>
-    <button class="cart-btn" onclick="sendOrder()">📩 Надіслати</button>
-  </div>
-</div>
-<div class="section" id="sec-cart" style="display:none;padding-bottom:80px">
-  <h3 style="font-family:'Oswald';color:var(--red-light);margin-bottom:10px">Ваше замовлення</h3>
-  <div id="cartItems"></div>
-  <div style="text-align:right;font-family:'Oswald';font-size:1.3rem;margin-top:12px;padding:10px 0;border-top:2px solid var(--red)">ВСЬОГО: <span id="cartTotalBig">0₴</span></div>
-  <div style="display:flex;gap:8px;margin-top:10px">
-    <button class="cart-btn" style="flex:1" onclick="sendOrder()">📩 Надіслати</button>
-    <button class="cart-btn" style="flex:1;background:var(--card);border:1px solid var(--border)" onclick="clearCart()">🗑️ Очистити</button>
-  </div>
-  <button class="cart-btn" style="width:100%;margin-top:8px;background:var(--card);border:1px solid var(--border)" onclick="toggleCartView()">← Назад</button>
+  <div class="about-card"><h3>📞 Контакти</h3><p>Телефон: <a href="tel:+380682590196" style="color:var(--red-light)">+38 068 259 01 96</a><br>Telegram: <a href="https://t.me/G_tires" style="color:var(--red-light)">@G_tires</a></p></div>
+  <a href="tel:+380682590196" class="call-fab">📞 Зателефонувати</a>
 </div>
 <script>
 const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand()}
@@ -130,58 +187,71 @@ const P=[
 {c:13},{id:188,n:"Стал. R13-14",p:200},{id:189,n:"Стал. R15",p:250},{id:190,n:"Стал. R16",p:300},{id:191,n:"Стал. R17",p:350},{id:192,n:"Легкоспл. R13",p:300},{id:193,n:"Легкоспл. R14-15",p:350},{id:194,n:"Легкоспл. R16",p:400},{id:195,n:"Легкоспл. R17-18",p:450},{id:196,n:"Легкоспл. R19",p:500},{id:197,n:"Легкоспл. R20",p:550},{id:198,n:"Легкоспл. R21+",p:600},{id:199,n:"Рем. осьового зміщ.",p:400},
 ];
 const fmt=n=>Number(n).toLocaleString('uk-UA')+'₴';
-let cart=[],calcCF=-1,priceCF=-1,cartOpen=false;
+
+// ⚠️ ШИНИ Б/В — оновлюється з адмінки (кнопка "Для бота")
+const BU_TIRES=[
+  // Приклад формату (заміни своїми):
+  // {s:"205/55 R16",b:"Michelin",se:"summer",q:4,p:800},
+];
+
+// Tabs
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
   const s=document.getElementById('sec-'+b.dataset.tab);if(s)s.classList.add('active');
-  if(cartOpen){cartOpen=false;document.getElementById('sec-cart').style.display='none'}
 }));
-function countC(ci){let n=0,c=-1;P.forEach(i=>{if(i.c!==undefined&&!i.id)c=i.c;if(i.id&&c===ci)n++});return n}
-function tiles(el,af,fn){
-  let h=`<div class="cat-tile${af===-1?' active':''}" style="background:rgba(255,255,255,.08);color:#fff" onclick="${fn}(-1)"><span class="t-icon">📋</span>Всі<span class="t-cnt">${P.filter(i=>i.id).length}</span></div>`;
-  CM.forEach((c,i)=>{h+=`<div class="cat-tile${af===i?' active':''}" style="background:${c.color}22;color:${c.color};border-color:${af===i?c.color:'transparent'}" onclick="${fn}(${i})"><span class="t-icon">${c.icon}</span>${c.s}<span class="t-cnt">${countC(i)}</span></div>`});
-  document.getElementById(el).innerHTML=h;
+
+// Helper: render price rows for given category indexes
+function priceRows(catIndexes,q){
+  let h='',cur=-1,shown={};
+  P.forEach(it=>{
+    if(it.c!==undefined&&!it.id){cur=it.c;return}
+    if(!it.id)return;
+    if(!catIndexes.includes(cur))return;
+    if(q&&!it.n.toLowerCase().includes(q))return;
+    if(!shown[cur]){
+      const c=CM[cur];
+      h+=`<tr class="cat-hdr"><td colspan="2" style="color:${c.color};border-color:${c.color};background:${c.color}14">${c.icon} ${c.name}</td></tr>`;
+      shown[cur]=1;
+    }
+    h+=`<tr><td>${it.n}</td><td style="text-align:right;font-weight:600">${fmt(it.p)}</td></tr>`;
+  });
+  return h||'<tr><td colspan="2" style="text-align:center;padding:20px;color:var(--dim)">Нічого не знайдено</td></tr>';
 }
-function setCC(i){calcCF=i;tiles('calcCats',calcCF,'setCC');renderCalcList()}
-function setPC(i){priceCF=i;tiles('priceCats',priceCF,'setPC');renderPriceTable()}
-function renderCalcList(){
-  const q=(document.getElementById('calcSearch')?.value||'').toLowerCase(),el=document.getElementById('calcList');
-  let h='',cur=-1;
-  P.forEach(it=>{if(it.c!==undefined&&!it.id){cur=it.c;return}if(!it.id)return;
-    if(calcCF>=0&&cur!==calcCF)return;if(q&&!it.n.toLowerCase().includes(q))return;
-    const c=CM[cur]||{color:'#999',icon:'?'},ic=cart.find(x=>x.id===it.id);
-    h+=`<div class="svc-item" style="border-left-color:${c.color}${ic?';opacity:.5':''}"><div class="svc-name"><span style="color:${c.color}">${c.icon}</span> ${it.n}</div><div class="svc-price">${fmt(it.p)}</div><button class="svc-add" onclick="addC(${it.id})"${ic?' style="background:var(--green)"':''}>+</button></div>`;
+
+// Легкові = монтаж легкових(0) + латки легк(3) + рихтування(13) + вентилі(12) + кріплення(11)
+function renderLeg(){
+  const q=(document.getElementById('legSearch')?.value||'').toLowerCase();
+  document.getElementById('legTable').innerHTML='<thead><tr><th>Послуга</th><th style="width:80px;text-align:right">Ціна</th></tr></thead><tbody>'+priceRows([0,3,11,12,13],q)+'</tbody>';
+}
+// Вантажні = вантажний монтаж(1) + сільгосп(2) + балансування(10) + пластирі TL,CT,BP,UP(4,5,6,7) + камери(8) + дод.ремонт(9)
+function renderVan(){
+  const q=(document.getElementById('vanSearch')?.value||'').toLowerCase();
+  document.getElementById('vanTable').innerHTML='<thead><tr><th>Послуга</th><th style="width:80px;text-align:right">Ціна</th></tr></thead><tbody>'+priceRows([1,2,10,4,5,6,7,8,9],q)+'</tbody>';
+}
+// Шини б/в
+function renderBu(){
+  const q=(document.getElementById('buSearch')?.value||'').toLowerCase();
+  const el=document.getElementById('buList');
+  if(!BU_TIRES.length){
+    el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--dim)"><div style="font-size:2rem;margin-bottom:10px">🛞</div>Наявність уточнюйте за телефоном:<br><a href="tel:+380682590196" style="color:var(--red-light);font-weight:600">+38 068 259 01 96</a></div>';
+    return;
+  }
+  const seasonIcon=s=>s==='winter'?'❄️':s==='summer'?'☀️':s==='allseason'?'🌦️':'🛞';
+  let h='';
+  BU_TIRES.forEach(t=>{
+    const txt=(t.s+' '+(t.b||'')).toLowerCase();
+    if(q&&!txt.includes(q))return;
+    h+=`<div class="svc-item" style="border-left-color:#26c6da">
+      <div class="svc-name">${seasonIcon(t.se)} <b>${t.s}</b>${t.b?' • '+t.b:''}${t.q?' <span style="color:var(--dim);font-size:.75rem">('+t.q+' шт)</span>':''}</div>
+      <div class="svc-price">${fmt(t.p)}</div>
+    </div>`;
   });
   el.innerHTML=h||'<div style="text-align:center;padding:30px;color:var(--dim)">Нічого не знайдено</div>';
 }
-function renderPriceTable(){
-  const q=(document.getElementById('priceSearch')?.value||'').toLowerCase();
-  let h='<thead><tr><th>Послуга</th><th style="width:80px;text-align:right">Ціна</th></tr></thead><tbody>',cur=-1,sh={};
-  P.forEach(it=>{if(it.c!==undefined&&!it.id){cur=it.c;return}if(!it.id)return;
-    if(priceCF>=0&&cur!==priceCF)return;if(q&&!it.n.toLowerCase().includes(q))return;
-    if(!sh[cur]){const c=CM[cur];h+=`<tr class="cat-hdr"><td colspan="2" style="color:${c.color};border-color:${c.color};background:${c.color}14">${c.icon} ${c.name}</td></tr>`;sh[cur]=1}
-    h+=`<tr><td>${it.n}</td><td style="text-align:right;font-weight:600">${fmt(it.p)}</td></tr>`;
-  });
-  document.getElementById('priceTable').innerHTML=h+'</tbody>';
-}
-function addC(id){const it=P.find(i=>i.id===id);if(!it)return;const e=cart.find(x=>x.id===id);if(e)e.q++;else cart.push({id:it.id,n:it.n,p:it.p,q:1});upCart();renderCalcList()}
-function remC(id){cart=cart.filter(x=>x.id!==id);upCart();renderCalcList();if(cartOpen)renderCI()}
-function chgQ(id,d){const i=cart.find(x=>x.id===id);if(!i)return;i.q=Math.max(1,i.q+d);upCart();if(cartOpen)renderCI()}
-function upCart(){const t=cart.reduce((s,x)=>s+x.p*x.q,0),c=cart.reduce((s,x)=>s+x.q,0);
-  document.getElementById('cartBar').classList.toggle('show',cart.length>0);
-  document.getElementById('cartCount').textContent=c;document.getElementById('cartTotal').textContent=fmt(t);document.getElementById('cartTotalBig').textContent=fmt(t)}
-function renderCI(){let h='';cart.forEach(s=>{h+=`<div class="cart-item"><button class="ci-del" onclick="remC(${s.id})">✕</button><div class="ci-name">${s.n}</div><div class="ci-qty"><button onclick="chgQ(${s.id},-1)">−</button><span>${s.q}</span><button onclick="chgQ(${s.id},1)">+</button></div><div class="ci-sum">${fmt(s.p*s.q)}</div></div>`});
-  document.getElementById('cartItems').innerHTML=h||'<div style="text-align:center;padding:20px;color:var(--dim)">Порожньо</div>'}
-function toggleCartView(){cartOpen=!cartOpen;const s=document.getElementById('sec-cart');
-  if(cartOpen){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));s.style.display='block';renderCI()}
-  else{s.style.display='none';document.querySelectorAll('.tabs button.active').forEach(b=>{const x=document.getElementById('sec-'+b.dataset.tab);if(x)x.classList.add('active')})}}
-function clearCart(){if(!confirm('Очистити?'))return;cart=[];upCart();renderCI();renderCalcList()}
-function sendOrder(){if(!cart.length){alert('Кошик порожній');return}const t=cart.reduce((s,x)=>s+x.p*x.q,0);
-  let txt='🔧 ЗАМОВЛЕННЯ:\n\n';cart.forEach(s=>{txt+=`• ${s.n} ×${s.q} — ${fmt(s.p*s.q)}\n`});txt+=`\n💰 ВСЬОГО: ${fmt(t)}`;
-  if(tg){tg.sendData(JSON.stringify({type:'order',items:cart,total:t}))}else{alert(txt)}
-  cart=[];upCart();renderCalcList();if(cartOpen)toggleCartView()}
-tiles('calcCats',calcCF,'setCC');renderCalcList();tiles('priceCats',priceCF,'setPC');renderPriceTable();
+
+// init
+renderLeg();renderVan();renderBu();
 </script>
 </body>
 </html>

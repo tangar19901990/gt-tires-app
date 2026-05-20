@@ -18,6 +18,7 @@ GT Tires Service / Tir Parking
   python gt_tires_bot.py
 """
 
+import os
 import json
 import logging
 from datetime import datetime
@@ -25,10 +26,10 @@ from telegram import Update, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, In
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
 # ============================================================
-# ⚠️  НАЛАШТУВАННЯ — ЗАМІНИ НА СВОЇ ДАНІ
+# ⚠️  НАЛАШТУВАННЯ
 # ============================================================
-BOT_TOKEN = "ВАШ_ТОКЕН_ВІД_BOTFATHER"
-ADMIN_CHAT_ID = 123456789  # Твій chat_id (число)
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8849628930:AAGrxPC2I978TtPuzrPywgPx6XkCPp8bk4w")
+ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "5881869536"))
 MINIAPP_URL = "https://tangar19901990.github.io/gt-tires-app/gt-tires-miniapp.html"
 # ============================================================
 
@@ -84,12 +85,13 @@ async def info_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🔒 *Top\\_Secret \\| GT Tires Service*\n"
         "━━━━━━━━━━━━━━━━\n\n"
-        "📍 *Адреса:* Велика Димерка, Київська обл\\.\n\n"
+        "📍 *Адреса:* Велика Димерка, вул\\. Соборна 106\n"
+        "🅿️ *Tir Parking*\n\n"
         "🕐 *Графік:*\n"
         "Пн\\-Сб: 08:00 — 20:00\n"
         "Нд: 09:00 — 18:00\n\n"
-        "📞 *Телефон:* \\+380XXXXXXXXX\n"
-        "💬 *Telegram:* @top\\_secret\\_tires\n\n"
+        "📞 *Телефон:* \\+38 068 259 01 96\n"
+        "💬 *Telegram:* @G\\_tires\n\n"
         "🛞 Шиномонтаж легкових, вантажних, сільгосп\\.\n"
         "🔧 Ремонт шин, балансування, рихтування дисків\\.",
         parse_mode="MarkdownV2"
@@ -99,7 +101,7 @@ async def info_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def call_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда /call — кнопка дзвінка."""
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📞 Зателефонувати", url="tel:+380XXXXXXXXX")]
+        [InlineKeyboardButton("📞 Зателефонувати", url="tel:+380682590196")]
     ])
     await update.message.reply_text(
         "Натисни щоб зателефонувати:",
@@ -213,7 +215,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=client_id,
                 text=f"✅ Ваше замовлення {order_id} прийнято!\n\n"
                      f"Чекаємо вас! 🔧\n"
-                     f"📍 Велика Димерка"
+                     f"📍 Велика Димерка, вул. Соборна 106"
             )
         except Exception as e:
             logger.error(f"Не вдалось надіслати клієнту: {e}")
@@ -227,7 +229,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(
                 chat_id=client_id,
                 text=f"😔 На жаль, замовлення {order_id} не може бути виконано зараз.\n"
-                     f"Зв'яжіться з нами для уточнення: +380XXXXXXXXX"
+                     f"Зв'яжіться з нами для уточнення: +38 068 259 01 96"
             )
         except Exception as e:
             logger.error(f"Не вдалось надіслати клієнту: {e}")

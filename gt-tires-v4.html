@@ -416,6 +416,7 @@ tr:hover td { background:rgba(211,47,47,0.07); }
     <h2 style="font-family:'Oswald';color:var(--red-light)">Шини (склад)</h2>
     <div class="gap-btns">
       <button class="btn btn-red" onclick="openNewTire()">＋ Додати</button>
+      <button class="btn btn-dark no-print" onclick="exportTiresForBot()">📤 Для бота</button>
       <button class="btn btn-dark no-print" onclick="printSection('sec-tires')">🖨️</button>
     </div>
   </div>
@@ -1147,25 +1148,59 @@ function saveNewClient(){
 // ==================== TIRES ====================
 function renderTires(){
   if(!tires.length){ document.getElementById('tiresList').innerHTML='<p style="color:var(--text-dim);text-align:center;padding:40px">Шин немає</p>'; return; }
-  let html='<div class="tbl-wrap"><table><thead><tr><th>Розмір</th><th>Бренд</th><th>Кількість</th><th>Ціна</th><th></th></tr></thead><tbody>';
+  let html='<div class="tbl-wrap"><table><thead><tr><th>Розмір</th><th>Бренд</th><th>Сезон</th><th>К-ть</th><th>Ціна</th><th>В боті</th><th></th></tr></thead><tbody>';
   tires.forEach(t=>{
-    html+=`<tr><td>${t.size}</td><td>${t.brand}</td><td>${t.qty}</td><td>${fmtMoney(t.price)}</td>
+    const seasonIcon = t.season==='winter'?'❄️':t.season==='summer'?'☀️':t.season==='allseason'?'🌦️':'';
+    html+=`<tr><td>${t.size}</td><td>${t.brand||'—'}</td><td>${seasonIcon} ${t.season==='winter'?'Зима':t.season==='summer'?'Літо':t.season==='allseason'?'Всесезон':'—'}</td><td>${t.qty}</td><td><b>${fmtMoney(t.price)}</b></td>
+    <td style="text-align:center">${t.showInBot?'✅':'—'}</td>
     <td><button class="btn btn-dark btn-sm" onclick="if(confirm('Видалити?')){tires=tires.filter(x=>x.id!=='${t.id}');save('tires',tires);renderTires();}">🗑️</button></td></tr>`;
   });
   html+='</tbody></table></div>';
   document.getElementById('tiresList').innerHTML=html;
 }
 function openNewTire(){
-  openModal(`<h3>Додати шини</h3>
-    <label>Розмір</label><input id="tSize" placeholder="205/55 R16">
+  openModal(`<h3>Додати шини б/в</h3>
+    <label>Розмір *</label><input id="tSize" placeholder="205/55 R16">
     <label>Бренд</label><input id="tBrand" placeholder="Michelin, Bridgestone...">
+    <label>Сезон</label>
+    <select id="tSeason">
+      <option value="">— не вказано —</option>
+      <option value="summer">☀️ Літо</option>
+      <option value="winter">❄️ Зима</option>
+      <option value="allseason">🌦️ Всесезон</option>
+    </select>
     <label>Кількість</label><input id="tQty" type="number" value="4">
-    <label>Ціна (за шт)</label><input id="tPrice" type="number">
-    <div class="gap-btns mt"><button class="btn btn-red" onclick="saveNewTire()">💾</button><button class="btn btn-dark" onclick="closeModal()">Скасувати</button></div>`);
+    <label>Ціна (за шт) *</label><input id="tPrice" type="number" placeholder="800">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer">
+      <input type="checkbox" id="tShowBot" checked style="width:auto;margin:0"> Показувати в Telegram боті
+    </label>
+    <div class="gap-btns mt"><button class="btn btn-red" onclick="saveNewTire()">💾 Зберегти</button><button class="btn btn-dark" onclick="closeModal()">Скасувати</button></div>`);
 }
 function saveNewTire(){
-  tires.push({id:uid(),size:document.getElementById('tSize').value.trim(),brand:document.getElementById('tBrand').value.trim(),qty:parseInt(document.getElementById('tQty').value)||0,price:parseInt(document.getElementById('tPrice').value)||0});
+  const size = document.getElementById('tSize').value.trim();
+  const price = parseInt(document.getElementById('tPrice').value)||0;
+  if(!size || !price){ alert('Вкажіть розмір і ціну'); return; }
+  tires.push({
+    id:uid(),
+    size,
+    brand:document.getElementById('tBrand').value.trim(),
+    season:document.getElementById('tSeason').value,
+    qty:parseInt(document.getElementById('tQty').value)||0,
+    price,
+    showInBot:document.getElementById('tShowBot').checked
+  });
   save('tires',tires); closeModal(); renderTires();
+}
+function exportTiresForBot(){
+  const botTires = tires.filter(t=>t.showInBot).map(t=>({s:t.size,b:t.brand,se:t.season,q:t.qty,p:t.price}));
+  const json = JSON.stringify(botTires);
+  openModal(`<h3>📤 Шини для бота</h3>
+    <p style="font-size:0.85rem;color:var(--text-dim)">Скопіюй цей код і надішли Claude, щоб оновити шини б/в у Telegram боті:</p>
+    <textarea id="botExport" rows="6" style="font-family:monospace;font-size:0.7rem" readonly>${json}</textarea>
+    <div class="gap-btns mt">
+      <button class="btn btn-red" onclick="navigator.clipboard.writeText(document.getElementById('botExport').value);this.textContent='✅ Скопійовано'">📋 Копіювати</button>
+      <button class="btn btn-dark" onclick="closeModal()">Закрити</button>
+    </div>`);
 }
 
 // ==================== WAREHOUSE ====================
