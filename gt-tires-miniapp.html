@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Top_Secret — Telegram Mini App</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#121212;--card:#1e1e1e;--border:#333;--text:#f5f5f5;--dim:#aaa;--red:#D32F2F;--red-dark:#B71C1C;--red-light:#EF5350;--green:#4CAF50;--pink:#ff69b4}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Fira Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:90px}
+@keyframes carbonShift{0%{background-position:0 0}100%{background-position:8px 8px}}
+.header{background:#0a0a0a;padding:14px 16px;text-align:center;position:relative;overflow:hidden;border-bottom:2px solid var(--pink)}
+.header::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(255,255,255,.03)25%,transparent 25%,transparent 50%,rgba(255,255,255,.03)50%,rgba(255,255,255,.03)75%,transparent 75%),linear-gradient(-45deg,rgba(255,255,255,.03)25%,transparent 25%,transparent 50%,rgba(255,255,255,.03)50%,rgba(255,255,255,.03)75%,transparent 75%);background-size:8px 8px;animation:carbonShift 2s linear infinite}
+.header h1{font-family:'Oswald';font-size:1.6rem;font-weight:700;color:var(--pink);position:relative;text-shadow:0 0 10px var(--pink),0 0 30px rgba(255,20,147,.4)}
+.header .sub{font-family:'Oswald';font-size:.7rem;color:var(--pink);letter-spacing:3px;margin-top:2px;position:relative;opacity:.7}
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border)}
+.tabs button{flex:1;padding:10px 4px;background:none;border:none;color:var(--dim);font-size:.72rem;font-family:'Fira Sans';cursor:pointer;position:relative;transition:.2s}
+.tabs button.active{color:var(--red-light)}
+.tabs button.active::after{content:'';position:absolute;bottom:0;left:15%;right:15%;height:2px;background:var(--red);border-radius:2px}
+.section{display:none;padding:12px}.section.active{display:block}
+.search-box input{width:100%;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9rem;outline:none}
+.search-box input:focus{border-color:var(--red)}
+.cat-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
+.cat-tile{padding:8px 4px;border-radius:10px;text-align:center;font-size:.62rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:.2s;line-height:1.2}
+.cat-tile.active{border-color:#fff;transform:scale(1.02)}
+.cat-tile .t-icon{font-size:1.2rem;display:block;margin-bottom:2px}
+.cat-tile .t-cnt{font-size:.55rem;opacity:.6;display:block;margin-top:1px}
+.svc-item{display:flex;align-items:center;padding:10px;margin:4px 0;background:var(--card);border-radius:10px;border-left:3px solid transparent}
+.svc-item .svc-name{flex:1;font-size:.82rem}
+.svc-item .svc-price{font-weight:700;font-size:.85rem;white-space:nowrap;margin-left:8px}
+.svc-item .svc-add{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:1.1rem;font-weight:700;cursor:pointer;margin-left:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:2px solid var(--red);padding:10px 14px;display:none;z-index:100}
+.cart-bar.show{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cart-total{font-family:'Oswald';font-size:1.1rem;color:var(--red-light)}
+.cart-count{background:var(--red);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
+.cart-btn{padding:8px 18px;background:var(--red);color:#fff;border:none;border-radius:8px;font-weight:600;font-size:.85rem;cursor:pointer}
+.cart-btn:active{background:var(--red-dark)}
+.cart-item{display:flex;align-items:center;gap:6px;padding:8px;background:var(--card);border-radius:8px;margin:4px 0;font-size:.82rem}
+.cart-item .ci-name{flex:1}.cart-item .ci-qty{display:flex;align-items:center;gap:4px}
+.cart-item .ci-qty button{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.9rem;cursor:pointer}
+.cart-item .ci-qty span{min-width:20px;text-align:center;font-weight:700}
+.cart-item .ci-sum{font-weight:700;min-width:60px;text-align:right}
+.cart-item .ci-del{background:none;border:none;color:var(--red-light);font-size:1rem;cursor:pointer;padding:4px}
+.price-tbl{width:100%;border-collapse:collapse;margin-top:8px}
+.price-tbl th{background:rgba(211,47,47,.15);padding:8px;text-align:left;font-size:.75rem;font-weight:600}
+.price-tbl td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:.8rem}
+.price-tbl .cat-hdr td{font-weight:700;padding:10px 8px;font-size:.82rem;border-left:4px solid}
+.about-card{background:var(--card);border-radius:12px;padding:16px;margin:8px 0}
+.about-card h3{font-family:'Oswald';color:var(--red-light);margin-bottom:8px}
+.about-card p{font-size:.85rem;color:var(--dim);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="header"><h1>Top_Secret</h1><div class="sub">Ne_tot_brat • GT Tires Service</div></div>
+<div class="tabs">
+  <button class="active" data-tab="calc">🧮 Калькулятор</button>
+  <button data-tab="price">📋 Прайс</button>
+  <button data-tab="about">ℹ️ Про нас</button>
+</div>
+<div class="section active" id="sec-calc">
+  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук послуги..." id="calcSearch" oninput="renderCalcList()"></div>
+  <div class="cat-tiles" id="calcCats"></div>
+  <div id="calcList"></div>
+</div>
+<div class="section" id="sec-price">
+  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук..." id="priceSearch" oninput="renderPriceTable()"></div>
+  <div class="cat-tiles" id="priceCats"></div>
+  <table class="price-tbl" id="priceTable"></table>
+</div>
+<div class="section" id="sec-about">
+  <div class="about-card"><h3>🔒 Top_Secret</h3><p>Професійний шиномонтаж легкових, вантажних, сільгосп та спецтехніки. Ремонт шин, балансування, рихтування дисків.</p></div>
+  <div class="about-card"><h3>📍 Адреса</h3><p>Велика Димерка, Київська обл.</p></div>
+  <div class="about-card"><h3>🕐 Графік</h3><p>Пн-Сб: 08:00 — 20:00<br>Нд: 09:00 — 18:00</p></div>
+  <div class="about-card"><h3>📞 Контакти</h3><p>Телефон: +380XXXXXXXXX<br>Telegram: @top_secret_tires</p></div>
+</div>
+<div class="cart-bar" id="cartBar">
+  <div style="display:flex;align-items:center;gap:8px"><div class="cart-count" id="cartCount">0</div><div class="cart-total" id="cartTotal">0₴</div></div>
+  <div style="display:flex;gap:6px">
+    <button class="cart-btn" style="background:var(--card);border:1px solid var(--border);padding:8px" onclick="toggleCartView()">📝</button>
+    <button class="cart-btn" onclick="sendOrder()">📩 Надіслати</button>
+  </div>
+</div>
+<div class="section" id="sec-cart" style="display:none;padding-bottom:80px">
+  <h3 style="font-family:'Oswald';color:var(--red-light);margin-bottom:10px">Ваше замовлення</h3>
+  <div id="cartItems"></div>
+  <div style="text-align:right;font-family:'Oswald';font-size:1.3rem;margin-top:12px;padding:10px 0;border-top:2px solid var(--red)">ВСЬОГО: <span id="cartTotalBig">0₴</span></div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="cart-btn" style="flex:1" onclick="sendOrder()">📩 Надіслати</button>
+    <button class="cart-btn" style="flex:1;background:var(--card);border:1px solid var(--border)" onclick="clearCart()">🗑️ Очистити</button>
+  </div>
+  <button class="cart-btn" style="width:100%;margin-top:8px;background:var(--card);border:1px solid var(--border)" onclick="toggleCartView()">← Назад</button>
+</div>
+<script>
+const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand()}
+const CM=[
+  {name:"Легковий монтаж",icon:"🚗",color:"#4db6ac",s:"Легкові"},
+  {name:"Вантажний монтаж",icon:"🚛",color:"#8d6e63",s:"Вантажні"},
+  {name:"Сільгосп / Спец",icon:"🚜",color:"#78909c",s:"Сільгосп"},
+  {name:"Латки/Вентилі легк.",icon:"🩹",color:"#aed581",s:"Латки"},
+  {name:"Пластирі TL",icon:"🔴",color:"#ef5350",s:"TL"},
+  {name:"Пластирі CT",icon:"🟠",color:"#ff7043",s:"CT"},
+  {name:"Пластирі BP",icon:"🟡",color:"#ffa726",s:"BP"},
+  {name:"Пластирі UP",icon:"🟢",color:"#ffee58",s:"UP"},
+  {name:"Ремонт камер",icon:"🛞",color:"#26c6da",s:"Камери"},
+  {name:"Додатковий ремонт",icon:"🔧",color:"#66bb6a",s:"Дод.рем."},
+  {name:"Балансування",icon:"⚖️",color:"#42a5f5",s:"Баланс."},
+  {name:"Кріплення",icon:"🔩",color:"#7e57c2",s:"Кріплен."},
+  {name:"Вентилі",icon:"🎯",color:"#ec407a",s:"Вентилі"},
+  {name:"Рихтування",icon:"💿",color:"#ba68c8",s:"Рихтув."},
+];
+const P=[
+{c:0},{id:1,n:"Седан R13",p:175},{id:2,n:"Седан R14",p:190},{id:3,n:"Седан R15",p:210},{id:4,n:"Седан R16",p:220},{id:5,n:"Седан R17",p:250},{id:6,n:"Седан R18",p:290},{id:7,n:"Седан R19",p:310},{id:8,n:"Седан R20",p:335},{id:9,n:"Седан R21",p:355},{id:10,n:"Седан R22",p:375},{id:11,n:"Седан R23",p:405},{id:12,n:"Седан R24",p:435},{id:13,n:"RunFlat допл.",p:50},{id:14,n:"Джип/SUV R14",p:205},{id:15,n:"Джип/SUV R15",p:220},{id:16,n:"Джип/SUV R16",p:250},{id:17,n:"Джип/SUV R17",p:290},{id:18,n:"Джип/SUV R18",p:315},{id:19,n:"Джип/SUV R19",p:340},{id:20,n:"Джип/SUV R20",p:355},{id:21,n:"Джип/SUV R21",p:375},{id:22,n:"Джип/SUV R22",p:400},{id:23,n:"Джип/SUV R23",p:435},{id:24,n:"Джип/SUV R24",p:455},{id:25,n:"Джип RunFlat допл.",p:60},{id:26,n:"Бус R13",p:205},{id:27,n:"Бус R14",p:220},{id:28,n:"Бус R15",p:250},{id:29,n:"Бус R16",p:290},{id:30,n:"Бус R16 Газель",p:340},{id:31,n:"Бус R17",p:315},{id:32,n:"Бус R18",p:340},{id:33,n:"Спаровані допл./шт",p:25},
+{c:1},{id:34,n:"Монтаж R17.5 б/к",p:400},{id:35,n:"Монтаж R22.5 б/к",p:450},{id:36,n:"Монтаж R20 камерні",p:650},{id:37,n:"Монтаж R22.5+ кам.",p:800},{id:38,n:"Зн./вст. 1 колеса",p:180},{id:39,n:"Зн./вст. здвоєного",p:275},{id:40,n:"Поглиб. позд. R17.5",p:380},{id:41,n:"Поглиб. позд. R22.5",p:450},{id:42,n:"Поглиб. зміш. R17.5",p:580},{id:43,n:"Поглиб. зміш. R22.5",p:700},{id:44,n:"Поглиб. водовідв R17.5",p:250},{id:45,n:"Поглиб. водовідв R22.5",p:300},{id:46,n:"Слюсарні роб./год",p:800},{id:47,n:"Піддомкрач. ТЗ",p:150},{id:48,n:"Накачка",p:75},{id:49,n:"Підкачка",p:50},
+{c:2},{id:50,n:"С/г до 24\"",p:1200},{id:51,n:"С/г 33\"+",p:3200},{id:52,n:"Великогаб. до 28\"",p:3200},{id:53,n:"Великогаб. 28\"+",p:3850},{id:54,n:"Вентиль TR218A",p:280},{id:55,n:"Вентиль TR618A",p:460},{id:56,n:"Вентиль TRJ 653-03",p:700},
+{c:3},{id:57,n:"Латка УП-3",p:80},{id:58,n:"Латка УП-4,5",p:100},{id:59,n:"Латка TL-110",p:200},{id:60,n:"Латка TL-120",p:350},{id:61,n:"Латка TL-125",p:500},{id:62,n:"Вентиль TR 414",p:80},{id:63,n:"Вентиль TR 414(X)",p:90},{id:64,n:"Вентиль розбірний",p:130},{id:65,n:"Розгерметизація",p:40},{id:66,n:"Відновл. посадкового",p:150},{id:67,n:"Оптиміз. покришки",p:50},{id:68,n:"Датчик тиску",p:50},{id:69,n:"Пакет для колеса",p:30},{id:70,n:"Вулканізація 3см",p:300},{id:71,n:"Наст. 1см вулканіз.",p:100},
+{c:4},{id:72,n:"110 TL",p:700},{id:73,n:"112 TL",p:760},{id:74,n:"114 TL",p:820},{id:75,n:"115 TL",p:880},{id:76,n:"116 TL",p:940},{id:77,n:"120 TL",p:1000},{id:78,n:"122 TL",p:1100},{id:79,n:"124 TL",p:1150},{id:80,n:"125 TL",p:1200},{id:81,n:"126 TL",p:1250},{id:82,n:"128 TL",p:1300},{id:83,n:"135 TL",p:1750},{id:84,n:"140 TL",p:1400},{id:85,n:"142 TL",p:1850},{id:86,n:"144 TL",p:1950},{id:87,n:"146 TL",p:2050},{id:88,n:"331 TL",p:1650},{id:89,n:"333 TL",p:1750},{id:90,n:"335 TL",p:1850},{id:91,n:"337 TL",p:1950},{id:92,n:"533 TL",p:1750},{id:93,n:"537 TL",p:2100},
+{c:5},{id:94,n:"CT 10",p:650},{id:95,n:"CT 10 HD",p:700},{id:96,n:"CT 12",p:820},{id:97,n:"CT 12 HD",p:850},{id:98,n:"CT 20",p:1000},{id:99,n:"CT 22",p:1100},{id:100,n:"CT 24",p:1150},{id:101,n:"CT 26",p:1250},{id:102,n:"CT 33",p:1300},{id:103,n:"CT 35",p:1450},{id:104,n:"CT 37",p:1550},{id:105,n:"CT 40",p:1700},{id:106,n:"CT 42",p:1850},{id:107,n:"CT 44",p:1950},{id:108,n:"CT 46",p:2050},
+{c:6},{id:109,n:"BP 0 (60мм)",p:360},{id:110,n:"BP 1 (70мм)",p:380},{id:111,n:"BP 2 (90мм)",p:1300},{id:112,n:"BP 3 (100мм)",p:1500},{id:113,n:"BP 4 (130мм)",p:1700},{id:114,n:"BP 5 (165мм)",p:2000},{id:115,n:"BP 6 (240мм)",p:2600},{id:116,n:"BP 7 (290мм)",p:3000},
+{c:7},{id:117,n:"UP 3",p:400},{id:118,n:"UP 4,5",p:420},{id:119,n:"UP 6",p:450},{id:120,n:"UP 8",p:700},
+{c:8},{id:121,n:"Латка ов. Mini",p:120},{id:122,n:"Латка ов. Small",p:150},{id:123,n:"Латка ов. Med",p:180},{id:124,n:"Латка ов. Large",p:200},{id:125,n:"Латка ов. Giant",p:270},{id:126,n:"Латка ов. G.Rim",p:300},{id:127,n:"Латка кр. Tiny",p:180},{id:128,n:"Латка кр. Miny",p:120},{id:129,n:"Латка кр. Small",p:150},{id:130,n:"Латка кр. Med",p:180},{id:131,n:"Латка кр. Large",p:200},{id:132,n:"Латка кр. Maxi",p:270},{id:133,n:"Латка кр. Giant",p:300},{id:134,n:"Вент.осн. VG8",p:350},{id:135,n:"Вложка VS3",p:150},{id:136,n:"ТП прокол",p:150},{id:137,n:"ТП 5 см",p:250},{id:138,n:"ТП 10 см",p:300},{id:139,n:"ТП 15 см",p:400},{id:140,n:"ТП 20 см",p:500},
+{c:9},{id:141,n:"Косм.рем. бок. 1см²",p:35},{id:142,n:"Косм.рем. прот. 1см²",p:50},{id:143,n:"Ремонт A+B 5см",p:300},{id:144,n:"Дублюв. рем. мат.",p:300},{id:145,n:"Зняття стар. елем.",p:350},
+{c:10},{id:146,n:"Бал. R17.5 забивні",p:250},{id:147,n:"Бал. R17.5 заб.+вага",p:400},{id:148,n:"Бал. R17.5 адгез.",p:300},{id:149,n:"Бал. R19.5+ забивні",p:300},{id:150,n:"Бал. R19.5+ заб.+вага",p:450},{id:151,n:"Бал. R19.5+ адгез.",p:350},{id:152,n:"Тяг.заб. 25г",p:60},{id:153,n:"Тяг.заб. 50г",p:70},{id:154,n:"Тяг.заб. 75г",p:80},{id:155,n:"Тяг.заб. 100г",p:90},{id:156,n:"Тяг.заб. 150г",p:100},{id:157,n:"Тяг.заб. 200г",p:120},{id:158,n:"Тяг.заб. 250г",p:140},{id:159,n:"Тяг.заб. 300г",p:160},{id:160,n:"Тяг.заб. 350г",p:170},{id:161,n:"Тяг.заб. 400г",p:190},{id:162,n:"Тяг.адг. 50г",p:80},{id:163,n:"Тяг.адг. 75г",p:90},{id:164,n:"Тяг.адг. 100г",p:100},{id:165,n:"Тяг.адг. 150г",p:110},{id:166,n:"Тяг.адг. 175г",p:120},{id:167,n:"Тяг.адг. 200г",p:130},{id:168,n:"Тяг.адг. 250г",p:150},{id:169,n:"Тяг.адг. 300г",p:170},{id:170,n:"Бал. гранул. 1г",p:1.2},{id:171,n:"Оптим. дисбалансу",p:1000},
+{c:11},{id:172,n:"Заміна гайки М22",p:150},{id:173,n:"Центр.кільце",p:80},{id:174,n:"Шайба конусна",p:80},{id:175,n:"Перев. затяжки",p:100},{id:176,n:"Зрізання гайки",p:250},{id:177,n:"Ключ важк. гайок",p:100},{id:178,n:"Змащ. шпильок",p:25},{id:179,n:"Встан. ковпачка",p:25},
+{c:12},{id:180,n:"Заміна ковп./золот.",p:10},{id:181,n:"Вент. легкоспл.",p:275},{id:182,n:"Вент. прямий 32/42",p:200},{id:183,n:"Вент. прямий 84мм",p:250},{id:184,n:"Вент. вигнутий 90°",p:300},{id:185,n:"Подовж. пластик",p:100},{id:186,n:"Подовж. латунний",p:200},{id:187,n:"Подовж. гумовий",p:150},
+{c:13},{id:188,n:"Стал. R13-14",p:200},{id:189,n:"Стал. R15",p:250},{id:190,n:"Стал. R16",p:300},{id:191,n:"Стал. R17",p:350},{id:192,n:"Легкоспл. R13",p:300},{id:193,n:"Легкоспл. R14-15",p:350},{id:194,n:"Легкоспл. R16",p:400},{id:195,n:"Легкоспл. R17-18",p:450},{id:196,n:"Легкоспл. R19",p:500},{id:197,n:"Легкоспл. R20",p:550},{id:198,n:"Легкоспл. R21+",p:600},{id:199,n:"Рем. осьового зміщ.",p:400},
+];
+const fmt=n=>Number(n).toLocaleString('uk-UA')+'₴';
+let cart=[],calcCF=-1,priceCF=-1,cartOpen=false;
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+  const s=document.getElementById('sec-'+b.dataset.tab);if(s)s.classList.add('active');
+  if(cartOpen){cartOpen=false;document.getElementById('sec-cart').style.display='none'}
+}));
+function countC(ci){let n=0,c=-1;P.forEach(i=>{if(i.c!==undefined&&!i.id)c=i.c;if(i.id&&c===ci)n++});return n}
+function tiles(el,af,fn){
+  let h=`<div class="cat-tile${af===-1?' active':''}" style="background:rgba(255,255,255,.08);color:#fff" onclick="${fn}(-1)"><span class="t-icon">📋</span>Всі<span class="t-cnt">${P.filter(i=>i.id).length}</span></div>`;
+  CM.forEach((c,i)=>{h+=`<div class="cat-tile${af===i?' active':''}" style="background:${c.color}22;color:${c.color};border-color:${af===i?c.color:'transparent'}" onclick="${fn}(${i})"><span class="t-icon">${c.icon}</span>${c.s}<span class="t-cnt">${countC(i)}</span></div>`});
+  document.getElementById(el).innerHTML=h;
+}
+function setCC(i){calcCF=i;tiles('calcCats',calcCF,'setCC');renderCalcList()}
+function setPC(i){priceCF=i;tiles('priceCats',priceCF,'setPC');renderPriceTable()}
+function renderCalcList(){
+  const q=(document.getElementById('calcSearch')?.value||'').toLowerCase(),el=document.getElementById('calcList');
+  let h='',cur=-1;
+  P.forEach(it=>{if(it.c!==undefined&&!it.id){cur=it.c;return}if(!it.id)return;
+    if(calcCF>=0&&cur!==calcCF)return;if(q&&!it.n.toLowerCase().includes(q))return;
+    const c=CM[cur]||{color:'#999',icon:'?'},ic=cart.find(x=>x.id===it.id);
+    h+=`<div class="svc-item" style="border-left-color:${c.color}${ic?';opacity:.5':''}"><div class="svc-name"><span style="color:${c.color}">${c.icon}</span> ${it.n}</div><div class="svc-price">${fmt(it.p)}</div><button class="svc-add" onclick="addC(${it.id})"${ic?' style="background:var(--green)"':''}>+</button></div>`;
+  });
+  el.innerHTML=h||'<div style="text-align:center;padding:30px;color:var(--dim)">Нічого не знайдено</div>';
+}
+function renderPriceTable(){
+  const q=(document.getElementById('priceSearch')?.value||'').toLowerCase();
+  let h='<thead><tr><th>Послуга</th><th style="width:80px;text-align:right">Ціна</th></tr></thead><tbody>',cur=-1,sh={};
+  P.forEach(it=>{if(it.c!==undefined&&!it.id){cur=it.c;return}if(!it.id)return;
+    if(priceCF>=0&&cur!==priceCF)return;if(q&&!it.n.toLowerCase().includes(q))return;
+    if(!sh[cur]){const c=CM[cur];h+=`<tr class="cat-hdr"><td colspan="2" style="color:${c.color};border-color:${c.color};background:${c.color}14">${c.icon} ${c.name}</td></tr>`;sh[cur]=1}
+    h+=`<tr><td>${it.n}</td><td style="text-align:right;font-weight:600">${fmt(it.p)}</td></tr>`;
+  });
+  document.getElementById('priceTable').innerHTML=h+'</tbody>';
+}
+function addC(id){const it=P.find(i=>i.id===id);if(!it)return;const e=cart.find(x=>x.id===id);if(e)e.q++;else cart.push({id:it.id,n:it.n,p:it.p,q:1});upCart();renderCalcList()}
+function remC(id){cart=cart.filter(x=>x.id!==id);upCart();renderCalcList();if(cartOpen)renderCI()}
+function chgQ(id,d){const i=cart.find(x=>x.id===id);if(!i)return;i.q=Math.max(1,i.q+d);upCart();if(cartOpen)renderCI()}
+function upCart(){const t=cart.reduce((s,x)=>s+x.p*x.q,0),c=cart.reduce((s,x)=>s+x.q,0);
+  document.getElementById('cartBar').classList.toggle('show',cart.length>0);
+  document.getElementById('cartCount').textContent=c;document.getElementById('cartTotal').textContent=fmt(t);document.getElementById('cartTotalBig').textContent=fmt(t)}
+function renderCI(){let h='';cart.forEach(s=>{h+=`<div class="cart-item"><button class="ci-del" onclick="remC(${s.id})">✕</button><div class="ci-name">${s.n}</div><div class="ci-qty"><button onclick="chgQ(${s.id},-1)">−</button><span>${s.q}</span><button onclick="chgQ(${s.id},1)">+</button></div><div class="ci-sum">${fmt(s.p*s.q)}</div></div>`});
+  document.getElementById('cartItems').innerHTML=h||'<div style="text-align:center;padding:20px;color:var(--dim)">Порожньо</div>'}
+function toggleCartView(){cartOpen=!cartOpen;const s=document.getElementById('sec-cart');
+  if(cartOpen){document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));s.style.display='block';renderCI()}
+  else{s.style.display='none';document.querySelectorAll('.tabs button.active').forEach(b=>{const x=document.getElementById('sec-'+b.dataset.tab);if(x)x.classList.add('active')})}}
+function clearCart(){if(!confirm('Очистити?'))return;cart=[];upCart();renderCI();renderCalcList()}
+function sendOrder(){if(!cart.length){alert('Кошик порожній');return}const t=cart.reduce((s,x)=>s+x.p*x.q,0);
+  let txt='🔧 ЗАМОВЛЕННЯ:\n\n';cart.forEach(s=>{txt+=`• ${s.n} ×${s.q} — ${fmt(s.p*s.q)}\n`});txt+=`\n💰 ВСЬОГО: ${fmt(t)}`;
+  if(tg){tg.sendData(JSON.stringify({type:'order',items:cart,total:t}))}else{alert(txt)}
+  cart=[];upCart();renderCalcList();if(cartOpen)toggleCartView()}
+tiles('calcCats',calcCF,'setCC');renderCalcList();tiles('priceCats',priceCF,'setPC');renderPriceTable();
+</script>
+</body>
+</html>
