@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QR Code - GT Tires</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#0a0a0a;
+  color:#fff;
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+.card{
+  background:#141414;
+  border:2px solid #f0a500;
+  border-radius:24px;
+  padding:28px 24px;
+  max-width:360px;
+  width:100%;
+  text-align:center;
+  box-shadow:0 0 40px rgba(240,165,0,.15);
+}
+
+.brand{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:32px;
+  letter-spacing:.06em;
+  margin-bottom:4px;
+}
+.brand span{color:#f0a500;}
+
+.sub{
+  font-size:11px;
+  color:#888;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-bottom:20px;
+}
+
+.qr-wrap{
+  background:#000;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:20px;
+  border:1px solid #222;
+  display:inline-block;
+  width:100%;
+}
+
+.qr-wrap img{
+  width:100%;
+  max-width:280px;
+  height:auto;
+  border-radius:8px;
+  display:block;
+  margin:0 auto;
+}
+
+.scan-txt{
+  font-size:13px;
+  color:#888;
+  margin-bottom:6px;
+}
+
+.url-box{
+  background:#000;
+  border:1px solid #333;
+  border-radius:10px;
+  padding:10px 14px;
+  font-size:12px;
+  color:#f0a500;
+  word-break:break-all;
+  margin-bottom:20px;
+  font-family:monospace;
+}
+
+.divider{
+  height:1px;
+  background:linear-gradient(90deg,transparent,#f0a500,transparent);
+  margin:16px 0;
+}
+
+.info-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color:#aaa;
+  margin-bottom:6px;
+  text-align:left;
+}
+
+.footer{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:14px;
+  letter-spacing:.1em;
+  color:#f0a500;
+  margin-top:20px;
+  opacity:.6;
+}
+
+@media print {
+  body{background:#fff;}
+  .card{border-color:#000;box-shadow:none;}
+  .brand span{color:#000;}
+  .url-box{color:#000;border-color:#ccc;}
+  .info-row{color:#333;}
+  .footer{color:#000;}
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">GT <span>TIRES</span> SERVICE</div>
+  <div class="sub">ТОП-СЕРВІС · ВЕЛИКА ДИМАРКА</div>
+
+  <div class="qr-wrap">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://t.me/GTTiresService_bot&bgcolor=000000&color=f0a500&format=png&qzone=2" alt="QR Code GT Tires Bot">
+  </div>
+
+  <div class="scan-txt">📱 Відскануй камерою телефону</div>
+  <div class="url-box">t.me/GTTiresService_bot</div>
+
+  <div class="divider"></div>
+
+  <div class="info-row">📍 с. Велика Димарка, вул. Соборна 106</div>
+  <div class="info-row">📞 +38 068 259 01 96 · Viber ✓</div>
+  <div class="info-row">🕒 Пн–Сб: 08:00 – 20:00</div>
+  <div class="info-row">🛞 Шиномонтаж · Балансування · Ремонт</div>
+
+  <div class="footer">GT TIRES SERVICE — СЕРВІС, ЯКОМУ ДОВІРЯЮТЬ!</div>
+</div>
+
+</body>
+</html>
