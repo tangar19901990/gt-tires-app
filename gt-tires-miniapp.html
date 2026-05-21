@@ -6,252 +6,310 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Top_Secret — Telegram Mini App</title>
+<title>GT Tires Service — Шиномонтаж</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#121212;--card:#1e1e1e;--border:#333;--text:#f5f5f5;--dim:#aaa;--red:#D32F2F;--red-dark:#B71C1C;--red-light:#EF5350;--green:#4CAF50;--pink:#ff69b4}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Fira Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:90px}
-@keyframes carbonShift{0%{background-position:0 0}100%{background-position:8px 8px}}
-@keyframes wheelSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-@keyframes redSweep{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
-@keyframes logoGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(211,47,47,.6))}50%{filter:drop-shadow(0 0 16px rgba(211,47,47,.9))}}
-.header{background:linear-gradient(135deg,#1a0505 0%,#0a0a0a 50%,#1a0505 100%);padding:18px 16px;text-align:center;position:relative;overflow:hidden;border-bottom:3px solid var(--red)}
-/* carbon texture */
-.header::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(255,255,255,.025)25%,transparent 25%,transparent 50%,rgba(255,255,255,.025)50%,rgba(255,255,255,.025)75%,transparent 75%),linear-gradient(-45deg,rgba(255,255,255,.025)25%,transparent 25%,transparent 50%,rgba(255,255,255,.025)50%,rgba(255,255,255,.025)75%,transparent 75%);background-size:8px 8px;animation:carbonShift 2s linear infinite}
-/* red light sweep */
-.header::after{content:'';position:absolute;top:0;left:0;width:30%;height:100%;background:linear-gradient(90deg,transparent,rgba(211,47,47,.25),transparent);animation:redSweep 4s ease-in-out infinite;pointer-events:none}
-.header-logo{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:12px}
-.header-wheel{width:54px;height:54px;flex-shrink:0;animation:wheelSpin 6s linear infinite,logoGlow 3s ease-in-out infinite}
-.header-text{text-align:left}
-.header-text h1{font-family:'Oswald';font-size:2rem;font-weight:700;line-height:1;letter-spacing:1px}
-.header-text h1 .gt{color:var(--red);text-shadow:0 0 12px rgba(211,47,47,.7)}
-.header-text h1 .ires{color:#fff;text-shadow:0 0 12px rgba(255,255,255,.3)}
-.header-text .svc{font-family:'Oswald';font-size:.65rem;font-weight:600;color:var(--red);letter-spacing:5px;margin-top:1px}
-.header-tag{position:relative;z-index:2;font-family:'Oswald';font-size:.62rem;color:#ccc;letter-spacing:2px;margin-top:8px;text-transform:uppercase}
-/* feature badges */
-.features{display:flex;justify-content:space-around;padding:10px 8px;background:var(--card);border-bottom:1px solid var(--border);gap:4px}
-.feature{flex:1;text-align:center;font-size:.55rem;color:var(--dim);line-height:1.2}
-.feature .f-ic{font-size:1.2rem;display:block;margin-bottom:3px}
-.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border)}
-.tabs button{flex:1;padding:10px 4px;background:none;border:none;color:var(--dim);font-size:.72rem;font-family:'Fira Sans';cursor:pointer;position:relative;transition:.2s}
-.tabs button.active{color:var(--red-light)}
-.tabs button.active::after{content:'';position:absolute;bottom:0;left:15%;right:15%;height:2px;background:var(--red);border-radius:2px}
-.section{display:none;padding:12px}.section.active{display:block}
-.search-box input{width:100%;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9rem;outline:none}
-.search-box input:focus{border-color:var(--red)}
-.cat-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
-.cat-tile{padding:8px 4px;border-radius:10px;text-align:center;font-size:.62rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:.2s;line-height:1.2}
-.cat-tile.active{border-color:#fff;transform:scale(1.02)}
-.cat-tile .t-icon{font-size:1.2rem;display:block;margin-bottom:2px}
-.cat-tile .t-cnt{font-size:.55rem;opacity:.6;display:block;margin-top:1px}
-.svc-item{display:flex;align-items:center;padding:10px;margin:4px 0;background:var(--card);border-radius:10px;border-left:3px solid transparent}
-.svc-item .svc-name{flex:1;font-size:.82rem}
-.svc-item .svc-price{font-weight:700;font-size:.85rem;white-space:nowrap;margin-left:8px}
-.svc-item .svc-add{width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:1.1rem;font-weight:700;cursor:pointer;margin-left:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cart-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:2px solid var(--red);padding:10px 14px;display:none;z-index:100}
-.cart-bar.show{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.cart-total{font-family:'Oswald';font-size:1.1rem;color:var(--red-light)}
-.cart-count{background:var(--red);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
-.cart-btn{padding:8px 18px;background:var(--red);color:#fff;border:none;border-radius:8px;font-weight:600;font-size:.85rem;cursor:pointer}
-.cart-btn:active{background:var(--red-dark)}
-.cart-item{display:flex;align-items:center;gap:6px;padding:8px;background:var(--card);border-radius:8px;margin:4px 0;font-size:.82rem}
-.cart-item .ci-name{flex:1}.cart-item .ci-qty{display:flex;align-items:center;gap:4px}
-.cart-item .ci-qty button{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.9rem;cursor:pointer}
-.cart-item .ci-qty span{min-width:20px;text-align:center;font-weight:700}
-.cart-item .ci-sum{font-weight:700;min-width:60px;text-align:right}
-.cart-item .ci-del{background:none;border:none;color:var(--red-light);font-size:1rem;cursor:pointer;padding:4px}
-.price-tbl{width:100%;border-collapse:collapse;margin-top:8px}
-.price-tbl th{background:rgba(211,47,47,.15);padding:8px;text-align:left;font-size:.75rem;font-weight:600}
-.price-tbl td{padding:7px 8px;border-bottom:1px solid var(--border);font-size:.8rem}
-.price-tbl .cat-hdr td{font-weight:700;padding:10px 8px;font-size:.82rem;border-left:4px solid}
-.about-card{background:var(--card);border-radius:12px;padding:16px;margin:8px 0}
-.about-card h3{font-family:'Oswald';color:var(--red-light);margin-bottom:8px}
-.about-card p{font-size:.85rem;color:var(--dim);line-height:1.5}
-.call-fab{display:block;text-align:center;margin-top:16px;padding:16px;background:var(--green);color:#fff;text-decoration:none;border-radius:14px;font-weight:600;font-size:1rem;box-shadow:0 4px 15px rgba(76,175,80,.3)}
-.call-fab:active{transform:scale(.98)}
+:root{
+  --bg:#0a0a0c; --bg2:#121215; --card:#16161a; --card2:#1d1d22;
+  --red:#e10600; --red2:#ff1f1f; --red-dark:#8b0000; --red-glow:rgba(225,6,0,.5);
+  --text:#f5f5f7; --dim:#9a9aa0; --line:#2a2a30;
+  --steel:#c0c4cc; --steel-dark:#5a5e66;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;padding-bottom:30px}
+
+/* ===== ANIMATED BG ===== */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 20% 0%,rgba(225,6,0,.12),transparent 50%),
+    radial-gradient(ellipse at 90% 100%,rgba(225,6,0,.08),transparent 50%);
+}
+/* speed lines */
+@keyframes speedLine{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+body::after{content:'';position:fixed;top:0;left:0;right:0;height:100%;z-index:0;pointer-events:none;opacity:.4;
+  background:repeating-linear-gradient(115deg,transparent 0,transparent 60px,rgba(225,6,0,.04) 60px,rgba(225,6,0,.04) 62px);
+}
+
+/* ===== HEADER ===== */
+@keyframes wheelSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes neonFlicker{0%,100%{filter:drop-shadow(0 0 6px var(--red-glow)) drop-shadow(0 0 18px rgba(225,6,0,.4))}50%{filter:drop-shadow(0 0 12px var(--red2)) drop-shadow(0 0 30px var(--red-glow))}}
+@keyframes scanBeam{0%{left:-30%}100%{left:130%}}
+@keyframes badgeIn{from{opacity:0;transform:translateY(-12px) scale(.9)}to{opacity:1;transform:none}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+.header{position:relative;z-index:2;overflow:hidden;
+  background:linear-gradient(135deg,#08080a 0%,#1a0203 45%,#08080a 100%);
+  border-bottom:2px solid var(--red);padding:18px 16px 20px;
+  box-shadow:0 6px 30px rgba(225,6,0,.25);}
+/* tire tread texture on edges */
+.header .tread{position:absolute;top:0;bottom:0;width:60px;opacity:.15;
+  background:repeating-linear-gradient(0deg,#000 0 6px,transparent 6px 12px),repeating-linear-gradient(90deg,#fff 0 2px,transparent 2px 8px);}
+.header .tread.l{left:0}.header .tread.r{right:0;transform:scaleX(-1)}
+/* scan beam */
+.header .scan{position:absolute;top:0;bottom:0;width:30%;z-index:1;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.06),transparent);
+  animation:scanBeam 5s ease-in-out infinite;}
+
+.logo-row{display:flex;align-items:center;justify-content:center;gap:12px;position:relative;z-index:2}
+.logo-wheel{width:50px;height:50px;flex-shrink:0;animation:wheelSpin 8s linear infinite,neonFlicker 3s ease-in-out infinite}
+.logo-name{font-family:'Oswald';font-weight:700;font-size:2.1rem;line-height:.9;letter-spacing:1px}
+.logo-name .gt{color:var(--red2);text-shadow:0 0 12px var(--red-glow),2px 2px 0 #500}
+.logo-name .ires{color:#fff;text-shadow:0 0 10px rgba(255,255,255,.3)}
+.logo-svc{display:block;font-size:.7rem;letter-spacing:6px;color:var(--red2);font-weight:600;text-align:right;margin-top:2px}
+
+.tagline{text-align:center;margin-top:14px;position:relative;z-index:2;animation:slideUp .6s ease-out .1s both}
+.tagline .small{font-family:'Oswald';font-size:.78rem;letter-spacing:4px;color:var(--dim);font-weight:500}
+.tagline .big{font-family:'Oswald';font-size:2.3rem;font-weight:700;letter-spacing:2px;
+  background:linear-gradient(180deg,#fff,#b8bcc4);-webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 4px 20px rgba(0,0,0,.5);line-height:1}
+.tagline .chips{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.tagline .chip{font-family:'Oswald';font-size:.72rem;letter-spacing:2px;color:#fff;font-weight:600}
+.tagline .dot{color:var(--red2);font-size:.6rem}
+
+/* feature strip */
+.features{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  position:relative;z-index:2;border-bottom:1px solid var(--line)}
+.feat{background:var(--bg2);padding:10px 4px;text-align:center;animation:slideUp .5s ease-out both}
+.feat:nth-child(1){animation-delay:.15s}.feat:nth-child(2){animation-delay:.22s}
+.feat:nth-child(3){animation-delay:.29s}.feat:nth-child(4){animation-delay:.36s}
+.feat .ic{font-size:1.3rem;display:block;margin-bottom:3px;filter:drop-shadow(0 0 6px var(--red-glow))}
+.feat .tx{font-size:.62rem;color:var(--dim);font-weight:600;letter-spacing:.5px;line-height:1.2}
+
+/* ===== TABS / MENU BUTTONS ===== */
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;position:relative;z-index:2}
+.menu-btn{position:relative;overflow:hidden;cursor:pointer;border:none;border-radius:16px;padding:18px 14px;
+  background:linear-gradient(145deg,var(--card2),var(--card));
+  border:1.5px solid var(--line);text-align:left;transition:.25s;
+  box-shadow:0 6px 16px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04)}
+.menu-btn::before{content:'';position:absolute;inset:0;border-radius:16px;padding:1.5px;
+  background:linear-gradient(145deg,var(--red),transparent 60%);opacity:0;transition:.25s;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.menu-btn.active{border-color:var(--red);box-shadow:0 8px 24px var(--red-glow),inset 0 1px 0 rgba(255,255,255,.08);transform:translateY(-2px)}
+.menu-btn.active::before{opacity:1}
+.menu-btn.active .mb-ic{filter:drop-shadow(0 0 10px var(--red2));transform:scale(1.1)}
+.menu-btn:active{transform:scale(.97)}
+.mb-ic{font-size:1.9rem;display:block;margin-bottom:6px;transition:.25s}
+.mb-title{font-family:'Oswald';font-size:1.05rem;font-weight:600;color:#fff;letter-spacing:.5px}
+.mb-sub{font-size:.7rem;color:var(--dim);font-weight:500;margin-top:1px}
+.mb-glow{position:absolute;right:-20px;bottom:-20px;width:80px;height:80px;border-radius:50%;
+  background:radial-gradient(var(--red-glow),transparent 70%);opacity:0;transition:.25s}
+.menu-btn.active .mb-glow{opacity:.6}
+
+/* ===== CONTENT ===== */
+.content{padding:0 14px;position:relative;z-index:2}
+.section{display:none;animation:slideUp .4s ease-out}
+.section.active{display:block}
+
+.search-box{margin-bottom:12px}
+.search-box input{width:100%;padding:12px 16px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
+  color:var(--text);font-size:1rem;font-family:'Rajdhani';font-weight:500;outline:none;transition:.2s}
+.search-box input:focus{border-color:var(--red);box-shadow:0 0 0 3px var(--red-glow)}
+.search-box input::placeholder{color:var(--dim)}
+
+.sec-title{font-family:'Oswald';font-size:1.3rem;font-weight:700;color:#fff;margin:4px 0 12px;
+  display:flex;align-items:center;gap:8px;letter-spacing:.5px}
+.sec-title .bar{width:4px;height:24px;background:var(--red);border-radius:2px;box-shadow:0 0 10px var(--red-glow)}
+
+/* price card */
+.pcard{background:linear-gradient(145deg,var(--card2),var(--card));border:1px solid var(--line);
+  border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.pcard-head{padding:12px 16px;display:flex;align-items:center;gap:10px;
+  background:linear-gradient(90deg,rgba(225,6,0,.15),transparent);border-left:4px solid var(--red)}
+.pcard-head .ph-ic{font-size:1.5rem;filter:drop-shadow(0 0 8px var(--red-glow))}
+.pcard-head .ph-tx{font-family:'Oswald';font-size:1.05rem;font-weight:600;color:#fff;letter-spacing:.5px}
+.prow{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-top:1px solid rgba(255,255,255,.04)}
+.prow:active{background:rgba(225,6,0,.06)}
+.prow .pn{font-size:.92rem;color:var(--text);font-weight:500}
+.prow .pp{font-family:'Oswald';font-size:1rem;font-weight:600;color:var(--red2);white-space:nowrap;margin-left:10px;
+  text-shadow:0 0 8px rgba(225,6,0,.3)}
+
+/* about / contacts */
+.about-card{background:linear-gradient(145deg,var(--card2),var(--card));border:1px solid var(--line);
+  border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.about-card h3{font-family:'Oswald';font-size:1.05rem;color:var(--red2);margin-bottom:8px;letter-spacing:.5px;
+  display:flex;align-items:center;gap:8px}
+.about-card p{font-size:.95rem;color:var(--dim);line-height:1.6;font-weight:500}
+.about-card a{color:#fff;font-weight:600}
+
+.call-btn{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px;padding:16px;
+  background:linear-gradient(145deg,var(--red),var(--red-dark));color:#fff;text-decoration:none;
+  border-radius:14px;font-family:'Oswald';font-weight:600;font-size:1.1rem;letter-spacing:1px;
+  box-shadow:0 6px 20px var(--red-glow),inset 0 1px 0 rgba(255,255,255,.2);transition:.2s}
+.call-btn:active{transform:scale(.97)}
+.call-btn .cb-ic{font-size:1.4rem}
+
+.tg-btn{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;padding:14px;
+  background:linear-gradient(145deg,#229ed9,#1a7eb0);color:#fff;text-decoration:none;
+  border-radius:14px;font-family:'Oswald';font-weight:600;font-size:1rem;letter-spacing:.5px;
+  box-shadow:0 6px 18px rgba(34,158,217,.4);transition:.2s}
+.tg-btn:active{transform:scale(.97)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--dim)}
+.empty .e-ic{font-size:2.5rem;margin-bottom:10px;filter:drop-shadow(0 0 10px var(--red-glow))}
 </style>
 </head>
 <body>
+
+<!-- ===== HEADER ===== -->
 <div class="header">
-  <div class="header-logo">
-    <svg class="header-wheel" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <!-- outer red ring with neon -->
-      <circle cx="50" cy="50" r="48" fill="#0a0a0a" stroke="#D32F2F" stroke-width="3.5"/>
-      <circle cx="50" cy="50" r="48" fill="none" stroke="#ff5252" stroke-width="1" opacity="0.6"/>
-      <!-- tire tread dashes -->
-      <circle cx="50" cy="50" r="44" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="2 4" opacity="0.25"/>
-      <!-- rim base -->
-      <circle cx="50" cy="50" r="38" fill="#141414" stroke="#333" stroke-width="1"/>
-      <!-- alloy spokes (10, like sport rim) -->
-      <g stroke="#d8d8d8" stroke-width="4" stroke-linecap="round">
-        <line x1="50" y1="50" x2="50" y2="14"/>
-        <line x1="50" y1="50" x2="71" y2="21"/>
-        <line x1="50" y1="50" x2="85" y2="42"/>
-        <line x1="50" y1="50" x2="79" y2="68"/>
-        <line x1="50" y1="50" x2="62" y2="84"/>
-        <line x1="50" y1="50" x2="38" y2="84"/>
-        <line x1="50" y1="50" x2="21" y2="68"/>
-        <line x1="50" y1="50" x2="15" y2="42"/>
-        <line x1="50" y1="50" x2="29" y2="21"/>
+  <div class="tread l"></div>
+  <div class="tread r"></div>
+  <div class="scan"></div>
+  <div class="logo-row">
+    <svg class="logo-wheel" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="47" fill="#0a0a0a" stroke="#e10600" stroke-width="4"/>
+      <circle cx="50" cy="50" r="47" fill="none" stroke="#ff1f1f" stroke-width="1" opacity=".6"/>
+      <circle cx="50" cy="50" r="43" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="2 4" opacity=".2"/>
+      <circle cx="50" cy="50" r="37" fill="#141417" stroke="#333" stroke-width="1"/>
+      <g stroke="#c0c4cc" stroke-width="4" stroke-linecap="round">
+        <line x1="50" y1="50" x2="50" y2="15"/><line x1="50" y1="50" x2="70" y2="22"/>
+        <line x1="50" y1="50" x2="84" y2="42"/><line x1="50" y1="50" x2="78" y2="68"/>
+        <line x1="50" y1="50" x2="61" y2="84"/><line x1="50" y1="50" x2="39" y2="84"/>
+        <line x1="50" y1="50" x2="22" y2="68"/><line x1="50" y1="50" x2="16" y2="42"/>
+        <line x1="50" y1="50" x2="30" y2="22"/>
       </g>
-      <!-- hub -->
-      <circle cx="50" cy="50" r="13" fill="#1a1a1a" stroke="#D32F2F" stroke-width="2.5"/>
-      <circle cx="50" cy="50" r="13" fill="none" stroke="#ff5252" stroke-width="0.8" opacity="0.7"/>
-      <circle cx="50" cy="50" r="5" fill="#D32F2F"/>
-      <!-- lug nuts -->
-      <g fill="#888">
-        <circle cx="50" cy="42" r="1.3"/>
-        <circle cx="57" cy="47" r="1.3"/>
-        <circle cx="54" cy="56" r="1.3"/>
-        <circle cx="46" cy="56" r="1.3"/>
-        <circle cx="43" cy="47" r="1.3"/>
-      </g>
+      <circle cx="50" cy="50" r="12" fill="#1a1a1d" stroke="#e10600" stroke-width="2.5"/>
+      <circle cx="50" cy="50" r="4" fill="#e10600"/>
     </svg>
-    <div class="header-text">
-      <h1><span class="gt">GT</span><span class="ires">IRES</span></h1>
-      <div class="svc">SERVICE</div>
+    <div>
+      <div class="logo-name"><span class="gt">GT</span><span class="ires">IRES</span></div>
+      <span class="logo-svc">SERVICE</span>
     </div>
   </div>
-  <div class="header-tag">⚡ Професійний сервіс для вашого авто</div>
+  <div class="tagline">
+    <div class="small">⟫ ТВІЙ НАДІЙНИЙ ПАРТНЕР ⟪</div>
+    <div class="big">НА ДОРОЗІ</div>
+    <div class="chips"><span class="chip">ШВИДКО</span><span class="dot">◆</span><span class="chip">ЯКІСНО</span><span class="dot">◆</span><span class="chip">ПРОФЕСІЙНО</span></div>
+  </div>
 </div>
+
+<!-- features -->
 <div class="features">
-  <div class="feature"><span class="f-ic">🛡️</span>Якість<br>Гарантія</div>
-  <div class="feature"><span class="f-ic">🎧</span>Консультація<br>підтримка</div>
-  <div class="feature"><span class="f-ic">⚡</span>Швидкий<br>сервіс</div>
-  <div class="feature"><span class="f-ic">⚙️</span>Монтаж<br>балансування</div>
-  <div class="feature"><span class="f-ic">🔧</span>Ремонт<br>будь-який</div>
-</div>
-<div class="tabs">
-  <button class="active" data-tab="legkovi">🚗 Легкові</button>
-  <button data-tab="vantazhni">🚛 Вантажні</button>
-  <button data-tab="bu">🛞 Шини б/в</button>
-  <button data-tab="about">📞 Контакти</button>
+  <div class="feat"><span class="ic">🛞</span><span class="tx">ВЕЛИКИЙ<br>ВИБІР ШИН</span></div>
+  <div class="feat"><span class="ic">🛡️</span><span class="tx">ГАРАНТІЯ<br>ЯКОСТІ</span></div>
+  <div class="feat"><span class="ic">🚚</span><span class="tx">ШВИДКА<br>ВІДПРАВКА</span></div>
+  <div class="feat"><span class="ic">⭐</span><span class="tx">ПРОФЕСІЙНИЙ<br>ПІДХІД</span></div>
 </div>
 
-<div class="section active" id="sec-legkovi">
-  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук (R16, седан...)" id="legSearch" oninput="renderLeg()"></div>
-  <table class="price-tbl" id="legTable"></table>
+<!-- ===== MENU ===== -->
+<div class="menu">
+  <button class="menu-btn active" data-tab="leg"><span class="mb-glow"></span><span class="mb-ic">🚗</span><span class="mb-title">Легкові</span><span class="mb-sub">Седан • Джип • Бус</span></button>
+  <button class="menu-btn" data-tab="van"><span class="mb-glow"></span><span class="mb-ic">🚛</span><span class="mb-title">Вантажні</span><span class="mb-sub">R17.5 — R22.5</span></button>
+  <button class="menu-btn" data-tab="trac"><span class="mb-glow"></span><span class="mb-ic">🚜</span><span class="mb-title">Трактори</span><span class="mb-sub">Спецтехніка</span></button>
+  <button class="menu-btn" data-tab="bu"><span class="mb-glow"></span><span class="mb-ic">♻️</span><span class="mb-title">Шини б/в</span><span class="mb-sub">Наявність</span></button>
+  <button class="menu-btn" data-tab="about" style="grid-column:1/-1"><span class="mb-glow"></span><span class="mb-ic">📞</span><span class="mb-title">Контакти</span><span class="mb-sub">Адреса • Графік • Зв'язок</span></button>
 </div>
 
-<div class="section" id="sec-vantazhni">
-  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук (R22.5...)" id="vanSearch" oninput="renderVan()"></div>
-  <table class="price-tbl" id="vanTable"></table>
+<!-- ===== CONTENT ===== -->
+<div class="content">
+  <div class="section active" id="sec-leg">
+    <div class="search-box"><input type="text" placeholder="🔍 Пошук (R16, седан...)" id="legS" oninput="renderLeg()"></div>
+    <div id="legList"></div>
+  </div>
+  <div class="section" id="sec-van">
+    <div class="search-box"><input type="text" placeholder="🔍 Пошук (R22.5...)" id="vanS" oninput="renderVan()"></div>
+    <div id="vanList"></div>
+  </div>
+  <div class="section" id="sec-trac">
+    <div class="search-box"><input type="text" placeholder="🔍 Пошук..." id="tracS" oninput="renderTrac()"></div>
+    <div id="tracList"></div>
+  </div>
+  <div class="section" id="sec-bu">
+    <div class="search-box"><input type="text" placeholder="🔍 Пошук розміру (205/55...)" id="buS" oninput="renderBu()"></div>
+    <div id="buList"></div>
+  </div>
+  <div class="section" id="sec-about">
+    <div class="about-card"><h3>🔧 GT Tires Service</h3><p>Шиномонтаж легкових, вантажних авто, тракторів та спецтехніки. Швидко, якісно, професійно — твій надійний партнер на дорозі.</p></div>
+    <div class="about-card"><h3>📍 Адреса</h3><p>Велика Димерка, вул. Соборна 106<br>Tir Parking</p></div>
+    <div class="about-card"><h3>🕐 Графік роботи</h3><p>Пн–Сб: 08:00 — 20:00<br>Нд: 09:00 — 18:00</p></div>
+    <a href="tel:+380682590196" class="call-btn"><span class="cb-ic">📞</span> +38 068 259 01 96</a>
+    <a href="https://t.me/G_tires" class="tg-btn">✈️ Telegram: @G_tires</a>
+  </div>
 </div>
 
-<div class="section" id="sec-bu">
-  <div class="search-box" style="margin-bottom:8px"><input type="text" placeholder="🔍 Пошук розміру (205/55...)" id="buSearch" oninput="renderBu()"></div>
-  <div id="buList"></div>
-</div>
-
-<div class="section" id="sec-about">
-  <div class="about-card"><h3>🔒 Top_Secret</h3><p>Професійний шиномонтаж легкових, вантажних, сільгосп та спецтехніки. Ремонт шин, балансування, рихтування дисків.</p></div>
-  <div class="about-card"><h3>📍 Адреса</h3><p>Велика Димерка, вул. Соборна 106<br>Tir Parking</p></div>
-  <div class="about-card"><h3>🕐 Графік</h3><p>Пн-Сб: 08:00 — 20:00<br>Нд: 09:00 — 18:00</p></div>
-  <div class="about-card"><h3>📞 Контакти</h3><p>Телефон: <a href="tel:+380682590196" style="color:var(--red-light)">+38 068 259 01 96</a><br>Telegram: <a href="https://t.me/G_tires" style="color:var(--red-light)">@G_tires</a></p></div>
-  <a href="tel:+380682590196" class="call-fab">📞 Зателефонувати</a>
-</div>
 <script>
 const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand()}
-const CM=[
-  {name:"Легковий монтаж",icon:"🚗",color:"#4db6ac",s:"Легкові"},
-  {name:"Вантажний монтаж",icon:"🚛",color:"#8d6e63",s:"Вантажні"},
-  {name:"Сільгосп / Спец",icon:"🚜",color:"#78909c",s:"Сільгосп"},
-  {name:"Латки/Вентилі легк.",icon:"🩹",color:"#aed581",s:"Латки"},
-  {name:"Пластирі TL",icon:"🔴",color:"#ef5350",s:"TL"},
-  {name:"Пластирі CT",icon:"🟠",color:"#ff7043",s:"CT"},
-  {name:"Пластирі BP",icon:"🟡",color:"#ffa726",s:"BP"},
-  {name:"Пластирі UP",icon:"🟢",color:"#ffee58",s:"UP"},
-  {name:"Ремонт камер",icon:"🛞",color:"#26c6da",s:"Камери"},
-  {name:"Додатковий ремонт",icon:"🔧",color:"#66bb6a",s:"Дод.рем."},
-  {name:"Балансування",icon:"⚖️",color:"#42a5f5",s:"Баланс."},
-  {name:"Кріплення",icon:"🔩",color:"#7e57c2",s:"Кріплен."},
-  {name:"Вентилі",icon:"🎯",color:"#ec407a",s:"Вентилі"},
-  {name:"Рихтування",icon:"💿",color:"#ba68c8",s:"Рихтув."},
-];
-const P=[
-{c:0},{id:1,n:"Седан R13",p:175},{id:2,n:"Седан R14",p:190},{id:3,n:"Седан R15",p:210},{id:4,n:"Седан R16",p:220},{id:5,n:"Седан R17",p:250},{id:6,n:"Седан R18",p:290},{id:7,n:"Седан R19",p:310},{id:8,n:"Седан R20",p:335},{id:9,n:"Седан R21",p:355},{id:10,n:"Седан R22",p:375},{id:11,n:"Седан R23",p:405},{id:12,n:"Седан R24",p:435},{id:13,n:"RunFlat допл.",p:50},{id:14,n:"Джип/SUV R14",p:205},{id:15,n:"Джип/SUV R15",p:220},{id:16,n:"Джип/SUV R16",p:250},{id:17,n:"Джип/SUV R17",p:290},{id:18,n:"Джип/SUV R18",p:315},{id:19,n:"Джип/SUV R19",p:340},{id:20,n:"Джип/SUV R20",p:355},{id:21,n:"Джип/SUV R21",p:375},{id:22,n:"Джип/SUV R22",p:400},{id:23,n:"Джип/SUV R23",p:435},{id:24,n:"Джип/SUV R24",p:455},{id:25,n:"Джип RunFlat допл.",p:60},{id:26,n:"Бус R13",p:205},{id:27,n:"Бус R14",p:220},{id:28,n:"Бус R15",p:250},{id:29,n:"Бус R16",p:290},{id:30,n:"Бус R16 Газель",p:340},{id:31,n:"Бус R17",p:315},{id:32,n:"Бус R18",p:340},{id:33,n:"Спаровані допл./шт",p:25},
-{c:1},{id:34,n:"Монтаж R17.5 б/к",p:400},{id:35,n:"Монтаж R22.5 б/к",p:450},{id:36,n:"Монтаж R20 камерні",p:650},{id:37,n:"Монтаж R22.5+ кам.",p:800},{id:38,n:"Зн./вст. 1 колеса",p:180},{id:39,n:"Зн./вст. здвоєного",p:275},{id:40,n:"Поглиб. позд. R17.5",p:380},{id:41,n:"Поглиб. позд. R22.5",p:450},{id:42,n:"Поглиб. зміш. R17.5",p:580},{id:43,n:"Поглиб. зміш. R22.5",p:700},{id:44,n:"Поглиб. водовідв R17.5",p:250},{id:45,n:"Поглиб. водовідв R22.5",p:300},{id:46,n:"Слюсарні роб./год",p:800},{id:47,n:"Піддомкрач. ТЗ",p:150},{id:48,n:"Накачка",p:75},{id:49,n:"Підкачка",p:50},
-{c:2},{id:50,n:"С/г до 24\"",p:1200},{id:51,n:"С/г 33\"+",p:3200},{id:52,n:"Великогаб. до 28\"",p:3200},{id:53,n:"Великогаб. 28\"+",p:3850},{id:54,n:"Вентиль TR218A",p:280},{id:55,n:"Вентиль TR618A",p:460},{id:56,n:"Вентиль TRJ 653-03",p:700},
-{c:3},{id:57,n:"Латка УП-3",p:80},{id:58,n:"Латка УП-4,5",p:100},{id:59,n:"Латка TL-110",p:200},{id:60,n:"Латка TL-120",p:350},{id:61,n:"Латка TL-125",p:500},{id:62,n:"Вентиль TR 414",p:80},{id:63,n:"Вентиль TR 414(X)",p:90},{id:64,n:"Вентиль розбірний",p:130},{id:65,n:"Розгерметизація",p:40},{id:66,n:"Відновл. посадкового",p:150},{id:67,n:"Оптиміз. покришки",p:50},{id:68,n:"Датчик тиску",p:50},{id:69,n:"Пакет для колеса",p:30},{id:70,n:"Вулканізація 3см",p:300},{id:71,n:"Наст. 1см вулканіз.",p:100},
-{c:4},{id:72,n:"110 TL",p:700},{id:73,n:"112 TL",p:760},{id:74,n:"114 TL",p:820},{id:75,n:"115 TL",p:880},{id:76,n:"116 TL",p:940},{id:77,n:"120 TL",p:1000},{id:78,n:"122 TL",p:1100},{id:79,n:"124 TL",p:1150},{id:80,n:"125 TL",p:1200},{id:81,n:"126 TL",p:1250},{id:82,n:"128 TL",p:1300},{id:83,n:"135 TL",p:1750},{id:84,n:"140 TL",p:1400},{id:85,n:"142 TL",p:1850},{id:86,n:"144 TL",p:1950},{id:87,n:"146 TL",p:2050},{id:88,n:"331 TL",p:1650},{id:89,n:"333 TL",p:1750},{id:90,n:"335 TL",p:1850},{id:91,n:"337 TL",p:1950},{id:92,n:"533 TL",p:1750},{id:93,n:"537 TL",p:2100},
-{c:5},{id:94,n:"CT 10",p:650},{id:95,n:"CT 10 HD",p:700},{id:96,n:"CT 12",p:820},{id:97,n:"CT 12 HD",p:850},{id:98,n:"CT 20",p:1000},{id:99,n:"CT 22",p:1100},{id:100,n:"CT 24",p:1150},{id:101,n:"CT 26",p:1250},{id:102,n:"CT 33",p:1300},{id:103,n:"CT 35",p:1450},{id:104,n:"CT 37",p:1550},{id:105,n:"CT 40",p:1700},{id:106,n:"CT 42",p:1850},{id:107,n:"CT 44",p:1950},{id:108,n:"CT 46",p:2050},
-{c:6},{id:109,n:"BP 0 (60мм)",p:360},{id:110,n:"BP 1 (70мм)",p:380},{id:111,n:"BP 2 (90мм)",p:1300},{id:112,n:"BP 3 (100мм)",p:1500},{id:113,n:"BP 4 (130мм)",p:1700},{id:114,n:"BP 5 (165мм)",p:2000},{id:115,n:"BP 6 (240мм)",p:2600},{id:116,n:"BP 7 (290мм)",p:3000},
-{c:7},{id:117,n:"UP 3",p:400},{id:118,n:"UP 4,5",p:420},{id:119,n:"UP 6",p:450},{id:120,n:"UP 8",p:700},
-{c:8},{id:121,n:"Латка ов. Mini",p:120},{id:122,n:"Латка ов. Small",p:150},{id:123,n:"Латка ов. Med",p:180},{id:124,n:"Латка ов. Large",p:200},{id:125,n:"Латка ов. Giant",p:270},{id:126,n:"Латка ов. G.Rim",p:300},{id:127,n:"Латка кр. Tiny",p:180},{id:128,n:"Латка кр. Miny",p:120},{id:129,n:"Латка кр. Small",p:150},{id:130,n:"Латка кр. Med",p:180},{id:131,n:"Латка кр. Large",p:200},{id:132,n:"Латка кр. Maxi",p:270},{id:133,n:"Латка кр. Giant",p:300},{id:134,n:"Вент.осн. VG8",p:350},{id:135,n:"Вложка VS3",p:150},{id:136,n:"ТП прокол",p:150},{id:137,n:"ТП 5 см",p:250},{id:138,n:"ТП 10 см",p:300},{id:139,n:"ТП 15 см",p:400},{id:140,n:"ТП 20 см",p:500},
-{c:9},{id:141,n:"Косм.рем. бок. 1см²",p:35},{id:142,n:"Косм.рем. прот. 1см²",p:50},{id:143,n:"Ремонт A+B 5см",p:300},{id:144,n:"Дублюв. рем. мат.",p:300},{id:145,n:"Зняття стар. елем.",p:350},
-{c:10},{id:146,n:"Бал. R17.5 забивні",p:250},{id:147,n:"Бал. R17.5 заб.+вага",p:400},{id:148,n:"Бал. R17.5 адгез.",p:300},{id:149,n:"Бал. R19.5+ забивні",p:300},{id:150,n:"Бал. R19.5+ заб.+вага",p:450},{id:151,n:"Бал. R19.5+ адгез.",p:350},{id:152,n:"Тяг.заб. 25г",p:60},{id:153,n:"Тяг.заб. 50г",p:70},{id:154,n:"Тяг.заб. 75г",p:80},{id:155,n:"Тяг.заб. 100г",p:90},{id:156,n:"Тяг.заб. 150г",p:100},{id:157,n:"Тяг.заб. 200г",p:120},{id:158,n:"Тяг.заб. 250г",p:140},{id:159,n:"Тяг.заб. 300г",p:160},{id:160,n:"Тяг.заб. 350г",p:170},{id:161,n:"Тяг.заб. 400г",p:190},{id:162,n:"Тяг.адг. 50г",p:80},{id:163,n:"Тяг.адг. 75г",p:90},{id:164,n:"Тяг.адг. 100г",p:100},{id:165,n:"Тяг.адг. 150г",p:110},{id:166,n:"Тяг.адг. 175г",p:120},{id:167,n:"Тяг.адг. 200г",p:130},{id:168,n:"Тяг.адг. 250г",p:150},{id:169,n:"Тяг.адг. 300г",p:170},{id:170,n:"Бал. гранул. 1г",p:1.2},{id:171,n:"Оптим. дисбалансу",p:1000},
-{c:11},{id:172,n:"Заміна гайки М22",p:150},{id:173,n:"Центр.кільце",p:80},{id:174,n:"Шайба конусна",p:80},{id:175,n:"Перев. затяжки",p:100},{id:176,n:"Зрізання гайки",p:250},{id:177,n:"Ключ важк. гайок",p:100},{id:178,n:"Змащ. шпильок",p:25},{id:179,n:"Встан. ковпачка",p:25},
-{c:12},{id:180,n:"Заміна ковп./золот.",p:10},{id:181,n:"Вент. легкоспл.",p:275},{id:182,n:"Вент. прямий 32/42",p:200},{id:183,n:"Вент. прямий 84мм",p:250},{id:184,n:"Вент. вигнутий 90°",p:300},{id:185,n:"Подовж. пластик",p:100},{id:186,n:"Подовж. латунний",p:200},{id:187,n:"Подовж. гумовий",p:150},
-{c:13},{id:188,n:"Стал. R13-14",p:200},{id:189,n:"Стал. R15",p:250},{id:190,n:"Стал. R16",p:300},{id:191,n:"Стал. R17",p:350},{id:192,n:"Легкоспл. R13",p:300},{id:193,n:"Легкоспл. R14-15",p:350},{id:194,n:"Легкоспл. R16",p:400},{id:195,n:"Легкоспл. R17-18",p:450},{id:196,n:"Легкоспл. R19",p:500},{id:197,n:"Легкоспл. R20",p:550},{id:198,n:"Легкоспл. R21+",p:600},{id:199,n:"Рем. осьового зміщ.",p:400},
-];
 const fmt=n=>Number(n).toLocaleString('uk-UA')+'₴';
 
-// ⚠️ ШИНИ Б/В — оновлюється з адмінки (кнопка "Для бота")
+// ===== ШИНОМОНТАЖ ONLY (без латок, ремонту, балансування) =====
+// Легкові — зняття/встановлення/перевзування
+const LEG=[
+  {g:"🚗 Седан / Хетчбек",items:[
+    {n:"R13",p:175},{n:"R14",p:190},{n:"R15",p:210},{n:"R16",p:220},{n:"R17",p:250},{n:"R18",p:290},
+    {n:"R19",p:310},{n:"R20",p:335},{n:"R21",p:355},{n:"R22",p:375},{n:"R23",p:405},{n:"R24",p:435},
+    {n:"RunFlat / S45 (доплата)",p:50},
+  ]},
+  {g:"🚙 Джип / SUV / Мінівен",items:[
+    {n:"R14",p:205},{n:"R15",p:220},{n:"R16",p:250},{n:"R17",p:290},{n:"R18",p:315},{n:"R19",p:340},
+    {n:"R20",p:355},{n:"R21",p:375},{n:"R22",p:400},{n:"R23",p:435},{n:"R24",p:455},
+    {n:"RunFlat / S45 (доплата)",p:60},
+  ]},
+  {g:"🚐 Бус / Комерційний",items:[
+    {n:"R13",p:205},{n:"R14",p:220},{n:"R15",p:250},{n:"R16",p:290},{n:"R16 Газель",p:340},
+    {n:"R17",p:315},{n:"R18",p:340},{n:"Спаровані (доплата/шт)",p:25},
+  ]},
+];
+// Вантажні
+const VAN=[
+  {g:"🚛 Шиномонтаж вантажний",items:[
+    {n:"R17.5 безкамерні",p:400},{n:"R22.5 безкамерні",p:450},
+    {n:"R20 камерні",p:650},{n:"R22.5+ камерні",p:800},
+  ]},
+  {g:"🔧 Додаткові роботи",items:[
+    {n:"Зняття/встановлення 1 колеса",p:180},{n:"Зняття/встановлення здвоєного",p:275},
+    {n:"Піддомкрачування ТЗ",p:150},{n:"Накачка",p:75},{n:"Підкачка",p:50},
+  ]},
+];
+// Трактори / Спецтехніка
+const TRAC=[
+  {g:"🚜 Сільгосп / Спецтехніка",items:[
+    {n:"Шиномонтаж с/г до 24\"",p:1200},{n:"Шиномонтаж с/г 33\"+",p:3200},
+    {n:"Великогабаритні до 28\"",p:3200},{n:"Великогабаритні понад 28\"",p:3850},
+  ]},
+];
+// Шини б/в — оновлюється з адмінки
 const BU_TIRES=[
-  // Приклад формату (заміни своїми):
   // {s:"205/55 R16",b:"Michelin",se:"summer",q:4,p:800},
 ];
 
-// Tabs
-document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
-  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+document.querySelectorAll('.menu-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.menu-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
   document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
   const s=document.getElementById('sec-'+b.dataset.tab);if(s)s.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
 }));
 
-// Helper: render price rows for given category indexes
-function priceRows(catIndexes,q){
-  let h='',cur=-1,shown={};
-  P.forEach(it=>{
-    if(it.c!==undefined&&!it.id){cur=it.c;return}
-    if(!it.id)return;
-    if(!catIndexes.includes(cur))return;
-    if(q&&!it.n.toLowerCase().includes(q))return;
-    if(!shown[cur]){
-      const c=CM[cur];
-      h+=`<tr class="cat-hdr"><td colspan="2" style="color:${c.color};border-color:${c.color};background:${c.color}14">${c.icon} ${c.name}</td></tr>`;
-      shown[cur]=1;
-    }
-    h+=`<tr><td>${it.n}</td><td style="text-align:right;font-weight:600">${fmt(it.p)}</td></tr>`;
-  });
-  return h||'<tr><td colspan="2" style="text-align:center;padding:20px;color:var(--dim)">Нічого не знайдено</td></tr>';
-}
-
-// Легкові = монтаж легкових(0) + латки легк(3) + рихтування(13) + вентилі(12) + кріплення(11)
-function renderLeg(){
-  const q=(document.getElementById('legSearch')?.value||'').toLowerCase();
-  document.getElementById('legTable').innerHTML='<thead><tr><th>Послуга</th><th style="width:80px;text-align:right">Ціна</th></tr></thead><tbody>'+priceRows([0,3,11,12,13],q)+'</tbody>';
-}
-// Вантажні = вантажний монтаж(1) + сільгосп(2) + балансування(10) + пластирі TL,CT,BP,UP(4,5,6,7) + камери(8) + дод.ремонт(9)
-function renderVan(){
-  const q=(document.getElementById('vanSearch')?.value||'').toLowerCase();
-  document.getElementById('vanTable').innerHTML='<thead><tr><th>Послуга</th><th style="width:80px;text-align:right">Ціна</th></tr></thead><tbody>'+priceRows([1,2,10,4,5,6,7,8,9],q)+'</tbody>';
-}
-// Шини б/в
-function renderBu(){
-  const q=(document.getElementById('buSearch')?.value||'').toLowerCase();
-  const el=document.getElementById('buList');
-  if(!BU_TIRES.length){
-    el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--dim)"><div style="font-size:2rem;margin-bottom:10px">🛞</div>Наявність уточнюйте за телефоном:<br><a href="tel:+380682590196" style="color:var(--red-light);font-weight:600">+38 068 259 01 96</a></div>';
-    return;
-  }
-  const seasonIcon=s=>s==='winter'?'❄️':s==='summer'?'☀️':s==='allseason'?'🌦️':'🛞';
+function renderGroups(groups,q,elId){
   let h='';
-  BU_TIRES.forEach(t=>{
-    const txt=(t.s+' '+(t.b||'')).toLowerCase();
-    if(q&&!txt.includes(q))return;
-    h+=`<div class="svc-item" style="border-left-color:#26c6da">
-      <div class="svc-name">${seasonIcon(t.se)} <b>${t.s}</b>${t.b?' • '+t.b:''}${t.q?' <span style="color:var(--dim);font-size:.75rem">('+t.q+' шт)</span>':''}</div>
-      <div class="svc-price">${fmt(t.p)}</div>
-    </div>`;
+  groups.forEach(grp=>{
+    const rows=grp.items.filter(it=>!q||it.n.toLowerCase().includes(q));
+    if(!rows.length)return;
+    h+=`<div class="pcard"><div class="pcard-head"><span class="ph-ic">${grp.g.split(' ')[0]}</span><span class="ph-tx">${grp.g.substring(grp.g.indexOf(' ')+1)}</span></div>`;
+    rows.forEach(it=>{h+=`<div class="prow"><span class="pn">${it.n}</span><span class="pp">${fmt(it.p)}</span></div>`});
+    h+='</div>';
   });
-  el.innerHTML=h||'<div style="text-align:center;padding:30px;color:var(--dim)">Нічого не знайдено</div>';
+  document.getElementById(elId).innerHTML=h||'<div class="empty"><div class="e-ic">🔍</div>Нічого не знайдено</div>';
+}
+function renderLeg(){renderGroups(LEG,(document.getElementById('legS').value||'').toLowerCase(),'legList')}
+function renderVan(){renderGroups(VAN,(document.getElementById('vanS').value||'').toLowerCase(),'vanList')}
+function renderTrac(){renderGroups(TRAC,(document.getElementById('tracS').value||'').toLowerCase(),'tracList')}
+function renderBu(){
+  const q=(document.getElementById('buS').value||'').toLowerCase(),el=document.getElementById('buList');
+  if(!BU_TIRES.length){el.innerHTML='<div class="empty"><div class="e-ic">🛞</div>Наявність уточнюйте за телефоном:<br><a href="tel:+380682590196" style="color:var(--red2);font-weight:700">+38 068 259 01 96</a></div>';return}
+  const si=s=>s==='winter'?'❄️':s==='summer'?'☀️':s==='allseason'?'🌦️':'🛞';
+  let h='<div class="pcard"><div class="pcard-head"><span class="ph-ic">♻️</span><span class="ph-tx">Шини б/в в наявності</span></div>';
+  let any=false;
+  BU_TIRES.forEach(t=>{
+    if(q&&!(t.s+' '+(t.b||'')).toLowerCase().includes(q))return;
+    any=true;
+    h+=`<div class="prow"><span class="pn">${si(t.se)} <b>${t.s}</b>${t.b?' • '+t.b:''}${t.q?' ('+t.q+'шт)':''}</span><span class="pp">${fmt(t.p)}</span></div>`;
+  });
+  h+='</div>';
+  el.innerHTML=any?h:'<div class="empty"><div class="e-ic">🔍</div>Нічого не знайдено</div>';
 }
 
-// init
-renderLeg();renderVan();renderBu();
+renderLeg();renderVan();renderTrac();renderBu();
 </script>
 </body>
 </html>
