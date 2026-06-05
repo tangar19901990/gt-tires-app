@@ -528,6 +528,8 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 const fmtDate = d => { const dt=new Date(d); return dt.toLocaleDateString('uk-UA')+' '+dt.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}); };
 const fmtMoney = n => Number(n).toLocaleString('uk-UA')+'₴';
 const today = () => new Date().toISOString().slice(0,10);
+const payLabel = p => p==='card' ? '💳 Безготівковий' : (p==='cash' ? '💵 Готівка' : '—');
+const digitsOnly = s => (s||'').replace(/\D/g,'');
 
 // ==================== PRICE LIST (14 categories, 199 items) ====================
 // Priority: 1)Монтаж 2)Ремонт/латки 3)Решта
@@ -546,6 +548,7 @@ const CAT_META = [
   { name:"Кріплення", icon:"🔩", color:"#7e57c2", short:"Кріплення" },
   { name:"Вентилі", icon:"🎯", color:"#ec407a", short:"Вентилі" },
   { name:"Рихтування дисків", icon:"💿", color:"#ba68c8", short:"Рихтування" },
+  { name:"Свої послуги", icon:"➕", color:"#90a4ae", short:"Свої" },
 ];
 const PRICE_LIST = [
   // === 0: ЛЕГКОВИЙ МОНТАЖ ===
@@ -712,6 +715,29 @@ const PRICE_LIST = [
   {id:198,name:"Легкосплавний R21+",price:600},{id:199,name:"Ремонт осьового зміщення",price:400},
 ];
 
+// ==================== СВОЇ ПОСЛУГИ (додані вручну) ====================
+let customPrices = load('custom_prices'); // [{id,name,price}]
+(function mergeCustomPrices(){
+  if(customPrices && customPrices.length){
+    PRICE_LIST.push({cat:14});
+    customPrices.forEach(c => PRICE_LIST.push({id:c.id, name:c.name, price:c.price, custom:true}));
+  }
+})();
+function nextCustomId(){
+  let mx = 199;
+  PRICE_LIST.forEach(i => { if(typeof i.id === 'number' && i.id > mx) mx = i.id; });
+  return mx + 1;
+}
+function addCustomPriceItem(name, price){
+  const id = nextCustomId();
+  customPrices.push({id, name, price});
+  save('custom_prices', customPrices);
+  if(!PRICE_LIST.some(x => x.cat === 14)) PRICE_LIST.push({cat:14});
+  PRICE_LIST.push({id, name, price, custom:true});
+  if(document.getElementById('priceTable')){ renderCatTiles(); renderPrice(); }
+  return {id, name, price};
+}
+
 // ==================== NAV ====================
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -816,25 +842,46 @@ function filterOrders(){
         <span class="badge ${statusMap[o.status]||'badge-new'}">${statusText[o.status]||o.status}</span>
       </div>
       <div style="margin-top:6px;font-size:0.85rem">
-        <div>🚗 ${o.car||'—'}</div>
+        <div>🚗 ${o.car||'—'}${o.plate?' • <b>'+o.plate+'</b>':''}</div>
         <div>👤 ${o.clientName||'—'} ${o.phone?'• '+o.phone:''}</div>
-        <div style="color:var(--text-dim);font-size:0.78rem">${fmtDate(o.date)}</div>
+        <div style="color:var(--text-dim);font-size:0.78rem">${fmtDate(o.date)}${o.payment?' • '+payLabel(o.payment):''}</div>
       </div>
       <div style="margin-top:6px;font-family:'Oswald';font-size:1.1rem">${fmtMoney(o.total||0)}${topSecret?' <span class="ts-price">(майстер: '+fmtMoney(Math.round((o.total||0)*0.35))+')</span>':''}</div>
     </div>`;
   });
   document.getElementById('ordersList').innerHTML = html;
 }
-function openNewOrder(){
+let _editingOrderId = null;
+function openNewOrder(){ openOrderForm(null); }
+function editOrder(oid){ const o = orders.find(x=>x.id===oid); if(o) openOrderForm(o); }
+function openOrderForm(o){
+  _editingOrderId = o ? o.id : null;
   openModal(`
-    <h3>Нове замовлення</h3>
+    <h3>${o ? 'Редагувати замовлення' : 'Нове замовлення'}</h3>
     <label>Клієнт</label><input id="oClient" placeholder="Ім'я клієнта">
     <label>Телефон</label><input id="oPhone" type="tel" placeholder="+380...">
-    <label>Авто</label><input id="oCar" placeholder="Марка, модель, номер">
+    <label>Авто</label><input id="oCar" placeholder="Марка, модель">
+    <label>Номер авто</label><input id="oPlate" placeholder="АА 0000 ВВ">
+    <label>Форма оплати</label>
+    <select id="oPay">
+      <option value="cash">💵 Готівка</option>
+      <option value="card">💳 Безготівковий</option>
+    </select>
     <label>Послуги</label>
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="oSvcCatBtns"></div>
     <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:6px">
     <div id="oSvcPickList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:8px"></div>
+    <div style="border:1px dashed var(--border);border-radius:8px;padding:8px;margin-bottom:8px">
+      <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:6px">➕ Своя послуга (вручну)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input type="text" id="oCustName" placeholder="Назва послуги" style="flex:2;min-width:130px;margin:0">
+        <input type="number" id="oCustPrice" placeholder="Ціна" style="flex:1;min-width:70px;margin:0">
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.75rem;margin-top:8px;cursor:pointer">
+        <input type="checkbox" id="oCustSave" style="width:auto;margin:0"> Зберегти в прайс
+      </label>
+      <button class="btn btn-dark btn-sm" style="margin-top:6px;width:100%" onclick="addCustomSvc()">＋ Додати послугу</button>
+    </div>
     <div id="oSelectedSvcs" style="margin-bottom:8px"></div>
     <div id="oSvcTotal" style="font-family:'Oswald';font-size:1.3rem;text-align:right;color:var(--red-light);margin-bottom:8px"></div>
     <label>Нотатки</label><textarea id="oNotes" rows="2"></textarea>
@@ -843,10 +890,38 @@ function openNewOrder(){
       <button class="btn btn-dark" onclick="closeModal()">Скасувати</button>
     </div>
   `);
-  window._orderSvcs = [];
+  if(o){
+    document.getElementById('oClient').value = o.clientName || '';
+    document.getElementById('oPhone').value = o.phone || '';
+    document.getElementById('oCar').value = o.car || '';
+    document.getElementById('oPlate').value = o.plate || '';
+    document.getElementById('oPay').value = o.payment || 'cash';
+    document.getElementById('oNotes').value = o.notes || '';
+  }
+  window._orderSvcs = o ? JSON.parse(JSON.stringify(o.services||[])) : [];
   window._orderCatFilter = -1;
+  window._editSvcId = null;
   renderOrderCatBtns();
   renderOrderPickList();
+  renderSelectedSvcs();
+}
+function addCustomSvc(){
+  const nameEl = document.getElementById('oCustName');
+  const priceEl = document.getElementById('oCustPrice');
+  const name = (nameEl.value||'').trim();
+  const price = Math.round(Number(priceEl.value)||0);
+  if(!name){ alert('Введіть назву послуги'); return; }
+  if(price <= 0){ alert('Введіть ціну більше 0'); return; }
+  let svcId;
+  if(document.getElementById('oCustSave').checked){
+    svcId = addCustomPriceItem(name, price).id;
+  } else {
+    svcId = 'c' + uid();
+  }
+  window._orderSvcs.push({id:svcId, name, price, qty:1, custom:true});
+  nameEl.value = ''; priceEl.value = ''; document.getElementById('oCustSave').checked = false;
+  renderOrderPickList();
+  renderSelectedSvcs();
 }
 function renderOrderCatBtns(){
   const el = document.getElementById('oSvcCatBtns');
@@ -891,12 +966,12 @@ function addOrderSvc(id){
   renderSelectedSvcs();
 }
 function removeOrderSvc(id){
-  window._orderSvcs = window._orderSvcs.filter(s=>s.id!==id);
+  window._orderSvcs = window._orderSvcs.filter(s=>String(s.id)!==String(id));
   renderOrderPickList();
   renderSelectedSvcs();
 }
 function changeOrderSvcQty(id,delta){
-  const s = window._orderSvcs.find(x=>x.id===id);
+  const s = window._orderSvcs.find(x=>String(x.id)===String(id));
   if(!s) return;
   s.qty = Math.max(1, s.qty+delta);
   renderSelectedSvcs();
@@ -911,184 +986,250 @@ function renderSelectedSvcs(){
   window._orderSvcs.forEach(s=>{
     const sub = s.price*s.qty;
     total+=sub;
-    h += `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
-      <button class="btn btn-dark btn-sm" style="padding:2px 6px;font-size:0.7rem" onclick="removeOrderSvc(${s.id})">✕</button>
-      <span style="flex:1">${s.name}</span>
-      <button class="btn btn-dark btn-sm" style="padding:2px 6px" onclick="changeOrderSvcQty(${s.id},-1)">−</button>
-      <span style="min-width:20px;text-align:center;font-weight:700">${s.qty}</span>
-      <button class="btn btn-dark btn-sm" style="padding:2px 6px" onclick="changeOrderSvcQty(${s.id},1)">+</button>
-      <span style="min-width:70px;text-align:right;font-weight:700">${fmtMoney(sub)}</span>
-    </div>`;
+    if(String(window._editSvcId)===String(s.id)){
+      // ---- edit mode ----
+      h += `<div style="display:flex;flex-direction:column;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <input type="text" id="editSvcName" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="Назва" style="margin:0">
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="number" id="editSvcPrice" value="${s.price}" placeholder="Ціна" style="flex:1;margin:0">
+          <button class="btn btn-green btn-sm" style="padding:6px 10px" onclick="saveOrderSvcEdit('${s.id}')">✓</button>
+          <button class="btn btn-dark btn-sm" style="padding:6px 10px" onclick="cancelOrderSvcEdit()">✕</button>
+        </div>
+      </div>`;
+    } else {
+      h += `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
+        <button class="btn btn-dark btn-sm" style="padding:2px 6px;font-size:0.7rem" onclick="removeOrderSvc('${s.id}')">✕</button>
+        <span style="flex:1">${s.name}</span>
+        <button class="btn btn-dark btn-sm" style="padding:2px 6px;font-size:0.7rem" onclick="editOrderSvc('${s.id}')">✎</button>
+        <button class="btn btn-dark btn-sm" style="padding:2px 6px" onclick="changeOrderSvcQty('${s.id}',-1)">−</button>
+        <span style="min-width:20px;text-align:center;font-weight:700">${s.qty}</span>
+        <button class="btn btn-dark btn-sm" style="padding:2px 6px" onclick="changeOrderSvcQty('${s.id}',1)">+</button>
+        <span style="min-width:70px;text-align:right;font-weight:700">${fmtMoney(sub)}</span>
+      </div>`;
+    }
   });
   el.innerHTML = h;
   tel.innerHTML = `Всього: ${fmtMoney(total)}`;
 }
+function editOrderSvc(id){ window._editSvcId = String(id); renderSelectedSvcs(); }
+function cancelOrderSvcEdit(){ window._editSvcId = null; renderSelectedSvcs(); }
+function saveOrderSvcEdit(id){
+  const s = window._orderSvcs.find(x=>String(x.id)===String(id));
+  if(!s) return;
+  const name = (document.getElementById('editSvcName').value||'').trim();
+  const price = Math.round(Number(document.getElementById('editSvcPrice').value)||0);
+  if(!name){ alert('Введіть назву послуги'); return; }
+  if(price <= 0){ alert('Введіть ціну більше 0'); return; }
+  s.name = name; s.price = price;
+  window._editSvcId = null;
+  renderSelectedSvcs();
+}
 function addServiceRow(){} // deprecated, kept for compat
+function _upsertClientFromOrder(order){
+  const phone = (order.phone||'').trim();
+  const name = (order.clientName||'').trim();
+  // Зберігаємо клієнта якщо є телефон (або хоча б ім'я)
+  if(!phone && !name) return;
+  const digits = s => (s||'').replace(/\D/g,'');
+  let existing = null;
+  if(phone) existing = clients.find(c => digits(c.phone) && digits(c.phone)===digits(phone));
+  if(!existing && name) existing = clients.find(c => c.name && c.name===name);
+  if(existing){
+    if(name) existing.name = name;
+    if(phone) existing.phone = phone;
+    if(order.car) existing.car = order.car;
+    if(order.plate) existing.plate = order.plate;
+    existing.lastVisit = order.date;
+  } else {
+    clients.push({
+      id: uid(),
+      name: name || 'Без імені',
+      phone: phone,
+      car: order.car||'',
+      plate: order.plate||'',
+      date: order.date,
+      lastVisit: order.date
+    });
+  }
+  save('clients',clients);
+}
 function saveNewOrder(){
   const services = window._orderSvcs||[];
+  if(!services.length){ alert('Оберіть хоча б одну послугу'); return; }
   let total = 0;
   services.forEach(s=>{ total+=s.price*s.qty; });
-  if(!services.length){ alert('Оберіть хоча б одну послугу'); return; }
+  const clientName = document.getElementById('oClient').value.trim();
+  const phone = document.getElementById('oPhone').value.trim();
+  const car = document.getElementById('oCar').value.trim();
+  const plate = document.getElementById('oPlate').value.trim();
+  const payment = document.getElementById('oPay').value;
+  const notes = document.getElementById('oNotes').value.trim();
+  // --- EDIT existing order ---
+  if(_editingOrderId){
+    const o = orders.find(x=>x.id===_editingOrderId);
+    _editingOrderId = null;
+    if(o){
+      o.clientName = clientName; o.phone = phone; o.car = car; o.plate = plate; o.payment = payment;
+      o.services = services; o.total = total; o.notes = notes;
+      _upsertClientFromOrder(o);
+      save('orders',orders);
+      renderOrders(); renderClients();
+      showOrderPrint(o);
+      return;
+    }
+  }
+  // --- CREATE new order ---
   const order = {
     id: uid(),
     date: new Date().toISOString(),
-    clientName: document.getElementById('oClient').value.trim(),
-    phone: document.getElementById('oPhone').value.trim(),
-    car: document.getElementById('oCar').value.trim(),
+    clientName, phone, car, plate, payment,
     services, total,
-    notes: document.getElementById('oNotes').value.trim(),
+    notes,
     status: 'new'
   };
-  // auto-add client (or update existing)
-  if(order.clientName){
-    const existing = clients.find(c=>c.name===order.clientName);
-    if(existing){
-      if(order.phone) existing.phone = order.phone;
-      if(order.car) existing.car = order.car;
-      existing.lastVisit = order.date;
-    } else {
-      clients.push({id:uid(),name:order.clientName,phone:order.phone,car:order.car,date:order.date,lastVisit:order.date});
-    }
-    save('clients',clients);
-  }
+  _upsertClientFromOrder(order);
   orders.unshift(order);
   save('orders',orders);
   renderOrders();
   renderClients();
-  // Show print-ready order
   showOrderPrint(order);
 }
-function showOrderPrint(o){
-  let svcRows = (o.services||[]).map(s=>`
-    <tr>
-      <td style="padding:6px 8px;border-bottom:1px solid #ddd;font-size:0.85rem">${s.name}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:center">${s.qty}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right;font-weight:600">${fmtMoney(s.price)}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right;font-weight:700">${fmtMoney(s.price*s.qty)}</td>
-    </tr>`).join('');
-  const masterRow = topSecret ? `<div style="text-align:right;color:#b8860b;font-size:0.9rem;margin-top:4px">Майстер 35%: ${fmtMoney(Math.round((o.total||0)*0.35))}</div>` : '';
-  openModal(`
-    <div id="orderPrintArea">
-      <div style="text-align:center;margin-bottom:12px">
-        <div style="font-family:'Oswald';font-size:1.3rem;font-weight:700">GT TIRES SERVICE</div>
-        <div style="font-size:0.75rem;color:#888">ЗАКАЗ-НАРЯД</div>
+// ==================== ЗАКАЗ-НАРЯД (фірмовий шаблон) ====================
+const BIZ = {
+  phone: '+38 068 259 01 96',
+  addr: 'с. Велика Димерка, вул. Соборна 106',
+  bot: 't.me/GTTiresService_bot',
+  qr: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKAQAAAABTUiuoAAACPklEQVR4nO2bQWrkMBBFX0WGWaphDpCj2Debq9lHyQ3sZUDmz0Ilt8NA6Ax0LEhpYdrdb/FBVNWvktrEg2t5eZSEQAMN9AU28zWxm02ATQDLDdpPwzMFBPoVNEmSBNsvsZiZZgC2AUZJ0tqN1kDBoye/m7Qm1bD6o0KNvOnpAgL9L9QmdmN8G2om/H4BgT6KbgOQS33xdPitAgL9fA0AuI3PZQCSDBIGQ4EsYHuegEC/iO7V91WXUb3Fij8WMzO7daP1Z6ODR09dBcgFLa/vJiice+fLtQZKNYHjmlTd+pzdsldbrzX5d/PlWgP13SJLmgFJBc0kucvIBd+yy7UGWreH8XiQJSCJse0bELvVBeoJbwZa/ivNZUjn7Bi7dT16lCfwsKqPcgo6T4yXaw2Uk6OY85EJa7VqZSzqVkdoktkNbKo1ajdpBZty8QFinUF1ofVno6dC1T6lFmUk1R+ibnWEekdlHlvA+DYgrbv52HCL860u0HODpTWpvXojdo63y7UGeuqOq28/+q3qE6uDD0/YB/rRqLtFbP1WM4ZRtzpBmz0Htxr34UXtwdo9gNitDtDWHR8t8igdidFrGTF56gSlhRDtxsw9/90dfOxWH+hh/dpM8BgbttgiZhmdoX7naRuwCQ7TsZvZLYnltTxZQKAPreH8kgtaDMR2ox4qLxNYtfaXaw2Uu4+oB8gfx+8+kopM2Af6T92agbO3yHG+1Q86ALv5y/bb7xIeFz8NDLENpQOtgVr8IyjQQJ+C/gVLafaZ1+W3HwAAAABJRU5ErkJggg=='
+};
+const NARIAD_WARN = [
+  "Після пробігу 50 км водій зобов'язаний перевірити затяжку гайок.",
+  "У зв'язку з низькою якістю доріг претензії щодо дисбалансу розглядаються протягом трьох днів.",
+  "Шини, залишені клієнтом, будуть утилізовані через 14 днів."
+];
+const NARIAD_CSS = `
+.nar{--r:#e10600;--r2:#ff2a2a;background:#0b0b0e;background-image:repeating-linear-gradient(115deg,transparent 0 58px,rgba(225,6,0,.05) 58px 60px),radial-gradient(130% 90% at 82% -10%,rgba(225,6,0,.22),transparent 55%);color:#f3f3f5;font-family:Arial,'Inter',sans-serif;padding:18px 16px 20px;border-radius:14px;max-width:760px;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.nar *{box-sizing:border-box;}
+.nar-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
+.nar-logo{display:flex;align-items:center;gap:8px;}
+.nar-logo .wheel{font-size:40px;line-height:1;}
+.nar-logo .txt b{font-size:26px;font-weight:900;font-style:italic;letter-spacing:1px;display:block;line-height:.92;}
+.nar-logo .txt b i{color:var(--r2);font-style:italic;}
+.nar-logo .txt span{font-size:11px;letter-spacing:6px;color:#cfcfd3;padding-left:2px;}
+.nar-contact{text-align:right;font-size:12px;line-height:1.45;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.nar-contact .ph{font-size:16px;font-weight:800;color:#fff;white-space:nowrap;}
+.nar-contact .addr{color:#cfcfd3;max-width:210px;}
+.nar-contact img{width:88px;height:88px;background:#fff;padding:5px;border-radius:8px;display:block;margin-top:2px;}
+.nar-card{background:#141418;border:1px solid #2a2a30;border-radius:12px;padding:16px;}
+.nar-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;font-size:20px;font-weight:900;font-style:italic;margin-bottom:12px;}
+.nar-title .zn{white-space:nowrap;}
+.nar-title .num{color:var(--r2);white-space:nowrap;}
+.nar-fields{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px;font-size:13px;margin-bottom:12px;}
+.nar-fields .lbl{color:#9a9aa0;}
+.nar-fields .meta{grid-column:1/-1;font-size:11.5px;color:#9a9aa0;margin-top:4px;}
+table.nar-tbl{width:100%;border-collapse:collapse;margin-bottom:6px;}
+table.nar-tbl th{background:var(--r);color:#fff;padding:9px 10px;font-size:12px;text-align:left;}
+table.nar-tbl th.c{text-align:center;width:46px;}
+table.nar-tbl th.rt{text-align:right;width:80px;}
+table.nar-tbl td{padding:9px 10px;font-size:13px;border-bottom:1px solid #26262c;}
+table.nar-tbl td.c{text-align:center;}
+table.nar-tbl td.rt{text-align:right;font-weight:700;white-space:nowrap;}
+.nar-total{display:flex;justify-content:flex-end;align-items:baseline;gap:10px;border-top:2px solid var(--r);padding-top:10px;margin-top:4px;font-size:24px;font-weight:900;font-style:italic;}
+.nar-total .sum{color:var(--r2);}
+.nar-master{text-align:right;color:#d4a017;font-size:12px;margin-top:4px;}
+.nar-note{font-size:12px;color:#b9b9c0;margin-top:8px;}
+.nar-sign{display:flex;gap:30px;margin-top:24px;font-size:11px;color:#8a8a90;}
+.nar-sign div{flex:1;border-top:1px solid #4a4a52;padding-top:5px;}
+.nar-phone{margin:16px auto 0;max-width:560px;border:2px solid var(--r);border-radius:40px;padding:11px 18px;display:flex;align-items:center;justify-content:center;gap:14px;box-shadow:0 0 18px rgba(225,6,0,.35);}
+.nar-phone .ico{width:40px;height:40px;min-width:40px;border-radius:50%;background:var(--r);display:flex;align-items:center;justify-content:center;font-size:20px;}
+.nar-phone .pn b{font-size:26px;font-weight:900;color:#fff;letter-spacing:1px;display:block;line-height:1;}
+.nar-phone .pn span{font-size:12px;font-style:italic;color:#cfcfd3;}
+.nar-warn{margin:14px auto 0;max-width:660px;font-size:11px;line-height:1.5;color:#b9b9c0;border-top:1px dashed #3a3a42;padding-top:10px;}
+.nar-warn p{margin:5px 0;display:flex;gap:6px;}
+.nar-warn p:before{content:"⚠";color:var(--r2);}
+`;
+function nariadBody(o, showMaster){
+  const num = o.id.slice(-6).toUpperCase();
+  let rows = (o.services||[]).map(s=>`<tr><td>${s.name}</td><td class="c">${s.qty}</td><td class="rt">${fmtMoney(s.price)}</td><td class="rt">${fmtMoney(s.price*s.qty)}</td></tr>`).join('');
+  const extra = Math.max(0, 5 - (o.services||[]).length);
+  for(let i=0;i<extra;i++) rows += '<tr><td>&nbsp;</td><td class="c"></td><td class="rt"></td><td class="rt"></td></tr>';
+  const master = showMaster ? `<div class="nar-master">Майстер 35%: ${fmtMoney(Math.round((o.total||0)*0.35))}</div>` : '';
+  const note = o.notes ? `<div class="nar-note">📝 ${o.notes}</div>` : '';
+  const warn = NARIAD_WARN.map(w=>`<p>${w}</p>`).join('');
+  return `
+  <div class="nar">
+    <div class="nar-head">
+      <div class="nar-logo">
+        <span class="wheel">🛞</span>
+        <span class="txt"><b>GT <i>TIRES</i></b><span>SERVICE</span></span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px">
-        <div><b>№:</b> ${o.id.slice(-6).toUpperCase()}</div>
-        <div><b>Дата:</b> ${fmtDate(o.date)}</div>
-        <div><b>Клієнт:</b> ${o.clientName||'—'}</div>
-        <div><b>Тел:</b> ${o.phone||'—'}</div>
-        <div style="grid-column:1/-1"><b>Авто:</b> ${o.car||'—'}</div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-        <thead>
-          <tr style="background:rgba(211,47,47,0.15)">
-            <th style="padding:6px 8px;text-align:left;font-size:0.8rem">Послуга</th>
-            <th style="padding:6px 8px;text-align:center;font-size:0.8rem;width:40px">К-ть</th>
-            <th style="padding:6px 8px;text-align:right;font-size:0.8rem;width:70px">Ціна</th>
-            <th style="padding:6px 8px;text-align:right;font-size:0.8rem;width:80px">Сума</th>
-          </tr>
-        </thead>
-        <tbody>${svcRows}</tbody>
-      </table>
-      <div style="text-align:right;font-family:'Oswald';font-size:1.4rem;padding:8px 0;border-top:2px solid var(--red)">
-        ВСЬОГО: ${fmtMoney(o.total||0)}
-      </div>
-      ${masterRow}
-      ${o.notes?'<div style="margin-top:8px;font-size:0.8rem;color:var(--text-dim)">📝 '+o.notes+'</div>':''}
-      <div style="display:flex;gap:30px;margin-top:24px;font-size:0.75rem;color:#888">
-        <div style="flex:1;border-top:1px solid #555;padding-top:4px">Підпис клієнта</div>
-        <div style="flex:1;border-top:1px solid #555;padding-top:4px">Підпис майстра</div>
+      <div class="nar-contact">
+        <div class="ph">${BIZ.phone}</div>
+        <div class="addr">${BIZ.addr}</div>
+        <img src="${BIZ.qr}" alt="QR бот Telegram">
       </div>
     </div>
+    <div class="nar-card">
+      <div class="nar-title"><span class="zn">ЗАКАЗ-НАРЯД</span> <span class="num">№ ${num}</span></div>
+      <div class="nar-fields">
+        <div><span class="lbl">Клієнт:</span> ${o.clientName||'—'}</div>
+        <div><span class="lbl">Тел:</span> ${o.phone||'—'}</div>
+        <div><span class="lbl">Авто:</span> ${o.car||'—'}</div>
+        <div><span class="lbl">Номер авто:</span> ${o.plate||'—'}</div>
+        <div class="meta">Дата: ${fmtDate(o.date)} • Оплата: ${payLabel(o.payment)}</div>
+      </div>
+      <table class="nar-tbl">
+        <thead><tr><th>ПОСЛУГА</th><th class="c">К-ТЬ</th><th class="rt">ЦІНА</th><th class="rt">СУМА</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="nar-total">ВСЬОГО: <span class="sum">${fmtMoney(o.total||0)}</span></div>
+      ${master}
+      ${note}
+      <div class="nar-sign"><div>Підпис клієнта</div><div>Підпис майстра</div></div>
+    </div>
+    <div class="nar-phone">
+      <div class="ico">📞</div>
+      <div class="pn"><b>${BIZ.phone}</b><span>Мобільний та Viber</span></div>
+    </div>
+    <div class="nar-warn">${warn}</div>
+  </div>`;
+}
+function nariadDoc(o){
+  return `<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Заказ-наряд ${o.id.slice(-6).toUpperCase()}</title><style>html,body{margin:0;background:#0b0b0e;}${NARIAD_CSS}@media print{@page{margin:8mm;}}</style></head><body>${nariadBody(o,false)}</body></html>`;
+}
+function showOrderPrint(o){
+  openModal(`
+    <style>${NARIAD_CSS}</style>
+    <div id="orderPrintArea">${nariadBody(o, topSecret)}</div>
     <div class="gap-btns mt no-print">
-      <button class="btn btn-red" onclick="printOrderNariad()">🖨️ Роздрукувати</button>
+      <button class="btn btn-red" onclick="printOrderNariad('${o.id}')">🖨️ Роздрукувати</button>
+      <button class="btn btn-dark" onclick="saveOrderFile('${o.id}')">💾 Зберегти</button>
       <button class="btn btn-dark" onclick="closeModal()">Закрити</button>
     </div>
   `);
 }
-function printOrderNariad(){
-  const area = document.getElementById('orderPrintArea');
-  if(!area) return;
-  const content = area.innerHTML;
-  // Create hidden iframe for printing (works on mobile)
+function printOrderNariad(oid){
+  const o = orders.find(x=>x.id===oid); if(!o) return;
   let frame = document.getElementById('printFrame');
   if(!frame){
     frame = document.createElement('iframe');
     frame.id = 'printFrame';
-    frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:800px;height:600px;border:none;';
+    frame.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:800px;height:1000px;border:none;';
     document.body.appendChild(frame);
   }
   const doc = frame.contentDocument || frame.contentWindow.document;
-  doc.open();
-  doc.write(`<html><head><title>Заказ-наряд</title><style>
-    body{font-family:Arial,sans-serif;padding:20px;color:#000;background:#fff}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border:1px solid #999;font-size:13px}
-    th{background:#d32f2f;color:#fff;font-weight:600}
-    .total{font-size:20px;font-weight:700;text-align:right;padding:10px 0;border-top:2px solid #d32f2f}
-    .signatures{display:flex;gap:40px;margin-top:30px}
-    .signatures div{flex:1;border-top:1px solid #000;padding-top:6px;font-size:12px;color:#555}
-    .header{text-align:center;margin-bottom:15px}
-    .header h2{margin:0;font-size:18px}
-    .header .sub{font-size:11px;color:#888}
-    .info{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:13px;margin-bottom:15px;padding:8px;border:1px solid #ddd}
-    .notes{font-size:12px;color:#555;margin-top:10px}
-  </style></head><body>`);
-  doc.write(content.replace(/var\(--[^)]+\)/g,'#333').replace(/rgba\([^)]+\)/g,'#f5f5f5'));
-  doc.write('</body></html>');
-  doc.close();
-  setTimeout(()=>{ frame.contentWindow.print(); }, 300);
+  doc.open(); doc.write(nariadDoc(o)); doc.close();
+  setTimeout(()=>{ frame.contentWindow.focus(); frame.contentWindow.print(); }, 350);
 }
 function viewOrder(oid){
   const o = orders.find(x=>x.id===oid);
   if(!o) return;
-  let svcRows = (o.services||[]).map(s=>`
-    <tr>
-      <td style="padding:6px 8px;border-bottom:1px solid #ddd;font-size:0.85rem">${s.name}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:center">${s.qty}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right;font-weight:600">${fmtMoney(s.price)}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right;font-weight:700">${fmtMoney(s.price*s.qty)}</td>
-    </tr>`).join('');
-  const masterRow = topSecret ? `<div style="text-align:right;color:#b8860b;font-size:0.9rem;margin-top:4px">Майстер 35%: ${fmtMoney(Math.round((o.total||0)*0.35))}</div>` : '';
-  const statusLabels = {new:'🆕 Нове',progress:'🔄 В роботі',done:'✅ Виконано',cancel:'❌ Скасовано'};
   openModal(`
-    <div id="orderPrintArea">
-      <div style="text-align:center;margin-bottom:12px">
-        <div style="font-family:'Oswald';font-size:1.3rem;font-weight:700">GT TIRES SERVICE</div>
-        <div style="font-size:0.75rem;color:#888">ЗАКАЗ-НАРЯД</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px">
-        <div><b>№:</b> ${o.id.slice(-6).toUpperCase()}</div>
-        <div><b>Дата:</b> ${fmtDate(o.date)}</div>
-        <div><b>Клієнт:</b> ${o.clientName||'—'}</div>
-        <div><b>Тел:</b> ${o.phone||'—'}</div>
-        <div><b>Авто:</b> ${o.car||'—'}</div>
-        <div><b>Статус:</b> ${statusLabels[o.status]||o.status}</div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-        <thead>
-          <tr style="background:rgba(211,47,47,0.15)">
-            <th style="padding:6px 8px;text-align:left;font-size:0.8rem">Послуга</th>
-            <th style="padding:6px 8px;text-align:center;font-size:0.8rem;width:40px">К-ть</th>
-            <th style="padding:6px 8px;text-align:right;font-size:0.8rem;width:70px">Ціна</th>
-            <th style="padding:6px 8px;text-align:right;font-size:0.8rem;width:80px">Сума</th>
-          </tr>
-        </thead>
-        <tbody>${svcRows}</tbody>
-      </table>
-      <div style="text-align:right;font-family:'Oswald';font-size:1.4rem;padding:8px 0;border-top:2px solid var(--red)">
-        ВСЬОГО: ${fmtMoney(o.total||0)}
-      </div>
-      ${masterRow}
-      ${o.notes?'<div style="margin-top:8px;font-size:0.8rem;color:var(--text-dim)">📝 '+o.notes+'</div>':''}
-      <div style="display:flex;gap:30px;margin-top:24px;font-size:0.75rem;color:#888">
-        <div style="flex:1;border-top:1px solid #555;padding-top:4px">Підпис клієнта</div>
-        <div style="flex:1;border-top:1px solid #555;padding-top:4px">Підпис майстра</div>
-      </div>
-    </div>
+    <style>${NARIAD_CSS}</style>
+    <div id="orderPrintArea">${nariadBody(o, topSecret)}</div>
     <div class="gap-btns mt no-print" style="flex-wrap:wrap">
-      <button class="btn btn-red btn-sm" onclick="printOrderNariad()">🖨️ Друк</button>
+      <button class="btn btn-red btn-sm" onclick="printOrderNariad('${o.id}')">🖨️ Друк</button>
+      <button class="btn btn-dark btn-sm" onclick="editOrder('${o.id}')">✏️ Редагувати</button>
+      <button class="btn btn-dark btn-sm" onclick="saveOrderFile('${o.id}')">💾 Зберегти</button>
       <label style="font-size:0.78rem;margin-top:6px">Статус</label>
       <select id="oStatus" style="flex:1">
         <option value="new" ${o.status==='new'?'selected':''}>Нове</option>
@@ -1103,6 +1244,16 @@ function viewOrder(oid){
     </div>
   `);
 }
+function saveOrderFile(oid){
+  const o = orders.find(x=>x.id===oid); if(!o) return;
+  const num = o.id.slice(-6).toUpperCase();
+  const blob = new Blob([nariadDoc(o)], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'zakaz-naryad-' + num + '.html';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+}
 function updateOrderStatus(oid){
   const o=orders.find(x=>x.id===oid); if(!o) return;
   o.status=document.getElementById('oStatus').value;
@@ -1111,7 +1262,7 @@ function updateOrderStatus(oid){
 function completeAndCash(oid){
   const o=orders.find(x=>x.id===oid); if(!o) return;
   o.status='done';
-  cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:o.total||0,desc:'Замовлення #'+o.id.slice(-5).toUpperCase()+' — '+o.clientName,orderId:o.id});
+  cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:o.total||0,method:o.payment||'cash',desc:'Замовлення #'+o.id.slice(-5).toUpperCase()+' — '+o.clientName+(o.payment?' ('+payLabel(o.payment)+')':''),orderId:o.id});
   save('orders',orders); save('cash',cashbook);
   closeModal(); renderOrders();
 }
@@ -1120,14 +1271,14 @@ function completeAndCash(oid){
 function renderClients(){ filterClients(); }
 function filterClients(){
   const q=(document.getElementById('clientSearch')?.value||'').toLowerCase();
-  const list=clients.filter(c=>!q||`${c.name} ${c.phone} ${c.car}`.toLowerCase().includes(q));
+  const list=clients.filter(c=>!q||`${c.name} ${c.phone} ${c.car} ${c.plate||''}`.toLowerCase().includes(q));
   if(!list.length){ document.getElementById('clientsList').innerHTML='<p style="color:var(--text-dim);text-align:center;padding:40px">Клієнтів немає</p>'; return; }
   let html='';
   list.forEach(c=>{
-    const orderCount=orders.filter(o=>o.clientName===c.name).length;
+    const orderCount=orders.filter(o => (c.phone && digitsOnly(o.phone)===digitsOnly(c.phone)) || (!c.phone && o.clientName && o.clientName===c.name)).length;
     html+=`<div class="card">
       <div class="flex-between"><span style="font-family:'Oswald';color:var(--red-light)">${c.name}</span><span style="font-size:0.75rem;color:var(--text-dim)">Замовлень: ${orderCount}</span></div>
-      <div style="font-size:0.82rem;margin-top:4px">${c.phone||''} ${c.car?'• 🚗 '+c.car:''}</div>
+      <div style="font-size:0.82rem;margin-top:4px">${c.phone||''} ${c.car?'• 🚗 '+c.car:''}${c.plate?' • '+c.plate:''}</div>
       <div class="gap-btns mt"><button class="btn btn-dark btn-sm" onclick="if(confirm('Видалити клієнта?')){clients=clients.filter(x=>x.id!=='${c.id}');save('clients',clients);renderClients();}">🗑️</button></div>
     </div>`;
   });

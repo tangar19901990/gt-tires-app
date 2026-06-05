@@ -85,7 +85,7 @@ async def info_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🔒 *Top\\_Secret \\| GT Tires Service*\n"
         "━━━━━━━━━━━━━━━━\n\n"
-        "📍 *Адреса:* Велика Димарка, вул\\. Соборна 106\n"
+        "📍 *Адреса:* Велика Димерка, вул\\. Соборна 106\n"
         "🅿️ *Tir Parking*\n\n"
         "🕐 *Графік:*\n"
         "Пн\\-Сб: 08:00 — 20:00\n"
@@ -215,7 +215,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 chat_id=client_id,
                 text=f"✅ Ваше замовлення {order_id} прийнято!\n\n"
                      f"Чекаємо вас! 🔧\n"
-                     f"📍 Велика Димарка, вул. Соборна 106"
+                     f"📍 Велика Димерка, вул. Соборна 106"
             )
         except Exception as e:
             logger.error(f"Не вдалось надіслати клієнту: {e}")
