@@ -1111,7 +1111,7 @@ const NARIAD_CSS = `
 .nar *{box-sizing:border-box;}
 .nar-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;}
 .nar-logo{display:flex;align-items:center;gap:8px;}
-.nar-logo .wheel{font-size:40px;line-height:1;}
+.nar-logo .wheel{width:46px;height:46px;flex:none;color:#d2d2d6;}
 .nar-logo .txt b{font-size:26px;font-weight:900;font-style:italic;letter-spacing:1px;display:block;line-height:.92;}
 .nar-logo .txt b i{color:var(--r2);font-style:italic;}
 .nar-logo .txt span{font-size:11px;letter-spacing:6px;color:#cfcfd3;padding-left:2px;}
@@ -1159,7 +1159,7 @@ function nariadBody(o, showMaster){
   <div class="nar">
     <div class="nar-head">
       <div class="nar-logo">
-        <span class="wheel">🛞</span>
+        <svg class="wheel" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="7"/><circle cx="50" cy="50" r="29" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="50" cy="50" r="7" fill="currentColor"/><g stroke="currentColor" stroke-width="5" stroke-linecap="round"><line x1="50" y1="59" x2="50" y2="78"/><line x1="41.4" y1="52.8" x2="23.4" y2="58.7"/><line x1="44.7" y1="42.7" x2="33.5" y2="27.4"/><line x1="55.3" y1="42.7" x2="66.5" y2="27.4"/><line x1="58.6" y1="52.8" x2="76.6" y2="58.7"/></g></svg>
         <span class="txt"><b>GT <i>TIRES</i></b><span>SERVICE</span></span>
       </div>
       <div class="nar-contact">
@@ -1194,7 +1194,30 @@ function nariadBody(o, showMaster){
   </div>`;
 }
 function nariadDoc(o){
-  return `<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Заказ-наряд ${o.id.slice(-6).toUpperCase()}</title><style>html,body{margin:0;background:#0b0b0e;}${NARIAD_CSS}@media print{@page{margin:8mm;}}</style></head><body>${nariadBody(o,false)}</body></html>`;
+  const PRINT_CSS = `@media print{
+@page{margin:10mm;}
+html,body{background:#fff !important;margin:0;padding:0;}
+.nar{background:#fff !important;background-image:none !important;color:#000 !important;max-width:100% !important;width:auto !important;margin:0 !important;padding:0 !important;border-radius:0 !important;}
+.nar-card{background:#fff !important;border:1px solid #000 !important;}
+.nar-logo .txt b,.nar-logo .txt span,.nar-contact .ph,.nar-contact .addr,.nar-title{color:#000 !important;}
+.nar-logo .wheel{color:#111 !important;}
+.nar-logo .txt b i,.nar-title .num{color:#c00 !important;}
+.nar-fields div,.nar-fields .lbl,.nar-fields .meta{color:#333 !important;}
+table.nar-tbl th{background:#e10600 !important;color:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+table.nar-tbl td{color:#000 !important;border-bottom:1px solid #bbb !important;}
+.nar-total{color:#000 !important;border-top:2px solid #c00 !important;}
+.nar-total .sum{color:#c00 !important;}
+.nar-note{color:#333 !important;}
+.nar-sign{color:#555 !important;}
+.nar-sign div{border-top:1px solid #000 !important;}
+.nar-phone{border:2px solid #c00 !important;box-shadow:none !important;}
+.nar-phone .ico{background:#c00 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.nar-phone .pn b{color:#000 !important;}
+.nar-phone .pn span{color:#444 !important;}
+.nar-warn{color:#000 !important;border-top:1px dashed #999 !important;}
+.nar-warn p:before{color:#c00 !important;}
+}`;
+  return `<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Заказ-наряд ${o.id.slice(-6).toUpperCase()}</title><style>html,body{margin:0;background:#0b0b0e;}${NARIAD_CSS}${PRINT_CSS}</style></head><body>${nariadBody(o,false)}</body></html>`;
 }
 function showOrderPrint(o){
   openModal(`
