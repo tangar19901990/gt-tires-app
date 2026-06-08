@@ -130,8 +130,8 @@
        CONFIG — встав сюди значення з Supabase (Settings → API)
        ===================================================== -->
   <script>
-    const SUPABASE_URL = "ВСТАВ_СЮДИ_PROJECT_URL";   // напр. https://abcd1234.supabase.co
-    const SUPABASE_KEY = "ВСТАВ_СЮДИ_ANON_PUBLIC_KEY"; // ключ що починається на eyJ...
+    const SUPABASE_URL = "https://lxeswqlkereptdtwytbp.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZXN3cWxrZXJlcHRkdHd5dGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzEyNDgsImV4cCI6MjA5NjQwNzI0OH0.CIkN-KAhlM6TgFzdkaCyUbnvTq4OmiNH953IHJR4x5E";
   </script>
 
   <div class="logo">GT <span>TIRES</span></div>
@@ -208,6 +208,37 @@
     const name = tg.initDataUnsafe?.user?.first_name;
     if (name) document.getElementById('userName').textContent = name;
   }
+
+  // --- Жива завантаженість із Supabase (таблиця gt_queue) ---
+  async function loadQueue(){
+    try{
+      const r = await fetch(
+        SUPABASE_URL + '/rest/v1/gt_queue?id=eq.1&select=*',
+        { headers:{ apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY } }
+      );
+      const rows = await r.json();
+      const q = rows && rows[0];
+      if (!q) return;
+
+      const dot  = document.getElementById('dot');
+      const text = document.getElementById('statusText');
+      const sub  = document.getElementById('statusSub');
+      const bar  = document.getElementById('barFill');
+
+      if (q.is_open){
+        dot.classList.remove('closed');
+        text.textContent = q.status_text || 'Відчинено';
+        sub.textContent  = q.work_until ? ('до ' + q.work_until) : '';
+      } else {
+        dot.classList.add('closed');
+        text.textContent = 'Зачинено';
+        sub.textContent  = '';
+      }
+      const load = Math.min(10 + (q.queue_count || 0) * 20, 100);
+      bar.style.width = load + '%';
+    }catch(e){ /* лишаємо демо-значення, екран не ламаємо */ }
+  }
+  loadQueue();
 
   // --- Заглушки розділів (замінимо у Блоках 3–8) ---
   function open_(section){
