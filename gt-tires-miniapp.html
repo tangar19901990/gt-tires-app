@@ -8,122 +8,86 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800;900&family=Oswald:ital,wght@1,600;1,700&display=swap" rel="stylesheet">
 <style>
-  /* ============================================================
-     GT Tires Mini App — Головний екран (неон-формат)
-     ============================================================ */
   :root{
-    --bg:#070a12;
-    --card:#11151f;
-    --line:#222838;
-    --text:#f2f4f8;
-    --muted:#8891a5;
-    --red:#ff2d2d;
-    --blue:#2f7bff;
-    --green:#22c55e;
-    --purple:#a855f7;
-    --orange:#ff8a1f;
-    --teal:#13b6a3;
+    --bg:#070a12;--card:#11151f;--line:#222838;--text:#f2f4f8;--muted:#8891a5;
+    --red:#ff2d2d;--blue:#2f7bff;--green:#22c55e;--purple:#a855f7;--orange:#ff8a1f;--teal:#13b6a3;--gold:#ffce1f;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{
-    font-family:'Montserrat',system-ui,sans-serif;
-    background:var(--bg);
-    color:var(--text);
-    min-height:100vh;
+  body{font-family:'Montserrat',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
     padding:14px 14px 36px;
-    background-image:
-      radial-gradient(90% 50% at 20% 0%, rgba(47,123,255,.12), transparent 60%),
-      radial-gradient(80% 45% at 90% 5%, rgba(255,45,45,.12), transparent 55%);
-  }
-
-  /* ---- Верхня панель ---- */
+    background-image:radial-gradient(90% 50% at 20% 0%,rgba(47,123,255,.12),transparent 60%),radial-gradient(80% 45% at 90% 5%,rgba(255,45,45,.12),transparent 55%);}
   .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-  .icon-btn{width:38px;height:38px;border-radius:11px;background:var(--card);border:1px solid var(--line);
-            display:flex;align-items:center;justify-content:center;}
+  .icon-btn{width:38px;height:38px;border-radius:11px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;}
   .icon-btn svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:2;}
-
-  /* ---- Логотип ---- */
-  .logo{font-family:'Oswald',sans-serif;font-style:italic;font-weight:700;
-        text-align:center;font-size:46px;line-height:.9;letter-spacing:1px;margin:6px 0 2px;}
+  .logo{font-family:'Oswald',sans-serif;font-style:italic;font-weight:700;text-align:center;font-size:46px;line-height:.9;letter-spacing:1px;margin:6px 0 2px;}
   .logo .gt{color:var(--red);text-shadow:0 0 18px rgba(255,45,45,.65);}
   .logo .tr{color:#fff;text-shadow:0 0 14px rgba(255,255,255,.25);}
-  .tagline{text-align:center;color:var(--muted);font-size:10.5px;letter-spacing:3px;
-           text-transform:uppercase;margin-bottom:14px;}
-
-  /* ---- Привітання ---- */
+  .tagline{text-align:center;color:var(--muted);font-size:10.5px;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
   .hello{font-size:17px;font-weight:700;margin:0 4px 12px;}
   .hello b{color:var(--red);}
-
-  /* ---- Індикатор зайнятості (тапабельний) ---- */
-  .busy{
-    width:100%;border:none;cursor:pointer;border-radius:18px;padding:16px 18px;
-    display:flex;align-items:center;gap:13px;margin-bottom:16px;
-    transition:transform .12s ease, box-shadow .25s ease, background .25s ease;
-    color:#fff;font-family:inherit;
-  }
+  .busy{width:100%;border:none;cursor:pointer;border-radius:18px;padding:16px 18px;display:flex;align-items:center;gap:13px;margin-bottom:16px;
+    transition:transform .12s ease,box-shadow .25s ease,background .25s ease;color:#fff;font-family:inherit;}
   .busy:active{transform:scale(.98);}
-  .busy .b-dot{width:15px;height:15px;border-radius:50%;background:#fff;flex-shrink:0;
-               box-shadow:0 0 0 5px rgba(255,255,255,.18);}
+  .busy .b-dot{width:15px;height:15px;border-radius:50%;background:#fff;flex-shrink:0;box-shadow:0 0 0 5px rgba(255,255,255,.18);}
   .busy .b-title{font-weight:900;font-size:18px;letter-spacing:.5px;}
   .busy .b-sub{font-size:11.5px;opacity:.9;margin-top:1px;}
   .busy .b-hint{margin-left:auto;font-size:10px;opacity:.75;text-align:right;line-height:1.3;}
-  .busy.free{background:linear-gradient(135deg,#16331f,#0f2417);
-             box-shadow:0 0 22px rgba(34,197,94,.28),inset 0 0 0 1px rgba(34,197,94,.5);}
+  .busy.free{background:linear-gradient(135deg,#16331f,#0f2417);box-shadow:0 0 22px rgba(34,197,94,.28),inset 0 0 0 1px rgba(34,197,94,.5);}
   .busy.free .b-dot{background:var(--green);box-shadow:0 0 12px var(--green),0 0 0 5px rgba(34,197,94,.22);}
   .busy.free .b-title{color:#4ade80;}
-  .busy.busy-on{background:linear-gradient(135deg,#3a1414,#260d0d);
-                box-shadow:0 0 22px rgba(255,45,45,.30),inset 0 0 0 1px rgba(255,45,45,.55);}
+  .busy.busy-on{background:linear-gradient(135deg,#3a1414,#260d0d);box-shadow:0 0 22px rgba(255,45,45,.30),inset 0 0 0 1px rgba(255,45,45,.55);}
   .busy.busy-on .b-dot{background:var(--red);box-shadow:0 0 12px var(--red),0 0 0 5px rgba(255,45,45,.22);}
   .busy.busy-on .b-title{color:#ff6b6b;}
-
-  /* ---- Кнопка запису ---- */
-  .cta{
-    width:100%;border:none;cursor:pointer;border-radius:18px;padding:18px;
-    display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px;
-    background:linear-gradient(135deg,#ff3b3b,#cc1414);color:#fff;font-family:inherit;
-    box-shadow:0 0 26px rgba(255,45,45,.45);transition:transform .12s ease;
-  }
+  .cta{width:100%;border:none;cursor:pointer;border-radius:18px;padding:18px;display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:14px;
+    background:linear-gradient(135deg,#ff3b3b,#cc1414);color:#fff;font-family:inherit;box-shadow:0 0 26px rgba(255,45,45,.45);transition:transform .12s ease;}
   .cta:active{transform:scale(.98);}
   .cta svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;}
   .cta span{font-weight:900;font-size:18px;}
-
-  /* ---- Сітка кольорових кнопок ---- */
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .tile{
-    border:none;cursor:pointer;border-radius:16px;padding:16px 14px;text-align:left;
-    background:var(--card);font-family:inherit;color:var(--text);
-    display:flex;align-items:center;gap:12px;
-    transition:transform .12s ease, box-shadow .2s ease;
-    position:relative;overflow:hidden;
-  }
+  .tile{border:none;cursor:pointer;border-radius:16px;padding:16px 14px;text-align:left;background:var(--card);font-family:inherit;color:var(--text);
+    display:flex;align-items:center;gap:12px;transition:transform .12s ease;position:relative;overflow:hidden;}
   .tile:active{transform:scale(.97);}
-  .tile .ic{width:42px;height:42px;border-radius:12px;flex-shrink:0;
-            display:flex;align-items:center;justify-content:center;}
+  .tile .ic{width:42px;height:42px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
   .tile .ic svg{width:23px;height:23px;fill:none;stroke-width:2;}
   .tile .t1{font-weight:800;font-size:14px;line-height:1.15;}
   .tile .t2{color:var(--muted);font-size:11px;margin-top:2px;}
   .tile.wide{grid-column:1 / -1;}
-
-  /* кольорові акценти */
-  .c-blue{box-shadow:inset 0 0 0 1px rgba(47,123,255,.45),0 0 16px rgba(47,123,255,.12);}
-  .c-blue .ic{background:rgba(47,123,255,.16);} .c-blue .ic svg{stroke:var(--blue);}
-  .c-green{box-shadow:inset 0 0 0 1px rgba(34,197,94,.45),0 0 16px rgba(34,197,94,.12);}
-  .c-green .ic{background:rgba(34,197,94,.16);} .c-green .ic svg{stroke:var(--green);}
-  .c-purple{box-shadow:inset 0 0 0 1px rgba(168,85,247,.45),0 0 16px rgba(168,85,247,.12);}
-  .c-purple .ic{background:rgba(168,85,247,.16);} .c-purple .ic svg{stroke:var(--purple);}
-  .c-orange{box-shadow:inset 0 0 0 1px rgba(255,138,31,.45),0 0 16px rgba(255,138,31,.12);}
-  .c-orange .ic{background:rgba(255,138,31,.16);} .c-orange .ic svg{stroke:var(--orange);}
-  .c-teal{box-shadow:inset 0 0 0 1px rgba(19,182,163,.45),0 0 16px rgba(19,182,163,.12);}
-  .c-teal .ic{background:rgba(19,182,163,.16);} .c-teal .ic svg{stroke:var(--teal);}
-  .c-red{box-shadow:inset 0 0 0 1px rgba(255,45,45,.45),0 0 16px rgba(255,45,45,.12);}
-  .c-red .ic{background:rgba(255,45,45,.16);} .c-red .ic svg{stroke:var(--red);}
-
+  .c-blue{box-shadow:inset 0 0 0 1px rgba(47,123,255,.45),0 0 16px rgba(47,123,255,.12);} .c-blue .ic{background:rgba(47,123,255,.16);} .c-blue .ic svg{stroke:var(--blue);}
+  .c-green{box-shadow:inset 0 0 0 1px rgba(34,197,94,.45),0 0 16px rgba(34,197,94,.12);} .c-green .ic{background:rgba(34,197,94,.16);} .c-green .ic svg{stroke:var(--green);}
+  .c-purple{box-shadow:inset 0 0 0 1px rgba(168,85,247,.45),0 0 16px rgba(168,85,247,.12);} .c-purple .ic{background:rgba(168,85,247,.16);} .c-purple .ic svg{stroke:var(--purple);}
+  .c-orange{box-shadow:inset 0 0 0 1px rgba(255,138,31,.45),0 0 16px rgba(255,138,31,.12);} .c-orange .ic{background:rgba(255,138,31,.16);} .c-orange .ic svg{stroke:var(--orange);}
+  .c-teal{box-shadow:inset 0 0 0 1px rgba(19,182,163,.45),0 0 16px rgba(19,182,163,.12);} .c-teal .ic{background:rgba(19,182,163,.16);} .c-teal .ic svg{stroke:var(--teal);}
+  .c-red{box-shadow:inset 0 0 0 1px rgba(255,45,45,.45),0 0 16px rgba(255,45,45,.12);} .c-red .ic{background:rgba(255,45,45,.16);} .c-red .ic svg{stroke:var(--red);}
   .footer{text-align:center;color:var(--muted);font-size:10.5px;margin-top:22px;}
+
+  /* ---- Екран цін (overlay) ---- */
+  .overlay{position:fixed;inset:0;background:var(--bg);z-index:50;overflow-y:auto;padding:16px 14px 40px;
+    transform:translateX(100%);transition:transform .28s ease;
+    background-image:radial-gradient(90% 40% at 50% 0%,rgba(255,206,31,.10),transparent 60%);}
+  .overlay.open{transform:translateX(0);}
+  .ov-head{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+  .ov-back{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .ov-back svg{width:22px;height:22px;stroke:var(--gold);fill:none;stroke-width:2.2;}
+  .ov-title{font-family:'Oswald',sans-serif;font-style:italic;font-weight:700;font-size:24px;color:var(--gold);text-shadow:0 0 14px rgba(255,206,31,.4);}
+  .ov-note{color:var(--muted);font-size:11px;margin:0 2px 14px 54px;}
+  .cat{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:11px;overflow:hidden;}
+  .cat-head{display:flex;align-items:center;gap:12px;padding:15px 14px;cursor:pointer;}
+  .cat-ic{width:44px;height:44px;border-radius:12px;background:rgba(255,206,31,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .cat-ic svg{width:25px;height:25px;stroke:var(--gold);fill:none;stroke-width:1.9;}
+  .cat-name{font-weight:800;font-size:15px;}
+  .cat-from{color:var(--gold);font-size:12.5px;font-weight:700;margin-top:2px;}
+  .cat-chev{margin-left:auto;color:var(--muted);transition:transform .2s ease;}
+  .cat.open .cat-chev{transform:rotate(180deg);}
+  .cat-body{display:none;padding:0 14px 6px;}
+  .cat.open .cat-body{display:block;}
+  .grp-title{color:var(--gold);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px;opacity:.85;}
+  .row{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid rgba(255,255,255,.05);font-size:13.5px;}
+  .row .v{font-weight:800;color:#fff;white-space:nowrap;}
+  .row .v small{color:var(--muted);font-weight:500;font-size:11px;}
 </style>
 </head>
 <body>
 
-  <!-- CONFIG -->
   <script>
     const SUPABASE_URL = "https://lxeswqlkereptdtwytbp.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZXN3cWxrZXJlcHRkdHd5dGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzEyNDgsImV4cCI6MjA5NjQwNzI0OH0.CIkN-KAhlM6TgFzdkaCyUbnvTq4OmiNH953IHJR4x5E";
@@ -136,20 +100,14 @@
 
   <div class="logo"><span class="gt">GT</span> <span class="tr">TIRES</span></div>
   <div class="tagline">Шиномонтаж · Велика Димерка</div>
-
   <div class="hello">Вітаємо, <b id="userName">друже</b>!</div>
 
-  <!-- Індикатор зайнятості — тапни, щоб перемкнути -->
   <button class="busy free" id="busyBtn" onclick="toggleBusy()">
     <div class="b-dot"></div>
-    <div>
-      <div class="b-title" id="busyTitle">ВІЛЬНО</div>
-      <div class="b-sub" id="busySub">Можна під'їжджати</div>
-    </div>
+    <div><div class="b-title" id="busyTitle">ВІЛЬНО</div><div class="b-sub" id="busySub">Можна під'їжджати</div></div>
     <div class="b-hint">натисни,<br>щоб змінити</div>
   </button>
 
-  <!-- Запис -->
   <button class="cta" onclick="open_('record')">
     <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
     <span>Записатися на шиномонтаж</span>
@@ -160,32 +118,26 @@
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 6h7M9 12h7M9 18h7M5 6h.01M5 12h.01M5 18h.01" stroke-linecap="round"/></svg></div>
       <div><div class="t1">Мої</div><div class="t1">замовлення</div></div>
     </button>
-
     <button class="tile c-green" onclick="open_('tires')">
       <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg></div>
       <div><div class="t1">Підібрати</div><div class="t1">шини</div></div>
     </button>
-
-    <button class="tile c-purple" onclick="open_('prices')">
+    <button class="tile c-purple" onclick="openPrices()">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h7l9 9-7 7-9-9V4z"/><circle cx="8.5" cy="8.5" r="1.3"/></svg></div>
       <div><div class="t1">Актуальні</div><div class="t1">ціни</div></div>
     </button>
-
     <button class="tile c-orange" onclick="open_('promo')">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l2.4 5.3L20 9l-4 3.9 1 5.6-5-3-5 3 1-5.6L4 9l5.6-.7L12 3z" stroke-linejoin="round"/></svg></div>
       <div><div class="t1">Акції</div><div class="t1">та новини</div></div>
     </button>
-
     <button class="tile c-teal" onclick="open_('bonus')">
       <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M4 13h16M12 9v11M12 9C9 9 7 5 12 5s3 4 0 4z" stroke-linejoin="round"/></svg></div>
       <div><div class="t1">Бонуси</div><div class="t1">та знижки</div></div>
     </button>
-
     <button class="tile c-blue" onclick="open_('map')">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg></div>
       <div><div class="t1">Як нас</div><div class="t1">знайти</div></div>
     </button>
-
     <button class="tile c-red wide" onclick="open_('contact')">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M6 4h3l1.5 4-2 1.5a11 11 0 005 5l1.5-2 4 1.5V18a2 2 0 01-2 2A15 15 0 014 6a2 2 0 012-2z" stroke-linejoin="round"/></svg></div>
       <div><div class="t1">Зв'язатися з нами</div><div class="t2">підтримка 24/7</div></div>
@@ -194,61 +146,98 @@
 
   <div class="footer">GT Tires Service · Соборна 106, Велика Димерка</div>
 
+  <!-- ЕКРАН ЦІН -->
+  <div class="overlay" id="pricesScreen">
+    <div class="ov-head">
+      <div class="ov-back" onclick="closePrices()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="ov-title">АКТУАЛЬНІ ЦІНИ</div>
+    </div>
+    <div class="ov-note">Ціни вказані за 1 колесо / послугу, у гривнях</div>
+    <div id="catList"></div>
+  </div>
+
 <script>
   const tg = window.Telegram?.WebApp;
   if (tg){
-    tg.expand();
-    tg.setHeaderColor?.('#070a12');
-    tg.setBackgroundColor?.('#070a12');
+    tg.expand(); tg.setHeaderColor?.('#070a12'); tg.setBackgroundColor?.('#070a12');
     const name = tg.initDataUnsafe?.user?.first_name;
     if (name) document.getElementById('userName').textContent = name;
   }
 
   const H = { apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY };
   let isFree = true;
-
   function paintBusy(){
-    const b = document.getElementById('busyBtn');
-    const t = document.getElementById('busyTitle');
-    const s = document.getElementById('busySub');
-    if (isFree){
-      b.classList.add('free'); b.classList.remove('busy-on');
-      t.textContent = 'ВІЛЬНО'; s.textContent = 'Можна під\'їжджати';
-    } else {
-      b.classList.add('busy-on'); b.classList.remove('free');
-      t.textContent = 'ЗАЙНЯТО'; s.textContent = 'Майстер у роботі';
-    }
+    const b=document.getElementById('busyBtn'),t=document.getElementById('busyTitle'),s=document.getElementById('busySub');
+    if(isFree){b.classList.add('free');b.classList.remove('busy-on');t.textContent='ВІЛЬНО';s.textContent='Можна під\'їжджати';}
+    else{b.classList.add('busy-on');b.classList.remove('free');t.textContent='ЗАЙНЯТО';s.textContent='Майстер у роботі';}
   }
-
-  // Прочитати поточний стан з бази
-  async function loadBusy(){
-    try{
-      const r = await fetch(SUPABASE_URL+'/rest/v1/gt_queue?id=eq.1&select=is_open', {headers:H});
-      const rows = await r.json();
-      if (rows && rows[0]) { isFree = !!rows[0].is_open; paintBusy(); }
-    }catch(e){}
-  }
+  async function loadBusy(){try{const r=await fetch(SUPABASE_URL+'/rest/v1/gt_queue?id=eq.1&select=is_open',{headers:H});const rows=await r.json();if(rows&&rows[0]){isFree=!!rows[0].is_open;paintBusy();}}catch(e){}}
   loadBusy();
+  async function toggleBusy(){isFree=!isFree;paintBusy();try{await fetch(SUPABASE_URL+'/rest/v1/gt_queue?id=eq.1',{method:'PATCH',headers:{...H,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({is_open:isFree,status_text:isFree?'Відчинено':'Зайнято'})});}catch(e){}}
 
-  // Тап — перемкнути і зберегти в базу
-  async function toggleBusy(){
-    isFree = !isFree;
-    paintBusy();
-    try{
-      await fetch(SUPABASE_URL+'/rest/v1/gt_queue?id=eq.1', {
-        method:'PATCH',
-        headers:{...H,'Content-Type':'application/json',Prefer:'return=minimal'},
-        body: JSON.stringify({ is_open:isFree, status_text: isFree?'Відчинено':'Зайнято' })
-      });
-    }catch(e){}
+  // ---- Дані цін (ФОП, без ПДВ) ----
+  const PRICES = [
+    {n:'Легкові',d:'седан · хетчбек · універсал',from:175,
+     icon:'<path d="M3 13l2-5a3 3 0 012.8-2h8.4A3 3 0 0119 8l2 5v4h-2a2 2 0 01-4 0H9a2 2 0 01-4 0H3v-4z"/><circle cx="7.5" cy="17" r="1.4"/><circle cx="16.5" cy="17" r="1.4"/>',
+     g:[{t:'Комплекс за 1 колесо (зняття + монтаж + балансування)',r:[['R13',175],['R14',190],['R15',210],['R16',220],['R17',250],['R18',290],['R19',310],['R20',335],['R21',355],['R22',375],['R23',405],['R24',435]]}]},
+
+    {n:'Позашляховики',d:'джип · кросовер · SUV · мінівен',from:205,
+     icon:'<path d="M3 14l1.5-6A3 3 0 017.4 6h9.2A3 3 0 0119.5 8L21 14v4h-2a2 2 0 01-4 0H9a2 2 0 01-4 0H3v-4z"/><circle cx="7.5" cy="18" r="1.4"/><circle cx="16.5" cy="18" r="1.4"/>',
+     g:[{t:'Комплекс за 1 колесо',r:[['R14',205],['R15',220],['R16',250],['R17',290],['R18',315],['R19',340],['R20',355],['R21',375],['R22',400],['R23',435],['R24',455]]}]},
+
+    {n:'Бус / комерційний',d:'до R18',from:205,
+     icon:'<rect x="3" y="6" width="15" height="9" rx="1.5"/><path d="M18 9h2.2L22 13v2h-4"/><circle cx="7" cy="17" r="1.4"/><circle cx="17" cy="17" r="1.4"/>',
+     g:[{t:'Комплекс за 1 колесо',r:[['R13',205],['R14',220],['R15',250],['R16',290],['R16 (Газель)',340],['R17',315],['R18',340]]}]},
+
+    {n:'Вантажні',d:'R16 – R24.5',from:350,
+     icon:'<rect x="2" y="7" width="11" height="8" rx="1"/><path d="M13 10h4l3 3v2h-7"/><circle cx="6" cy="17" r="1.5"/><circle cx="17" cy="17" r="1.5"/>',
+     g:[
+       {t:'R16–17.5 камерні',r:[['Шиномонтаж в зборі',650],['Монтаж/демонтаж на диск',350],['Накачка',50],['Підкачка',35]]},
+       {t:'R19.5–24.5 безкамерні',r:[['Шиномонтаж в зборі',450],['Зняття/встановлення колеса',200],['Колесо здвоєне',300],['Монтаж/демонтаж на диск',350],['Герметизація борта',200],['Підкачування азотом',150],['Слюсарні роботи, год',800]]},
+       {t:'R19.5+ камерні',r:[['Шиномонтаж в зборі',800],['Монтаж/демонтаж на диск',600]]},
+       {t:'Балансування',r:[['R17.5 — колесо',250],['R19.5–24.5 — колесо',300]]}
+     ]},
+
+    {n:'С/Г та спецтехніка',d:'трактори · спецтехніка',from:1200,
+     icon:'<circle cx="8" cy="15" r="4"/><circle cx="18" cy="16" r="3"/><path d="M4 12V8h5l2 3" stroke-linejoin="round"/>',
+     g:[
+       {t:'До 24"',r:[['Шиномонтаж в комплекті',1200],['Зняття/встановлення колеса',600],['Монтаж/демонтаж на диск',500],['Зняття колеса зі ступиці',400],['Герметизація борта','250–350']]},
+       {t:'24"–28"',r:[['Шиномонтаж в комплекті',1400],['Зняття/встановлення колеса',900],['Монтаж/демонтаж на диск',900],['Зняття колеса зі ступиці',450],['Герметизація борта','300–400']]},
+       {t:'29"–32"',r:[['Шиномонтаж в комплекті',1700],['Зняття/встановлення колеса',1200],['Монтаж/демонтаж на диск',1200],['Зняття колеса зі ступиці',600],['Герметизація борта','350–450']]},
+       {t:'33"+',r:[['Шиномонтаж в комплекті',3200],['Зняття/встановлення колеса',2000],['Монтаж/демонтаж на диск',1400],['Зняття колеса зі ступиці',750],['Герметизація борта','450–550']]}
+     ]}
+  ];
+
+  function renderPrices(){
+    const html = PRICES.map((c,i)=>{
+      const groups = c.g.map(g=>{
+        const rows = g.r.map(([nm,pr])=>{
+          const val = (typeof pr==='number') ? pr+' <small>грн</small>' : pr+' <small>грн</small>';
+          return '<div class="row"><span>'+nm+'</span><span class="v">'+val+'</span></div>';
+        }).join('');
+        const gt = (c.g.length>1) ? '<div class="grp-title">'+g.t+'</div>' : '';
+        return gt+rows;
+      }).join('');
+      return '<div class="cat" id="cat'+i+'">'+
+        '<div class="cat-head" onclick="toggleCat('+i+')">'+
+          '<div class="cat-ic"><svg viewBox="0 0 24 24">'+c.icon+'</svg></div>'+
+          '<div><div class="cat-name">'+c.n+'</div><div class="cat-from">від '+c.from+' грн · '+c.d+'</div></div>'+
+          '<div class="cat-chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6" stroke-linecap="round"/></svg></div>'+
+        '</div>'+
+        '<div class="cat-body">'+groups+'</div>'+
+      '</div>';
+    }).join('');
+    document.getElementById('catList').innerHTML = html;
   }
+  function toggleCat(i){document.getElementById('cat'+i).classList.toggle('open');}
+  function openPrices(){renderPrices();document.getElementById('pricesScreen').classList.add('open');tg?.BackButton?.show?.();}
+  function closePrices(){document.getElementById('pricesScreen').classList.remove('open');tg?.BackButton?.hide?.();}
+  tg?.BackButton?.onClick?.(closePrices);
 
-  // Заглушки розділів (зробимо у наступних блоках)
   function open_(section){
-    const titles = {record:'Онлайн запис',orders:'Мої замовлення',tires:'Підбір шин',
-      prices:'Актуальні ціни',bonus:'Бонуси',promo:'Акції та новини',map:'Як нас знайти',contact:'Зв\'язок'};
-    const msg = '«'+(titles[section]||section)+'» — зробимо в наступному блоці.';
-    if (tg?.showAlert) tg.showAlert(msg); else alert(msg);
+    const titles={record:'Онлайн запис',orders:'Мої замовлення',tires:'Підбір шин',bonus:'Бонуси',promo:'Акції та новини',map:'Як нас знайти',contact:'Зв\'язок'};
+    const msg='«'+(titles[section]||section)+'» — зробимо в наступному блоці.';
+    if(tg?.showAlert)tg.showAlert(msg);else alert(msg);
   }
 </script>
 </body>
