@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>GT Tires Client Bot</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --red:#ff2424;
+  --red2:#b70000;
+  --green:#41ff5b;
+  --bg:#050505;
+  --card:#121315;
+  --line:rgba(255,255,255,.13);
+  --muted:#b7b7b7;
+}
+body{
+  margin:0;
+  background:#030303;
+  color:#fff;
+  font-family:Arial,Inter,sans-serif;
+}
+button,input,select,textarea{font:inherit}
+.app{
+  max-width:430px;
+  min-height:100vh;
+  margin:auto;
+  padding:18px 16px 96px;
+  background:
+    radial-gradient(circle at 50% -10%,rgba(255,0,0,.22),transparent 35%),
+    radial-gradient(circle at 20% 35%,rgba(255,0,0,.10),transparent 30%),
+    linear-gradient(#080808,#020202);
+}
+.top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.icon{
+  width:44px;height:44px;
+  border:0;
+  color:#fff;
+  background:transparent;
+  font-size:30px;
+}
+.bell{font-size:24px;position:relative}
+.bell:after{
+  content:"";
+  position:absolute;
+  right:5px;top:8px;
+  width:10px;height:10px;
+  border-radius:50%;
+  background:var(--red);
+  box-shadow:0 0 12px var(--red);
+}
+.logo{
+  text-align:center;
+  margin:14px 0 22px;
+}
+.logo-main{
+  font-size:42px;
+  font-weight:1000;
+  font-style:italic;
+  letter-spacing:-1px;
+}
+.logo-main span{
+  color:var(--red);
+  text-shadow:0 0 20px rgba(255,0,0,.65);
+}
+.logo-sub{
+  margin-top:5px;
+  font-size:12px;
+  letter-spacing:2px;
+  color:#cfcfcf;
+}
+.screen{display:none;animation:fade .22s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:.25;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.availability{
+  height:210px;
+  display:grid;
+  grid-template-columns:1.12fr .88fr;
+  overflow:hidden;
+  border-radius:28px;
+  margin:10px 0 18px;
+  border:1px solid rgba(255,36,36,.7);
+  background:
+    linear-gradient(115deg,rgba(10,10,10,.96),rgba(20,20,20,.8)),
+    radial-gradient(circle at 80% 50%,rgba(255,0,0,.24),transparent 42%);
+  box-shadow:0 0 30px rgba(255,0,0,.24);
+}
+.status-box{
+  margin:18px 0 18px 18px;
+  padding:18px;
+  border-radius:22px;
+  border:1px solid rgba(255,36,36,.85);
+  background:rgba(0,0,0,.72);
+  box-shadow:0 0 24px rgba(255,0,0,.22);
+  z-index:2;
+}
+.status-box h1{
+  font-size:20px;
+  margin:0 0 18px;
+}
+.status-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px 0;
+  border-top:1px solid rgba(255,255,255,.1);
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.dot{
+  width:30px;height:30px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 22px var(--green);
+}
+.status-row strong{
+  color:var(--green);
+  font-size:21px;
+  text-shadow:0 0 13px rgba(65,255,91,.35);
+}
+.status-box p{
+  margin:18px 0 0;
+  color:#ddd;
+  font-size:16px;
+}
+.garage{
+  position:relative;
+  height:100%;
+  background:
+    linear-gradient(130deg,transparent,rgba(255,0,0,.16)),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,transparent 1px 42px);
+}
+.garage-logo{
+  position:absolute;
+  right:18px;top:42px;
+  font-size:20px;
+  font-weight:1000;
+  font-style:italic;
+  text-shadow:0 0 18px rgba(255,0,0,.8);
+}
+.garage-logo span{color:var(--red)}
+.wheel{
+  position:absolute;
+  right:30px;bottom:24px;
+  width:82px;height:82px;
+  border-radius:50%;
+  background:radial-gradient(circle,#111 28%,#333 31%,#070707 58%,#242424 60%,#050505 72%);
+  box-shadow:0 0 25px rgba(255,0,0,.35);
+}
+.machine{
+  position:absolute;
+  right:8px;bottom:30px;
+  width:18px;height:96px;
+  border-radius:8px;
+  background:#8d0000;
+  box-shadow:0 0 20px rgba(255,0,0,.65);
+}
+.cta{
+  width:100%;
+  border:0;
+  border-radius:20px;
+  padding:18px;
+  color:#fff;
+  font-size:19px;
+  font-weight:1000;
+  background:linear-gradient(#ff2222,#b90000);
+  box-shadow:0 14px 32px rgba(255,0,0,.34),inset 0 1px 0 rgba(255,255,255,.25);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+}
+.cta i{margin-left:auto;font-style:normal;font-size:34px}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin:18px 0;
+}
+.tile{
+  position:relative;
+  min-height:128px;
+  padding:17px;
+  border-radius:22px;
+  border:1px solid var(--line);
+  color:#fff;
+  text-align:left;
+  background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.025));
+  box-shadow:0 12px 26px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.tile .emoji{
+  font-size:36px;
+  filter:drop-shadow(0 0 10px rgba(255,0,0,.55));
+}
+.tile strong{
+  display:block;
+  font-size:19px;
+  margin:9px 0 5px;
+}
+.tile small{
+  display:block;
+  color:var(--muted);
+  line-height:1.35;
+}
+.tile i{
+  position:absolute;
+  right:14px;bottom:14px;
+  font-size:34px;
+  font-style:normal;
+  color:#ddd;
+}
+.call{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:16px;
+  border-radius:22px;
+  border:1px solid var(--line);
+  background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.025));
+}
+.call-left{display:flex;align-items:center;gap:12px}
+.call-left span{font-size:34px}
+.call small{display:block;color:#aaa;margin-top:4px}
+.call a{
+  color:#ff3333;
+  border:1px solid rgba(255,36,36,.75);
+  border-radius:16px;
+  text-decoration:none;
+  padding:12px 14px;
+  font-weight:900;
+}
+.nav{
+  position:fixed;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  max-width:430px;
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  padding:9px 6px max(10px,env(safe-area-inset-bottom));
+  background:rgba(5,5,5,.94);
+  border-top:1px solid var(--line);
+  backdrop-filter:blur(14px);
+  z-index:10;
+}
+.nav button{
+  border:0;
+  background:transparent;
+  color:#888;
+  font-size:11px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+}
+.nav span{font-size:24px}
+.nav .active{
+  color:var(--red);
+  text-shadow:0 0 14px rgba(255,0,0,.55);
+}
+.head{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:12px 0 18px;
+}
+.head h2{margin:0}
+.back{
+  width:42px;height:42px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:#111;
+  color:#fff;
+  font-size:30px;
+}
+.card{
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.025));
+  padding:16px;
+  margin:12px 0;
+}
+label{display:block;color:#aaa;margin:12px 0 6px}
+input,select,textarea{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#0e0f11;
+  color:#fff;
+  padding:14px;
+  outline:none;
+}
+textarea{min-height:88px;resize:none}
+.row-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.art{
+  width:76px;height:76px;
+  border-radius:18px;
+  display:grid;
+  place-items:center;
+  font-size:43px;
+  background:#0d0d0d;
+  box-shadow:inset 0 0 20px rgba(255,0,0,.14);
+}
+.ok{color:var(--green)}
+.warn{color:#ffc400}
+.price{display:block;color:#ffe560;margin-top:8px;font-size:22px}
+.badge{
+  color:#ffd000;
+  background:rgba(255,208,0,.12);
+  padding:7px 10px;
+  border-radius:10px;
+  font-weight:900;
+}
+.done{
+  color:var(--green);
+  background:rgba(65,255,91,.12);
+  padding:7px 10px;
+  border-radius:10px;
+  font-weight:900;
+}
+.order-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.big-center{text-align:center}
+.big-center .big{font-size:64px;font-weight:1000}
+.toast{
+  position:fixed;
+  left:50%;bottom:90px;
+  transform:translateX(-50%) translateY(20px);
+  background:#111;
+  border:1px solid rgba(65,255,91,.65);
+  color:#fff;
+  border-radius:16px;
+  padding:13px 18px;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+  z-index:20;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.busy .dot{background:var(--red);box-shadow:0 0 22px var(--red)}
+.busy .status-row strong{color:var(--red);text-shadow:0 0 13px rgba(255,36,36,.5)}
+@media(max-width:380px){
+  .logo-main{font-size:34px}
+  .availability{grid-template-columns:1fr;height:auto}
+  .status-box{margin:14px}
+  .garage{height:110px}
+  .tile{min-height:118px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="screen active" id="home">
+    <div class="top">
+      <button class="icon">☰</button>
+      <button class="icon bell">🔔</button>
+    </div>
+
+    <div class="logo">
+      <div class="logo-main"><span>GT</span> TIRES</div>
+      <div class="logo-sub">ВАШ ШИННИЙ ЕКСПЕРТ</div>
+    </div>
+
+    <section class="availability" id="availability">
+      <div class="status-box">
+        <h1>ЗАЙНЯТІСТЬ СЕРВІСУ</h1>
+        <div class="status-row">
+          <span class="dot"></span>
+          <strong id="statusText">ВІЛЬНИЙ СЕРВІС</strong>
+        </div>
+        <p id="statusHint">Зараз можна заїжджати</p>
+      </div>
+      <div class="garage">
+        <div class="garage-logo"><span>GT</span> TIRES</div>
+        <div class="wheel"></div>
+        <div class="machine"></div>
+      </div>
+    </section>
+
+    <button class="cta" onclick="openScreen('booking')">📅 ЗАПИСАТИСЯ НА СЕРВІС <i>›</i></button>
+
+    <div class="grid">
+      <button class="tile" onclick="openScreen('cars')"><span class="emoji">🚛</span><strong>Мої авто</strong><small>Ваші авто та історія обслуговування</small><i>›</i></button>
+      <button class="tile" onclick="openScreen('tires')"><span class="emoji">🛞</span><strong>Каталог шин</strong><small>Шини в наявності та під замовлення</small><i>›</i></button>
+      <button class="tile" onclick="openScreen('orders')"><span class="emoji">📋</span><strong>Замовлення</strong><small>Історія замовлень та статуси</small><i>›</i></button>
+      <button class="tile" onclick="openScreen('price')"><span class="emoji">🏷️</span><strong>Прайс</strong><small>Послуги та ціни на сервіс</small><i>›</i></button>
+      <button class="tile" onclick="openScreen('promo')"><span class="emoji">🎁</span><strong>Акції</strong><small>Спеціальні пропозиції</small><i>›</i></button>
+      <button class="tile" onclick="openScreen('bonus')"><span class="emoji">⭐</span><strong>Бонуси</strong><small>Ваші бали та винагороди</small><i>›</i></button>
+    </div>
+
+    <div class="call">
+      <div class="call-left"><span>📞</span><div><strong>Є питання?</strong><small>Зв'яжіться з нами</small></div></div>
+      <a href="tel:+380501234567">Зателефонувати</a>
+    </div>
+  </section>
+
+  <section class="screen" id="booking">
+    <div class="head"><button class="back" onclick="openScreen('home')">‹</button><h2>Запис на сервіс</h2></div>
+    <form class="card" id="bookingForm">
+      <label>Авто</label>
+      <select><option>DAF XF 105 — AA1234KK</option><option>MAN TGX 18.440 — BB5678PP</option></select>
+      <label>Послуга</label>
+      <select><option>Монтаж шин</option><option>Балансування</option><option>Герметизація</option><option>Ремонт шини</option></select>
+      <label>Дата</label><input type="date" value="2026-06-16">
+      <label>Час</label><input type="time" value="10:00">
+      <label>Коментар</label><textarea placeholder="Наприклад: потрібна перевірка передньої осі"></textarea>
+      <button class="cta" type="submit">ПІДТВЕРДИТИ ЗАПИС</button>
+    </form>
+  </section>
+
+  <section class="screen" id="cars">
+    <div class="head"><button class="back" onclick="openScreen('home')">‹</button><h2>Мої авто</h2></div>
+    <div class="card row-card"><div class="art">🚛</div><div><h3>DAF XF 105</h3><p>AA1234KK</p><span class="ok">● Все добре</span></div></div>
+    <div class="card row-card"><div class="art">🚚</div><div><h3>MAN TGX 18.440</h3><p>BB5678PP</p><span class="warn">● Потребує уваги</span></div></div>
+  </section>
+
+  <section class="screen" id="tires">
+    <div class="head"><button class="back" onclick="openScreen('home')">‹</button><h2>Каталог шин</h2></div>
+    <input placeholder="Пошук: 315/80 R22.5">
+    <div class="card row-card"><div class="art">🛞</div><div><h3>Michelin X Multi Energy Z</h3><p>315/80 R22.5</p><span class="ok">В наявності: 12 шт.</span><strong class="price">18 560 грн</strong></div></div>
+    <div class="card row-card"><div class="art">🛞</div><div><h3>Bridgestone R-Drive 002</h3><p>315/80 R22.5</p><span class="ok">В наявності: 8 шт.</span><strong class="price">16 990 грн</strong></div></div>
+  </section>
+
+  <section class="screen" id="orders">
+    <div class="head"><button class="back" onclick="openScreen('home')">‹</button><h2>Замовлення</h2></div>
+    <div class="card"><div class="order-top"><h3>№547</h3><span class="badge">В роботі</span></div><p>DAF XF 105 — AA1234KK</p><ul><li>Монтаж шин</li><li>Балансування</li><li>Герметизація</li></ul><h2>1450 грн</h2></div>
+    <div class="card"><div class="order-top"><h3>№546</h3><span class="done">Виконано</span></div><p>MAN TGX 18.440</p><ul><li>Ремонт шини</li></ul><h2>850 грн</h2></div>
+  </section>
+
+  <section class="screen" id="price">
+    <div class="head"><button class="back" onclick="openScreen('home')">‹</button><h2>Прайс</h2></div>
+    <div class="card"><h3>🚛 Вантажні</h3><p>Монтаж, демонтаж, балансування, герметизація</p></div>
+    <div class="card"><h3>🚗 Легкові</h3><p>Седан, SUV, бус, комерційні авто</p></div>
+    <div class="card"><h3>🚜 Сільгосп</h3><p>Трактори, причепи, спецтехніка</p></div>
+  </section>
+
+  <section class="screen" id="promo">
+    <div class="head"><button class="back" onclick="openScreen('home')">‹</button><h2>Акції</h2></div>
+    <div class="card big-center"><div style="font-size:58px">🎁</div><h3>Акції будуть тут</h3><p>На головній знижку прибрано.</p></div>
+  </section>
+
+  <section class="screen" id="bonus">
+    <div class="head"><button class="back" onclick="openScreen('home')">‹</button><h2>Бонуси</h2></div>
+    <div class="card big-center"><div style="font-size:58px">⭐</div><p>Ваш баланс</p><div class="big">185</div><small>балів</small></div>
+  </section>
+
+  <section class="screen" id="profile">
+    <div class="head"><button class="back" onclick="openScreen('home')">‹</button><h2>Кабінет</h2></div>
+    <div class="card row-card"><div class="art">👤</div><div><h3>Іван Петренко</h3><p>+380 50 123 45 67</p></div></div>
+    <div class="card">Мої дані ›</div>
+    <div class="card">Мої авто ›</div>
+    <div class="card">Мова: Українська ›</div>
+  </section>
+</div>
+
+<nav class="nav">
+  <button class="active" onclick="openScreen('home')" data-id="home"><span>⌂</span>Головна</button>
+  <button onclick="openScreen('orders')" data-id="orders"><span>▤</span>Замовлення</button>
+  <button onclick="openScreen('booking')" data-id="booking"><span>▣</span>Запис</button>
+  <button onclick="openScreen('bonus')" data-id="bonus"><span>☆</span>Бонуси</button>
+  <button onclick="openScreen('profile')" data-id="profile"><span>♙</span>Кабінет</button>
+</nav>
+
+<div class="toast" id="toast">Запис створено ✅</div>
+
+<script>
+function openScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  const nav = document.querySelector('.nav button[data-id="'+id+'"]');
+  if(nav){ nav.classList.add('active'); }
+  else { document.querySelector('.nav button[data-id="home"]').classList.add('active'); }
+
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+document.getElementById('bookingForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  const toast=document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),1700);
+  setTimeout(()=>openScreen('orders'),650);
+});
+
+let taps=0;
+document.getElementById('availability').addEventListener('click',function(){
+  taps++;
+  if(taps % 5 !== 0) return;
+  const busy=this.classList.toggle('busy');
+  document.getElementById('statusText').textContent=busy?'СЕРВІС ЗАЙНЯТИЙ':'ВІЛЬНИЙ СЕРВІС';
+  document.getElementById('statusHint').textContent=busy?'Краще записатися на інший час':'Зараз можна заїжджати';
+});
+</script>
+</body>
+</html>
