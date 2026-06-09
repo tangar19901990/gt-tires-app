@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GT Tires Client Bot</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="phone-shell">
+    <section class="hero-card">
+      <div class="top-bar">
+        <button class="icon-button" aria-label="Меню">☰</button>
+        <span class="status-pill">🟢 Відкрито</span>
+      </div>
+
+      <div class="brand-block">
+        <div class="logo-mark">GT</div>
+        <div>
+          <h1>GT Tires</h1>
+          <p>Шинний сервіс для вантажних, легкових, с/г та спецтехніки</p>
+        </div>
+      </div>
+
+      <div class="availability-card">
+        <span class="live-dot"></span>
+        <div>
+          <strong>Сервіс працює сьогодні</strong>
+          <small>Пн–Сб · 09:00–20:00 · Велика Димерка</small>
+        </div>
+      </div>
+
+      <div class="primary-actions">
+        <button class="big-action red" data-view="booking">📝 Записатися</button>
+        <button class="big-action" data-view="price">💰 Прайс</button>
+      </div>
+    </section>
+
+    <section class="quick-grid" aria-label="Тип транспорту">
+      <button class="vehicle-card active">🚛<span>Вантажні</span></button>
+      <button class="vehicle-card">🚗<span>Легкові</span></button>
+      <button class="vehicle-card">🚜<span>Сільгосп</span></button>
+      <button class="vehicle-card">🏗<span>Спецтехніка</span></button>
+    </section>
+
+    <section class="content-card" id="content-card">
+      <div class="section-title">
+        <h2>Що потрібно?</h2>
+        <p>Оберіть дію, бот швидко підкаже наступний крок.</p>
+      </div>
+
+      <div class="menu-list">
+        <button class="menu-row" data-view="services"><span>🛞</span><div><b>Послуги</b><small>монтаж, балансування, ремонт, герметизація</small></div>›</button>
+        <button class="menu-row" data-view="tires"><span>📦</span><div><b>Купити шини</b><small>нові та Б/У шини під ваш транспорт</small></div>›</button>
+        <button class="menu-row" data-view="location"><span>📍</span><div><b>Адреса</b><small>Велика Димерка, вул. Соборна 106</small></div>›</button>
+        <button class="menu-row" data-view="contact"><span>📞</span><div><b>Звʼязатися</b><small>дзвінок або повідомлення в Telegram</small></div>›</button>
+      </div>
+    </section>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="home">🏠<span>Головна</span></button>
+      <button class="nav-item" data-view="price">💰<span>Прайс</span></button>
+      <button class="nav-item main" data-view="booking">📝</button>
+      <button class="nav-item" data-view="location">📍<span>Адреса</span></button>
+      <button class="nav-item" data-view="contact">☎️<span>Дзвінок</span></button>
+    </nav>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
