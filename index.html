@@ -1,44 +1,262 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-<meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Top_Secret — GT Tires Service</title>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Fira+Sans:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root{--pink:#ff69b4;--bg:#0a0a0a;--card:#1e1e1e}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Fira Sans',sans-serif;background:var(--bg);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-@keyframes carbonShift{0%{background-position:0 0}100%{background-position:8px 8px}}
-@keyframes neonPulse{0%,100%{text-shadow:0 0 10px var(--pink),0 0 30px var(--pink),0 0 60px rgba(255,20,147,.5)}50%{text-shadow:0 0 20px var(--pink),0 0 50px var(--pink),0 0 90px rgba(255,20,147,.8)}}
-body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(45deg,rgba(255,255,255,.02)25%,transparent 25%,transparent 50%,rgba(255,255,255,.02)50%,rgba(255,255,255,.02)75%,transparent 75%,transparent);background-size:8px 8px;animation:carbonShift 20s linear infinite;pointer-events:none}
-.container{position:relative;z-index:1;text-align:center;max-width:500px}
-h1{font-family:'Oswald';font-size:3rem;font-weight:700;color:var(--pink);animation:neonPulse 2.5s ease-in-out infinite;margin-bottom:8px}
-.sub{font-family:'Oswald';font-size:.9rem;color:var(--pink);letter-spacing:4px;opacity:.7;margin-bottom:40px}
-.links{display:flex;flex-direction:column;gap:14px}
-.link-btn{display:block;padding:18px 24px;background:var(--card);border:2px solid var(--pink);border-radius:14px;color:#fff;text-decoration:none;font-weight:600;font-size:1rem;transition:.2s}
-.link-btn:hover{background:var(--pink);color:#000;transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,20,147,.4)}
-.link-btn .icon{font-size:1.4rem;margin-right:10px}
-.link-btn .desc{display:block;font-size:.75rem;opacity:.7;font-weight:400;margin-top:4px}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#050505" />
+  <title>GT Tires Client Bot</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div class="container">
-  <h1>Top_Secret</h1>
-  <div class="sub">GT Tires Service • Велика Димерка</div>
-  <div class="links">
-    <a href="gt-tires-v4.html" class="link-btn">
-      <span class="icon">🔧</span>Адмін-панель
-      <span class="desc">Замовлення, клієнти, прайс, каса, звіти</span>
-    </a>
-    <a href="gt-tires-miniapp.html" class="link-btn">
-      <span class="icon">📱</span>Telegram Mini App
-      <span class="desc">Для клієнтів — калькулятор послуг</span>
-    </a>
-  </div>
-</div>
+  <main class="app">
+    <header class="topbar">
+      <button class="icon-btn" aria-label="Меню">☰</button>
+      <div class="brand">
+        <div class="logo"><span>GT</span> TIRES</div>
+        <div class="subtitle">ВАШ ШИННИЙ ЕКСПЕРТ</div>
+      </div>
+      <button class="icon-btn notify" aria-label="Сповіщення">🔔<b></b></button>
+    </header>
+
+    <section class="screen active" id="screen-home">
+      <section class="availability-card" id="availabilityCard">
+        <div class="availability-panel">
+          <h1>ЗАЙНЯТІСТЬ СЕРВІСУ</h1>
+          <div class="status-row">
+            <span class="status-dot" id="statusDot"></span>
+            <strong id="statusText">ВІЛЬНИЙ СЕРВІС</strong>
+          </div>
+          <p id="statusHint">Зараз можна заїжджати</p>
+        </div>
+        <div class="garage-art">
+          <div class="garage-logo">GT TIRES</div>
+          <div class="wheel"></div>
+          <div class="machine"></div>
+        </div>
+      </section>
+
+      <button class="main-cta" data-nav="booking">
+        <span>📅</span> ЗАПИСАТИСЯ НА СЕРВІС <i>›</i>
+      </button>
+
+      <section class="tile-grid">
+        <button class="tile" data-nav="cars">
+          <span class="tile-icon">🚛</span>
+          <strong>Мої авто</strong>
+          <small>Ваші авто та історія обслуговування</small>
+          <i>›</i>
+        </button>
+        <button class="tile" data-nav="tires">
+          <span class="tile-icon">🛞</span>
+          <strong>Каталог шин</strong>
+          <small>Шини в наявності та під замовлення</small>
+          <i>›</i>
+        </button>
+        <button class="tile" data-nav="orders">
+          <span class="tile-icon">📋</span>
+          <strong>Замовлення</strong>
+          <small>Історія замовлень та статуси</small>
+          <i>›</i>
+        </button>
+        <button class="tile" data-nav="price">
+          <span class="tile-icon">🏷️</span>
+          <strong>Прайс</strong>
+          <small>Послуги та ціни на сервіс</small>
+          <i>›</i>
+        </button>
+        <button class="tile" data-nav="promo">
+          <span class="tile-icon">🎁</span>
+          <strong>Акції</strong>
+          <small>Спеціальні пропозиції та подарунки</small>
+          <i>›</i>
+        </button>
+        <button class="tile" data-nav="bonus">
+          <span class="tile-icon">⭐</span>
+          <strong>Бонуси</strong>
+          <small>Ваші бали та винагороди</small>
+          <i>›</i>
+        </button>
+      </section>
+
+      <section class="call-card">
+        <div>
+          <span>📞</span>
+          <div>
+            <strong>Є питання?</strong>
+            <small>Зв'яжіться з нами</small>
+          </div>
+        </div>
+        <a href="tel:+380501234567">Зателефонувати</a>
+      </section>
+    </section>
+
+    <section class="screen" id="screen-booking">
+      <div class="page-head">
+        <button class="back" data-nav="home">‹</button>
+        <h2>Запис на сервіс</h2>
+      </div>
+      <form class="form-card" id="bookingForm">
+        <label>Авто</label>
+        <select>
+          <option>DAF XF 105 — AA1234KK</option>
+          <option>MAN TGX 18.440 — BB5678PP</option>
+        </select>
+        <label>Послуга</label>
+        <select>
+          <option>Монтаж шин</option>
+          <option>Балансування</option>
+          <option>Герметизація</option>
+          <option>Ремонт шини</option>
+        </select>
+        <label>Дата</label>
+        <input type="date" value="2026-06-16">
+        <label>Час</label>
+        <input type="time" value="10:00">
+        <label>Коментар</label>
+        <textarea placeholder="Наприклад: потрібна перевірка передньої осі"></textarea>
+        <button type="submit" class="main-cta">Підтвердити запис</button>
+      </form>
+    </section>
+
+    <section class="screen" id="screen-cars">
+      <div class="page-head">
+        <button class="back" data-nav="home">‹</button>
+        <h2>Мої авто</h2>
+      </div>
+      <div class="list">
+        <article class="vehicle-card">
+          <div class="vehicle-art">🚛</div>
+          <div>
+            <h3>DAF XF 105</h3>
+            <p>AA1234KK</p>
+            <span class="ok">● Все добре</span>
+          </div>
+        </article>
+        <article class="vehicle-card">
+          <div class="vehicle-art">🚚</div>
+          <div>
+            <h3>MAN TGX 18.440</h3>
+            <p>BB5678PP</p>
+            <span class="warn">● Потребує уваги</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-tires">
+      <div class="page-head">
+        <button class="back" data-nav="home">‹</button>
+        <h2>Каталог шин</h2>
+      </div>
+      <input class="search" placeholder="Пошук: 315/80 R22.5">
+      <div class="list">
+        <article class="product">
+          <div class="tire-img">🛞</div>
+          <div>
+            <h3>Michelin X Multi Energy Z</h3>
+            <p>315/80 R22.5</p>
+            <span class="ok">В наявності: 12 шт.</span>
+            <strong>18 560 грн</strong>
+          </div>
+        </article>
+        <article class="product">
+          <div class="tire-img">🛞</div>
+          <div>
+            <h3>Bridgestone R-Drive 002</h3>
+            <p>315/80 R22.5</p>
+            <span class="ok">В наявності: 8 шт.</span>
+            <strong>16 990 грн</strong>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-orders">
+      <div class="page-head">
+        <button class="back" data-nav="home">‹</button>
+        <h2>Замовлення</h2>
+      </div>
+      <article class="order-card">
+        <div class="order-top"><h3>№547</h3><span class="work">В роботі</span></div>
+        <p>DAF XF 105 — AA1234KK</p>
+        <ul><li>Монтаж шин</li><li>Балансування</li><li>Герметизація</li></ul>
+        <b>1450 грн</b>
+      </article>
+      <article class="order-card">
+        <div class="order-top"><h3>№546</h3><span class="done">Виконано</span></div>
+        <p>MAN TGX 18.440 — BB5678PP</p>
+        <ul><li>Ремонт шини</li></ul>
+        <b>850 грн</b>
+      </article>
+    </section>
+
+    <section class="screen" id="screen-price">
+      <div class="page-head">
+        <button class="back" data-nav="home">‹</button>
+        <h2>Прайс</h2>
+      </div>
+      <div class="list">
+        <article class="price-card"><h3>🚛 Вантажні</h3><p>Монтаж, демонтаж, балансування, герметизація</p></article>
+        <article class="price-card"><h3>🚗 Легкові</h3><p>Седан, SUV, бус, комерційні авто</p></article>
+        <article class="price-card"><h3>🚜 Сільгосп</h3><p>Трактори, причепи, спецтехніка</p></article>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-promo">
+      <div class="page-head">
+        <button class="back" data-nav="home">‹</button>
+        <h2>Акції</h2>
+      </div>
+      <div class="empty-card">
+        <span>🎁</span>
+        <h3>Акції з'являться тут</h3>
+        <p>Без банера знижки на головній. Тільки чистий сервіс.</p>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-bonus">
+      <div class="page-head">
+        <button class="back" data-nav="home">‹</button>
+        <h2>Бонуси</h2>
+      </div>
+      <section class="bonus-card">
+        <span>⭐</span>
+        <p>Ваш баланс</p>
+        <strong>185</strong>
+        <small>балів</small>
+      </section>
+    </section>
+
+    <section class="screen" id="screen-profile">
+      <div class="page-head">
+        <button class="back" data-nav="home">‹</button>
+        <h2>Кабінет</h2>
+      </div>
+      <div class="profile-card">
+        <div class="avatar">👤</div>
+        <div>
+          <h3>Іван Петренко</h3>
+          <p>+380 50 123 45 67</p>
+        </div>
+      </div>
+      <button class="setting">Мої дані ›</button>
+      <button class="setting">Мої авто ›</button>
+      <button class="setting">Мова: Українська ›</button>
+      <button class="setting">Тема: Червона ›</button>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="active" data-nav="home"><span>⌂</span>Головна</button>
+    <button data-nav="orders"><span>▤</span>Замовлення</button>
+    <button data-nav="booking"><span>▣</span>Запис</button>
+    <button data-nav="bonus"><span>☆</span>Бонуси</button>
+    <button data-nav="profile"><span>♙</span>Кабінет</button>
+  </nav>
+
+  <div class="toast" id="toast">Запис створено ✅</div>
+
+  <script src="app.js"></script>
 </body>
 </html>
