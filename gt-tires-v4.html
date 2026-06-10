@@ -232,6 +232,37 @@ button{font-family:inherit}
 .online{display:inline-flex;align-items:center;gap:7px}
 .online::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good)}
 
+/* ---------- voice ---------- */
+.voice-btn{height:60px;border:none;border-radius:15px;cursor:pointer;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;gap:11px;letter-spacing:.02em;background:linear-gradient(135deg,#5e0c11,#e81f29);box-shadow:0 8px 24px var(--accent-glow),inset 0 1px 0 rgba(255,255,255,.18);transition:.15s}
+.voice-btn:hover{transform:translateY(-1px)}
+.voice-btn .mi{font-size:21px}
+.fab{position:fixed;right:26px;bottom:62px;width:68px;height:68px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:0 12px 34px var(--accent-glow),inset 0 1px 0 rgba(255,255,255,.25);display:grid;place-items:center;z-index:80;transition:.15s}
+.fab:hover{transform:scale(1.06)}
+.fab svg{width:30px;height:30px}
+body.is-mobile .fab{bottom:108px;right:16px}
+.mic-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:6px 0}
+.mic-big{width:148px;height:148px;border-radius:50%;border:none;cursor:pointer;background:radial-gradient(circle at 50% 38%,#ff4751,#b3101a);color:#fff;display:grid;place-items:center;position:relative;box-shadow:0 14px 36px var(--accent-glow)}
+.mic-big svg{width:62px;height:62px}
+.mic-big.rec{animation:micpulse 1.2s infinite}
+@keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(232,31,41,.55)}70%{box-shadow:0 0 0 34px rgba(232,31,41,0)}100%{box-shadow:0 0 0 0 rgba(232,31,41,0)}}
+.listening{font-size:15px;color:var(--accent);font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+.listening .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:micblink 1s infinite}
+@keyframes micblink{50%{opacity:.2}}
+.transcript{min-height:52px;width:100%;border:1px solid var(--line-2);border-radius:12px;background:var(--bg-2);padding:12px 14px;font-size:17px;color:var(--txt);text-align:center}
+.transcript.empty{color:var(--muted-2);font-size:14px}
+.vrow{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line-2);border-radius:12px;margin-bottom:8px;background:var(--bg-2)}
+.vrow .nm{flex:1;font-size:15px}
+.vrow .pp{color:var(--muted);font-variant-numeric:tabular-nums}
+.vrow.miss{border-color:var(--warn);background:rgba(240,169,43,.08);flex-wrap:wrap}
+.big-field{height:50px;font-size:16px}
+.big-confirm{height:58px!important;font-size:17px;padding:0 26px}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.cmd-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cmd-chip{padding:11px 13px;border:1px solid var(--line-2);border-radius:11px;background:var(--bg-2);font-size:14px}
+body.is-mobile .cmd-list{grid-template-columns:1fr}
+body.is-mobile .modal-f{flex-wrap:wrap}
+body.is-mobile .modal-f .btn{flex:1}
+
 ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:rgba(232,31,41,.3);border-radius:9px}::-webkit-scrollbar-track{background:transparent}
 
 .sidebar-backdrop{display:none;position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:40;backdrop-filter:blur(2px)}
@@ -295,6 +326,7 @@ body.is-mobile .statusbar .right{margin-left:0;flex-basis:100%;justify-content:s
 
   <aside class="sidebar">
     <button class="new-order-btn" data-act="newOrder"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>НОВИЙ ЗАКАЗ</button>
+    <button class="voice-btn" data-act="voiceStart"><span class="mi">🎤</span> ГОЛОСОВА КОМАНДА</button>
     <nav class="nav" id="nav"></nav>
     <div class="theme-box">
       <div class="t-title">Тема дизайну</div>
@@ -321,6 +353,7 @@ body.is-mobile .statusbar .right{margin-left:0;flex-basis:100%;justify-content:s
 <div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
 <div id="toast"></div>
 <input type="file" id="priceFile" accept=".csv,text/csv" style="display:none">
+<button class="fab" data-act="voiceStart" title="Голосова команда"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" fill="#fff"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg></button>
 
 <script>
 "use strict";
@@ -578,7 +611,7 @@ function seed(){
       {id:uid(),name:'Michelin Primacy 4',size:'205/55 R16',brand:'Michelin',qty:8,price:3200},
       {id:uid(),name:'Nokian Hakka Green',size:'195/65 R15',brand:'Nokian',qty:4,price:2800},
       {id:uid(),name:'Continental EcoContact',size:'225/45 R17',brand:'Continental',qty:2,price:3900}
-    ],cash
+    ],cash,voiceAliases:[]
   };
 }
 function pad6(n){return '#'+String(n).padStart(6,'0');}
@@ -587,6 +620,7 @@ let S;
 function load(){try{const r=localStorage.getItem(LS_KEY);if(r){const d=JSON.parse(r);if(d&&d.settings)return d;}}catch(e){}return seed();}
 function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){toast('Не вдалося зберегти');}}
 S=load();
+S.voiceAliases=S.voiceAliases||[];
 if(!localStorage.getItem(LS_KEY)){try{save();}catch(e){}}
 
 /* ============ THEME / VIEW ============ */
@@ -622,6 +656,7 @@ const NAV=[
   ['cash','Каса','<rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18" stroke="currentColor" stroke-width="2"/>'],
   ['reports','Звіти','<path d="M5 20V9M12 20V4M19 20v-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>'],
   ['marketing','Маркетинг','<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'],
+  ['voice','Голос і навчання','<rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="2"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'],
   ['settings','Налаштування','<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>']
 ];
 let route='dashboard',query='';
@@ -911,6 +946,38 @@ marketing(){
   </tbody></table></div>`;
 },
 
+voice(){
+  const al=S.voiceAliases||[];
+  const cmds=['Новий клієнт','Новий заказ','Знайди клієнта …','Покажи історію','Друк заказу','Покажи борги'];
+  return `
+  <div class="page-h"><h2>🎤 Голос і навчання</h2><span class="spacer" style="flex:1"></span>
+    <button class="btn" data-act="voiceStart"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" fill="#fff"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>Почати</button></div>
+  <div class="cols">
+    <div class="lcol">
+      <div class="card"><div class="card-h"><h3>Голосові команди</h3></div><div class="card-pad">
+        <div class="cmd-list">${cmds.map(c=>`<div class="cmd-chip">🗣 ${esc(c)}</div>`).join('')}</div>
+        <p class="hint" style="margin-top:12px">Для заказу диктуйте: <b>імʼя, авто, номер, послуги</b>.<br>Напр.: «Олександр, DAF XF, АА1234КК, монтаж двох коліс R22.5, балансування».</p>
+        <p class="hint" style="margin-top:8px">⚠ Розпізнавання голосу потребує інтернету та працює у Chrome/Edge. У Brave увімкніть Google-сервіси розпізнавання або користуйтесь полем вводу текстом — обробка команди працює офлайн.</p>
+      </div></div>
+      <div class="card"><div class="card-h"><h3>Перевірити розпізнавання</h3></div><div class="card-pad" style="display:flex;flex-direction:column;gap:10px">
+        <input id="vTest" class="big-field" placeholder="Введіть фразу для тесту" style="border:1px solid var(--line-2);background:var(--bg-2);color:var(--txt);border-radius:11px;padding:0 14px">
+        <button class="btn ghost" data-act="vTestRun">Перевірити</button>
+        <div id="vTestOut" class="hint"></div>
+      </div></div>
+    </div>
+    <div class="rcol">
+      <div class="card"><div class="card-h"><h3>Вивчені фрази</h3><span class="sub" style="color:var(--muted);font-size:11px">${al.length}</span></div>
+        <div class="card-pad" style="display:flex;flex-direction:column;gap:10px">
+          <div class="field row"><div class="field"><label>Фраза (як кажете)</label><input id="alPhrase" placeholder="напр. перекинути"></div></div>
+          <div class="field"><label>Послуга</label><select id="alSvc">${[...S.services].sort((a,b)=>(a.sort||0)-(b.sort||0)).map(s=>`<option value="${s.id}">${esc(s.name)}${s.unit?' · '+esc(s.unit):''}</option>`).join('')}</select></div>
+          <button class="btn" data-act="alAdd"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>Додати фразу</button>
+        </div>
+        <table class="tbl"><tbody>${al.length?al.map((a,i)=>{const s=S.services.find(x=>x.id===a.serviceId);return `<tr><td>«${esc(a.phrase)}» → <b>${esc(s?s.name:'?')}</b></td><td class="actions"><button class="mini" data-act="alDel" data-i="${i}"><svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td></tr>`;}).join(''):'<tr><td><div class="empty">Поки порожньо. Фрази додаються автоматично, коли ви створюєте послугу з голосу.</div></td></tr>'}</tbody></table>
+      </div>
+    </div>
+  </div>`;
+},
+
 settings(){
   const g=S.settings;
   return `
@@ -990,7 +1057,7 @@ function orderModal(existing){
   const pick=cats.map(cat=>`<div class="pr" style="background:var(--panel);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">${esc(catLabel(cat))}</div>`+
     sorted.filter(s=>s.category===cat).map(s=>`<div class="pr"><span class="nm">${esc(s.name)}${s.unit?` <span class="chip">${esc(s.unit)}</span>`:''}</span><span class="pp">${money(s.price)}</span>
       <div class="qty"><button data-act="qty" data-sid="${s.id}" data-d="-1">−</button><span id="q_${s.id}">${draft.items[s.id]||0}</span><button data-act="qty" data-sid="${s.id}" data-d="1">+</button></div></div>`).join('')).join('');
-  openModal(existing?'Редагувати заказ '+pad6(o.num):'Новий заказ',`
+  openModal(existing&&existing.id?'Редагувати заказ '+pad6(o.num):'Новий заказ',`
     <div class="field"><label>Клієнт (імʼя)</label><input id="oName" list="clientNames" value="${esc(draft.clientName)}" placeholder="Іваненко Іван"></div>
     <datalist id="clientNames">${S.clients.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist>
     <div class="field row">
@@ -1005,7 +1072,7 @@ function orderModal(existing){
     </div>
     <label class="checkbox"><input type="checkbox" id="oPaid" ${draft.paid?'checked':''}> Оплачено (внести в касу)</label>
     <div class="total-line"><span class="t">Разом до сплати</span><span class="v" id="oTotal">${money(orderTotal())}</span></div>
-  `,`<button class="btn ghost" data-act="closeModal">Скасувати</button><button class="btn" data-act="saveOrder">${existing?'Зберегти':'Створити заказ'}</button>`);
+  `,`<button class="btn ghost" data-act="closeModal">Скасувати</button><button class="btn" data-act="saveOrder">${existing&&existing.id?'Зберегти':'Створити заказ'}</button>`);
 }
 function orderTotal(){return Object.entries(draft.items).reduce((a,[sid,q])=>{const s=S.services.find(x=>x.id===sid);return a+(s?s.price*q:0);},0);}
 function refreshTotal(){const el=$('oTotal');if(el)el.textContent=money(orderTotal());}
@@ -1048,6 +1115,19 @@ document.addEventListener('click',e=>{
     case 'importPrices':$('priceFile').click();break;
     case 'resetData':if(confirm('Очистити ВСІ дані без можливості відновлення?')){localStorage.removeItem(LS_KEY);S=seed();save();applyTheme(S.settings.theme);go('dashboard');toast('Дані скинуто');}break;
     case 'topSecret':body.classList.toggle('secret');render();break;
+    case 'voiceStart':voiceStart();break;
+    case 'micToggle':micToggle();break;
+    case 'micManualGo':micManualGo();break;
+    case 'vqty':{vSync();const i=+el.dataset.i;vDraft.items[i].qty=Math.max(1,vDraft.items[i].qty+ +el.dataset.d);voicePreview(vDraft);break;}
+    case 'vdel':{vSync();vDraft.items.splice(+el.dataset.i,1);voicePreview(vDraft);break;}
+    case 'vCreate':vCreateService(+el.dataset.i);break;
+    case 'vSaveService':vSaveService();break;
+    case 'vBack':vBack();break;
+    case 'vConfirm':vConfirm();break;
+    case 'vEdit':vEdit();break;
+    case 'vTestRun':vTestRun();break;
+    case 'alAdd':{const ph=vnorm($('alPhrase').value);const sid=$('alSvc').value;if(!ph){toast('Введіть фразу');break;}S.voiceAliases.push({phrase:ph,serviceId:sid});save();render();toast('Фразу збережено');break;}
+    case 'alDel':S.voiceAliases.splice(+el.dataset.i,1);save();render();toast('Видалено');break;
   }
 });
 document.addEventListener('input',e=>{if(e.target.id==='search'){query=e.target.value.trim().toLowerCase();if(['orders','clients','vehicles','services','products'].includes(route))render();}});
@@ -1173,6 +1253,154 @@ function printOrder(id){
   <script>window.onload=function(){window.print()}<\/script></body></html>`);
   w.document.close();
 }
+
+/* ============ VOICE ============ */
+const VTRIG=/монтаж|шиномонтаж|переоб|перекин|баланс|латк|пластир|ремонт|вентил|рихтув|правк|поглибл|вулканіз|накач|підкач|зняття|встановл|тягар|кріпл|гайк|диск/;
+function vnorm(t){
+  t=(t||'').toLowerCase().replace(/ё/g,'е').replace(/\u2019|\u02bc/g,"'");
+  t=t.replace(/р(?=\s?\d)/g,'r');
+  const NUM={'один':1,'одного':1,'одне':1,'одну':1,'два':2,'дві':2,'двох':2,'двоє':2,'три':3,'трьох':3,'троє':3,'чотири':4,'чотирьох':4,'чотирьом':4,"п'ять":5,'пять':5,"п'яти":5,'шість':6,'шести':6,'сім':7,'семи':7,'вісім':8,"дев'ять":9,'девять':9,'десять':10};
+  t=t.replace(/[а-яёіїєґ']+/g,w=>NUM[w]!=null?String(NUM[w]):w);
+  return t.replace(/\s+/g,' ').trim();
+}
+function vplate(t){const m=t.match(/([а-яa-z]{2})\s?(\d{4})\s?([а-яa-z]{2})/i);return m?(m[1]+m[2]+m[3]).toUpperCase():'';}
+function vphone(t){const m=t.replace(/[^\d+]/g,' ').match(/(?:\+?38)?0\d{9}/);return m?m[0]:'';}
+function vsize(seg){const m=seg.match(/r\s?(\d{1,2}(?:[.,]\d)?)/i);return m?('r'+m[1].replace(',','.')):'';}
+function vqtyOf(seg){const m=seg.match(/(\d+)\s*(?:коліс|колеса|колесо|колес|шт|штук|штуки|штука)/);return m?parseInt(m[1]):0;}
+function capName(s){return s.replace(/(^|\s)([a-zа-яёіїєґ])/g,(m,p,c)=>p+c.toUpperCase());}
+function capCar(s){return s.split(' ').filter(Boolean).map(w=>/^[a-z0-9.\-]+$/i.test(w)?w.toUpperCase():(w.charAt(0).toUpperCase()+w.slice(1))).join(' ');}
+function matchService(seg){
+  const al=(S.voiceAliases||[]).find(a=>a.phrase&&seg.includes(a.phrase));
+  if(al){const s=S.services.find(x=>x.id===al.serviceId);if(s)return s;}
+  const size=vsize(seg),sizeNum=size?size.slice(1):'';
+  const words=seg.split(/[^a-zа-яёіїєґ0-9.]+/i).filter(w=>w.length>=3&&!/^(коліс|колеса|колесо|колес|штук|штуки|шт)$/.test(w));
+  let best=null,bsc=0;
+  S.services.forEach(s=>{const nm=s.name.toLowerCase();let sc=0;
+    words.forEach(w=>{if(/^\d/.test(w))return;const root=w.slice(0,5);if(w.length>=4&&nm.includes(root))sc++;});
+    if(sizeNum){if(nm.includes(sizeNum))sc+=4;else sc-=2;}
+    if(sc>bsc){bsc=sc;best=s;}});
+  return bsc>=1?best:null;
+}
+function parseOrder(raw){
+  const t=vnorm(raw);
+  const plate=vplate(t),phone=vphone(t);
+  let segs;
+  if(t.includes(','))segs=t.split(',').map(s=>s.trim()).filter(Boolean);
+  else segs=t.split(/\s+(?=монтаж|шиномонтаж|баланс|латк|пластир|ремонт|вентил|рихтув|правк|поглибл)/).map(s=>s.trim()).filter(Boolean);
+  const items=[],unmatched=[];let name='',car='';
+  segs.forEach((seg,idx)=>{
+    const isSvc=VTRIG.test(seg)||!!vsize(seg)||(S.voiceAliases||[]).some(a=>a.phrase&&seg.includes(a.phrase));
+    if(idx===0&&!isSvc){name=seg;return;}
+    if(isSvc){const qty=vqtyOf(seg)||1;const s=matchService(seg);
+      if(s)items.push({id:s.id,name:s.name,price:s.price,unit:s.unit||'',qty});
+      else unmatched.push({text:seg.trim(),qty,size:vsize(seg)});return;}
+    let clean=seg.replace(/([а-яa-z]{2})\s?\d{4}\s?([а-яa-z]{2})/i,'').replace(/(?:\+?38)?0\d{9}/,'').replace(/\d+/g,'').trim();
+    if(clean&&!car)car=clean;
+  });
+  if(!name){name=(t.split(',')[0]||t.split(' ')[0]||'').trim();}
+  return {name:capName(name),phone,plate,car:car?capCar(car):'',items,unmatched,raw};
+}
+const VEngine={rec:null,on:false,
+  supported(){return !!(window.SpeechRecognition||window.webkitSpeechRecognition);},
+  start(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;
+    const r=new SR();this.rec=r;r.lang='uk-UA';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;let fin='';
+    r.onresult=e=>{let it='';fin='';for(let i=0;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)fin+=x[0].transcript;else it+=x[0].transcript;}const el=$('micText');if(el){el.classList.remove('empty');el.textContent=(fin+' '+it).trim()||'…';}};
+    r.onend=()=>{VEngine.on=false;const mb=$('micBig');if(mb)mb.classList.remove('rec');const st=$('micStatus');if(st)st.style.visibility='hidden';const el=$('micText');const txt=(fin||(el?el.textContent:'')).trim();if(txt&&txt!=='…'&&txt.indexOf('Натисніть')<0)handleVoice(txt);};
+    r.onerror=ev=>{VEngine.on=false;const mb=$('micBig');if(mb)mb.classList.remove('rec');const st=$('micStatus');if(st){st.style.visibility='visible';st.innerHTML='Мікрофон недоступний ('+ev.error+') — введіть текстом';}};
+    this.on=true;try{r.start();}catch(e){}},
+  stop(){if(this.rec){try{this.rec.stop();}catch(e){}}this.on=false;}
+};
+function voiceStart(){
+  closeModal();
+  openModal('🎤 Голосова команда',`
+    <div class="mic-wrap">
+      <button class="mic-big" id="micBig" data-act="micToggle"><svg viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" fill="#fff"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <div class="listening" id="micStatus" style="visibility:hidden"><span class="dot"></span> Слухаю...</div>
+      <div class="transcript empty" id="micText">Натисніть мікрофон і продиктуйте заказ…</div>
+      <div class="hint">Напр.: «Олександр, DAF XF, АА1234КК, монтаж двох коліс R22.5, балансування»</div>
+      <div class="field" style="width:100%"><label>Або введіть текстом</label><input id="micManual" class="big-field" placeholder="Команда або заказ текстом..."></div>
+    </div>
+  `,`<button class="btn ghost" data-act="closeModal">Скасувати</button><button class="btn" data-act="micManualGo">Розпізнати текст</button>`);
+  if(!VEngine.supported()){const st=$('micStatus');st.style.visibility='visible';st.innerHTML='Голос недоступний у цьому браузері — введіть текстом нижче';}
+  else setTimeout(micToggle,300);
+}
+function micToggle(){if(!VEngine.supported()){toast('Скористайтесь полем вводу тексту');return;}
+  if(VEngine.on){VEngine.stop();return;}
+  const mb=$('micBig');if(mb)mb.classList.add('rec');const st=$('micStatus');if(st)st.style.visibility='visible';VEngine.start();}
+function micManualGo(){const el=$('micManual');const v=el?el.value.trim():'';if(!v){toast('Введіть команду');return;}VEngine.stop();handleVoice(v);}
+function handleVoice(raw){
+  const t=vnorm(raw);
+  if(/^(новий|створи)\s+кліент|^новий клієнт|^створи клієнт/.test(t)){closeModal();clientModal(null);return;}
+  if(/^новий заказ|^створи заказ/.test(t)){closeModal();orderModal(null);return;}
+  if(/знайди клієнт|знайти клієнт|покажи клієнт|пошук клієнт/.test(t)){let q=t.replace(/.*?клієнт[ауі]?/, '').trim();closeModal();go('clients');const s=$('search');if(s){s.value=q;query=q.toLowerCase();render();}return;}
+  if(/покажи історі|історі|останні заказ|всі заказ/.test(t)){closeModal();go('orders');return;}
+  if(/^друк|друк заказ/.test(t)){closeModal();const last=[...S.orders].sort((a,b)=>b.createdAt-a.createdAt)[0];if(last)printOrder(last.id);else toast('Немає заказів для друку');return;}
+  if(/борг/.test(t)){closeModal();go('marketing');return;}
+  if(/навчанн|вивчи|голос/.test(t)&&!VTRIG.test(t)){closeModal();go('voice');return;}
+  voicePreview(parseOrder(raw));
+}
+let vDraft=null;
+function vTotal(){return vDraft.items.reduce((a,i)=>a+i.price*i.qty,0);}
+function vSync(){const n=$('vName');if(!n)return;vDraft.name=n.value.trim();vDraft.phone=$('vPhone').value.trim();vDraft.plate=$('vPlate').value.trim();vDraft.car=$('vCar').value.trim();}
+function voicePreview(p){
+  vDraft=p;
+  const items=p.items.map((i,idx)=>`<div class="vrow"><span class="nm">${esc(i.name)}${i.unit?` <span class="chip">${esc(i.unit)}</span>`:''}</span><span class="pp">${money(i.price)}</span><div class="qty"><button data-act="vqty" data-i="${idx}" data-d="-1">−</button><span>${i.qty}</span><button data-act="vqty" data-i="${idx}" data-d="1">+</button></div><button class="mini" data-act="vdel" data-i="${idx}">✕</button></div>`).join('')||'<div class="hint">Послуги не розпізнано — повторіть або відкрийте деталі.</div>';
+  const miss=p.unmatched.map((u,idx)=>`<div class="vrow miss"><span class="nm" style="flex-basis:100%">⚠ Не знайдено у прайсі: «${esc(u.text)}»</span><button class="btn sm" data-act="vCreate" data-i="${idx}">➕ Створити нову послугу</button></div>`).join('');
+  openModal('🎤 Перевірте заказ',`
+    <div class="field"><label>Клієнт</label><input id="vName" class="big-field" value="${esc(p.name)}"></div>
+    <div class="field row"><div class="field"><label>Телефон</label><input id="vPhone" class="big-field" value="${esc(p.phone)}"></div>
+    <div class="field"><label>Номер авто</label><input id="vPlate" class="big-field" value="${esc(p.plate)}"></div></div>
+    <div class="field"><label>Авто</label><input id="vCar" class="big-field" value="${esc(p.car)}"></div>
+    <div class="field"><label>Послуги</label><div>${items}</div></div>
+    ${miss}
+    <div class="total-line"><span class="t">Разом до сплати</span><span class="v" id="vTot">${money(vTotal())}</span></div>
+    <div class="hint">Розпізнано: «${esc(p.raw)}»</div>
+  `,`<button class="btn ghost" data-act="voiceStart">🎤 Повторити</button><button class="btn ghost" data-act="vEdit">✏️ Деталі</button><button class="btn big-confirm" data-act="vConfirm">✅ Підтвердити</button>`);
+}
+function vCreateService(idx){
+  vSync();const u=vDraft.unmatched[idx];const cats=[...new Set(S.services.map(s=>s.category))];
+  openModal('➕ Нова послуга',`
+    <input type="hidden" id="vsIdx" value="${idx}">
+    <div class="field"><label>Назва</label><input id="vsName" class="big-field" value="${esc(capName(u.text))}"></div>
+    <div class="field row"><div class="field"><label>Ціна (₴)</label><input id="vsPrice" class="big-field" type="number" autofocus></div>
+      <div class="field"><label>Розмір</label><input id="vsUnit" class="big-field" value="${esc(u.size?u.size.toUpperCase():'')}"></div></div>
+    <div class="field"><label>Категорія</label><input id="vsCat" list="catListV" value="Вантажний монтаж"></div>
+    <datalist id="catListV">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+    <label class="checkbox"><input type="checkbox" id="vsAddPrice" checked> Додати в прайс</label>
+    <label class="checkbox"><input type="checkbox" id="vsAddOrder" checked> Додати в заказ-наряд</label>
+    <label class="checkbox"><input type="checkbox" id="vsLearn" checked> Запамʼятати фразу (навчання)</label>
+  `,`<button class="btn ghost" data-act="vBack">Назад</button><button class="btn" data-act="vSaveService">Зберегти</button>`);
+}
+function vSaveService(){
+  const idx=+$('vsIdx').value;const u=vDraft.unmatched[idx];
+  const name=$('vsName').value.trim();const price=+$('vsPrice').value||0;
+  if(!name){toast('Вкажіть назву');return;}
+  const unit=$('vsUnit').value.trim(),cat=$('vsCat').value.trim()||'Інше';
+  const addPrice=$('vsAddPrice').checked,addOrder=$('vsAddOrder').checked,learn=$('vsLearn').checked;
+  let svcId=null;
+  if(addPrice){const mx=Math.max(0,...S.services.map(s=>s.sort||0));const s={id:uid(),category:cat,name,price,unit,sort:mx+1,active:true};S.services.push(s);svcId=s.id;}
+  if(learn&&svcId){if(!(S.voiceAliases||[]).some(a=>a.phrase===u.text))S.voiceAliases.push({phrase:u.text,serviceId:svcId});}
+  if(addOrder)vDraft.items.push({id:svcId,name,price,unit,qty:u.qty||1});
+  vDraft.unmatched.splice(idx,1);
+  save();voicePreview(vDraft);toast('Послугу додано');
+}
+function vBack(){voicePreview(vDraft);}
+function vConfirm(){
+  vSync();
+  if(!vDraft.name){toast('Вкажіть клієнта');return;}
+  if(!vDraft.items.length){toast('Додайте хоча б одну послугу');return;}
+  let c=S.clients.find(x=>x.name.toLowerCase()===vDraft.name.toLowerCase()||(vDraft.plate&&x.plate&&x.plate.toLowerCase()===vDraft.plate.toLowerCase()));
+  if(!c){c={id:uid(),name:vDraft.name,phone:vDraft.phone,plate:vDraft.plate,car:vDraft.car,note:'',createdAt:Date.now()};S.clients.push(c);}
+  else{if(vDraft.phone)c.phone=vDraft.phone;if(vDraft.plate)c.plate=vDraft.plate;if(vDraft.car)c.car=vDraft.car;}
+  const num=++S.settings.orderSeq;
+  const items=vDraft.items.map(i=>({name:i.name,price:i.price,qty:i.qty,unit:i.unit||''}));
+  const total=items.reduce((a,i)=>a+i.price*i.qty,0);
+  const o={id:uid(),num,clientId:c.id,clientName:vDraft.name,plate:vDraft.plate,car:vDraft.car,items,total,status:'work',post:null,paid:false,createdAt:Date.now()};
+  S.orders.push(o);save();closeModal();renderNav();render();toast('Заказ '+pad6(num)+' створено');
+  printOrder(o.id);
+}
+function vEdit(){vSync();const temp={clientName:vDraft.name,plate:vDraft.plate,car:vDraft.car,items:vDraft.items.map(i=>({name:i.name,price:i.price,qty:i.qty,unit:i.unit})),status:'work'};closeModal();orderModal(temp);const ph=$('oPhone');if(ph)ph.value=vDraft.phone||'';}
+function vTestRun(){const el=$('vTest');const out=$('vTestOut');if(!el||!out)return;const p=parseOrder(el.value);out.innerHTML=`Клієнт: <b>${esc(p.name||'—')}</b> · Авто: ${esc(p.car||'—')} · Номер: ${esc(p.plate||'—')}<br>Послуги: ${p.items.length?p.items.map(i=>esc(i.name)+' ×'+i.qty).join(', '):'—'}${p.unmatched.length?'<br>Не знайдено: '+p.unmatched.map(u=>'«'+esc(u.text)+'»').join(', '):''}`;}
 
 /* ============ INIT ============ */
 renderNav();render();
