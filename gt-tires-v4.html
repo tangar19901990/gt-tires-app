@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GT Tires — Адмінка</title>
+<title>GT Tires V5 — Адмінка</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -232,6 +232,17 @@ button{font-family:inherit}
 .online{display:inline-flex;align-items:center;gap:7px}
 .online::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good)}
 
+/* ---------- order editor ---------- */
+.olines{display:flex;flex-direction:column;gap:6px}
+.oline{display:grid;grid-template-columns:1fr 78px 96px 74px 28px;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line-2);border-radius:11px;background:var(--bg-2)}
+.oline .onm{font-size:14px}
+.oprice{height:36px;width:100%;border:1px solid var(--line-2);background:var(--panel);color:var(--txt);border-radius:8px;padding:0 8px;font-size:14px;text-align:right;font-variant-numeric:tabular-nums;outline:none}
+.oprice:focus{border-color:var(--accent)}
+.oline .osum{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.pk-g{font-weight:700;font-size:13px;padding:10px 12px 4px;color:var(--accent)}
+.pk-sub{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:7px 12px 3px;background:var(--panel)}
+body.is-mobile .oline{grid-template-columns:1fr 60px 80px 24px}
+body.is-mobile .oline .osum{display:none}
 /* ---------- voice ---------- */
 .voice-btn{height:60px;border:none;border-radius:15px;cursor:pointer;color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;gap:11px;letter-spacing:.02em;background:linear-gradient(135deg,#5e0c11,#e81f29);box-shadow:0 8px 24px var(--accent-glow),inset 0 1px 0 rgba(255,255,255,.18);transition:.15s}
 .voice-btn:hover{transform:translateY(-1px)}
@@ -263,7 +274,15 @@ body.is-mobile .cmd-list{grid-template-columns:1fr}
 body.is-mobile .modal-f{flex-wrap:wrap}
 body.is-mobile .modal-f .btn{flex:1}
 
-::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:rgba(232,31,41,.3);border-radius:9px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar{width:9px;height:9px}.oitem{display:grid;grid-template-columns:1fr 92px 92px 78px 30px;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line-2);border-radius:11px;margin-bottom:7px;background:var(--bg-2)}
+.oitem .oi-name{font-size:14px}
+.oitem .oi-price{display:flex;align-items:center;gap:4px;color:var(--muted);justify-content:flex-end}
+.oitem .oi-price input{width:66px;height:38px;border:1px solid var(--line-2);background:var(--panel);color:var(--txt);border-radius:9px;padding:0 8px;font-size:14px;text-align:right}
+.oitem .oi-sum{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.sub-h{font-size:12px;color:var(--accent);font-weight:700;letter-spacing:.04em;padding:12px 16px 4px;text-transform:uppercase}
+.svc-pick .pr .btn.sm{padding:0 12px;height:34px;flex:none}
+body.is-mobile .oitem{grid-template-columns:1fr 76px 70px 26px}
+body.is-mobile .oitem .oi-sum{display:none}::-webkit-scrollbar-thumb{background:rgba(232,31,41,.3);border-radius:9px}::-webkit-scrollbar-track{background:transparent}
 
 .sidebar-backdrop{display:none;position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:40;backdrop-filter:blur(2px)}
 /* mobile mode */
@@ -370,6 +389,31 @@ const fmtDate=ts=>{const d=new Date(ts);return pad(d.getDate())+'.'+pad(d.getMon
 const fmtTime=ts=>{const d=new Date(ts);return pad(d.getHours())+':'+pad(d.getMinutes());};
 const CAT_LABELS={agri:'Сільгосп / тракторні',legkovi:'Легкові',light:'Легкові',pasazhyr:'Легкові',vantazh:'Вантажні',vantazhni:'Вантажні',truck:'Вантажні',balance:'Балансування',balans:'Балансування',remont:'Ремонт',repair:'Ремонт',storage:'Зберігання',zberihannia:'Зберігання',dodatkovi:'Додаткові',extra:'Додаткові'};
 const catLabel=k=>CAT_LABELS[k]||k;
+const GROUPS=[
+ {key:'truck',icon:'🚛',name:'Вантажний шиномонтаж',subs:['Безкамерні','Камерні','Балансування','Ремонт шин','Ремонт камер','Вентильна арматура','Кріплення','Слюсарні роботи']},
+ {key:'car',icon:'🚗',name:'Легковий шиномонтаж',subs:['Седан / Хетчбек / Універсал','SUV / Кросовер','Бус / Комерційний транспорт']},
+ {key:'agri',icon:'🚜',name:'Сільгосп техніка',subs:['Загальні']},
+ {key:'spec',icon:'🏗',name:'Спецтехніка',subs:['Загальні']},
+ {key:'goods',icon:'📦',name:'Товари',subs:['Загальні']}
+];
+const groupMeta=k=>GROUPS.find(g=>g.key===k)||GROUPS[0];
+function migrateSvc(s){
+  if(s.group)return s;
+  const n=(s.name||'').toLowerCase(),c=(s.category||'');
+  let g='truck',sub='Ремонт шин';
+  if(c==='Легковий монтаж'||/седан|мінівен|джип|кросовер|бус|комерц|спарован/i.test(n)){g='car';
+    if(/suv|джип|мінівен|кросовер/i.test(n))sub='SUV / Кросовер';
+    else if(/бус|комерц|спарован|газель/i.test(n))sub='Бус / Комерційний транспорт';
+    else sub='Седан / Хетчбек / Універсал';}
+  else if(c==='Вантажний монтаж'){g='truck';sub=/безкамер/i.test(n)?'Безкамерні':/камер/i.test(n)?'Камерні':'Слюсарні роботи';}
+  else if(c==='Сільгосп / Спец'||c==='agri'){g=/великогабарит/i.test(n)?'spec':'agri';sub='Загальні';}
+  else if(c==='Балансування вантаж'||/балансув/i.test(n))g='truck',sub='Балансування';
+  else if(c==='Ремонт камер')g='truck',sub='Ремонт камер';
+  else if(c==='Кріплення')g='truck',sub='Кріплення';
+  else if(c==='Вентилі'||/вентил/i.test(n))g='truck',sub='Вентильна арматура';
+  else if(c==='Рихтування дисків')g='truck',sub='Слюсарні роботи';
+  s.group=g;s.sub=sub;return s;
+}
 function parseCSV(text){const rows=[];let i=0,field='',row=[],inq=false;text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
   while(i<text.length){const ch=text[i];
     if(inq){if(ch==='"'){if(text[i+1]==='"'){field+='"';i+=2;continue;}inq=false;i++;continue;}field+=ch;i++;continue;}
@@ -382,238 +426,212 @@ function parseCSV(text){const rows=[];let i=0,field='',row=[],inq=false;text=tex
 function seed(){
   const now=Date.now();
   const services=[
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R13",price:175,unit:"",sort:1,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R14",price:190,unit:"",sort:2,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R15",price:210,unit:"",sort:3,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R16",price:220,unit:"",sort:4,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R17",price:250,unit:"",sort:5,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R18",price:290,unit:"",sort:6,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R19",price:310,unit:"",sort:7,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R20",price:335,unit:"",sort:8,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R21",price:355,unit:"",sort:9,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R22",price:375,unit:"",sort:10,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R23",price:405,unit:"",sort:11,active:true},
-   {category:"Легковий монтаж",name:"Седан/Хетчбек R24",price:435,unit:"",sort:12,active:true},
-   {category:"Легковий монтаж",name:"Седан S45/RunFlat доплата",price:50,unit:"",sort:13,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R14",price:205,unit:"",sort:14,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R15",price:220,unit:"",sort:15,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R16",price:250,unit:"",sort:16,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R17",price:290,unit:"",sort:17,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R18",price:315,unit:"",sort:18,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R19",price:340,unit:"",sort:19,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R20",price:355,unit:"",sort:20,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R21",price:375,unit:"",sort:21,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R22",price:400,unit:"",sort:22,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R23",price:435,unit:"",sort:23,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/Джип/SUV R24",price:455,unit:"",sort:24,active:true},
-   {category:"Легковий монтаж",name:"Мінівен/SUV S45/RunFlat доплата",price:60,unit:"",sort:25,active:true},
-   {category:"Легковий монтаж",name:"Бус/Комерційний R13",price:205,unit:"",sort:26,active:true},
-   {category:"Легковий монтаж",name:"Бус/Комерційний R14",price:220,unit:"",sort:27,active:true},
-   {category:"Легковий монтаж",name:"Бус/Комерційний R15",price:250,unit:"",sort:28,active:true},
-   {category:"Легковий монтаж",name:"Бус/Комерційний R16",price:290,unit:"",sort:29,active:true},
-   {category:"Легковий монтаж",name:"Бус/Комерційний R16 Газель",price:340,unit:"",sort:30,active:true},
-   {category:"Легковий монтаж",name:"Бус/Комерційний R17",price:315,unit:"",sort:31,active:true},
-   {category:"Легковий монтаж",name:"Бус/Комерційний R18",price:340,unit:"",sort:32,active:true},
-   {category:"Легковий монтаж",name:"Спаровані колеса доплата/шт",price:25,unit:"",sort:33,active:true},
-   {category:"Вантажний монтаж",name:"Шиномонтаж R17.5 (безкамерні)",price:400,unit:"",sort:34,active:true},
-   {category:"Вантажний монтаж",name:"Шиномонтаж R22.5 (безкамерні)",price:450,unit:"",sort:35,active:true},
-   {category:"Вантажний монтаж",name:"Шиномонтаж R20 (камерні)",price:650,unit:"",sort:36,active:true},
-   {category:"Вантажний монтаж",name:"Шиномонтаж R22.5+ (камерні)",price:800,unit:"",sort:37,active:true},
-   {category:"Вантажний монтаж",name:"Зняття/встановлення 1 колеса",price:180,unit:"",sort:38,active:true},
-   {category:"Вантажний монтаж",name:"Зняття/встановлення здвоєного",price:275,unit:"",sort:39,active:true},
-   {category:"Вантажний монтаж",name:"Поглиблення поздовжнє R17.5",price:380,unit:"",sort:40,active:true},
-   {category:"Вантажний монтаж",name:"Поглиблення поздовжнє R22.5",price:450,unit:"",sort:41,active:true},
-   {category:"Вантажний монтаж",name:"Поглиблення змішане R17.5",price:580,unit:"",sort:42,active:true},
-   {category:"Вантажний монтаж",name:"Поглиблення змішане R22.5",price:700,unit:"",sort:43,active:true},
-   {category:"Вантажний монтаж",name:"Поглиблення водовідводів R17.5",price:250,unit:"",sort:44,active:true},
-   {category:"Вантажний монтаж",name:"Поглиблення водовідводів R22.5",price:300,unit:"",sort:45,active:true},
-   {category:"Вантажний монтаж",name:"Слюсарні роботи / 1 година",price:800,unit:"",sort:46,active:true},
-   {category:"Вантажний монтаж",name:"Піддомкрачування ТЗ",price:150,unit:"",sort:47,active:true},
-   {category:"Вантажний монтаж",name:"Накачка",price:75,unit:"",sort:48,active:true},
-   {category:"Вантажний монтаж",name:"Підкачка",price:50,unit:"",sort:49,active:true},
-   {category:"Сільгосп / Спец",name:"Шиномонтаж с/г до 24\"",price:1200,unit:"",sort:50,active:true},
-   {category:"Сільгосп / Спец",name:"Шиномонтаж с/г 33\"+",price:3200,unit:"",sort:51,active:true},
-   {category:"Сільгосп / Спец",name:"Великогабаритні до 28\"",price:3200,unit:"",sort:52,active:true},
-   {category:"Сільгосп / Спец",name:"Великогабаритні понад 28\"",price:3850,unit:"",sort:53,active:true},
-   {category:"Сільгосп / Спец",name:"Вентиль TR218A",price:280,unit:"",sort:54,active:true},
-   {category:"Сільгосп / Спец",name:"Вентиль TR618A",price:460,unit:"",sort:55,active:true},
-   {category:"Сільгосп / Спец",name:"Вентиль TRJ 653-03",price:700,unit:"",sort:56,active:true},
-   {category:"Латки/Вентилі легк.",name:"Латка УП-3",price:80,unit:"",sort:57,active:true},
-   {category:"Латки/Вентилі легк.",name:"Латка УП-4,5",price:100,unit:"",sort:58,active:true},
-   {category:"Латки/Вентилі легк.",name:"Латка TL-110",price:200,unit:"",sort:59,active:true},
-   {category:"Латки/Вентилі легк.",name:"Латка TL-120",price:350,unit:"",sort:60,active:true},
-   {category:"Латки/Вентилі легк.",name:"Латка TL-125",price:500,unit:"",sort:61,active:true},
-   {category:"Латки/Вентилі легк.",name:"Вентиль TR 414",price:80,unit:"",sort:62,active:true},
-   {category:"Латки/Вентилі легк.",name:"Вентиль TR 414 (X)",price:90,unit:"",sort:63,active:true},
-   {category:"Латки/Вентилі легк.",name:"Вентиль розбірний",price:130,unit:"",sort:64,active:true},
-   {category:"Латки/Вентилі легк.",name:"Усунення розгерметизації",price:40,unit:"",sort:65,active:true},
-   {category:"Латки/Вентилі легк.",name:"Відновлення посадкового місця",price:150,unit:"",sort:66,active:true},
-   {category:"Латки/Вентилі легк.",name:"Оптимізація покришки",price:50,unit:"",sort:67,active:true},
-   {category:"Латки/Вентилі легк.",name:"Датчик тиску встановл./зняття",price:50,unit:"",sort:68,active:true},
-   {category:"Латки/Вентилі легк.",name:"Пакет для колеса",price:30,unit:"",sort:69,active:true},
-   {category:"Латки/Вентилі легк.",name:"Вулканізація гаряча (3 см)",price:300,unit:"",sort:70,active:true},
-   {category:"Латки/Вентилі легк.",name:"Наступний 1 см вулканізації",price:100,unit:"",sort:71,active:true},
-   {category:"Пластирі TL",name:"110 TL",price:700,unit:"",sort:72,active:true},
-   {category:"Пластирі TL",name:"112 TL",price:760,unit:"",sort:73,active:true},
-   {category:"Пластирі TL",name:"114 TL",price:820,unit:"",sort:74,active:true},
-   {category:"Пластирі TL",name:"115 TL",price:880,unit:"",sort:75,active:true},
-   {category:"Пластирі TL",name:"116 TL",price:940,unit:"",sort:76,active:true},
-   {category:"Пластирі TL",name:"120 TL",price:1000,unit:"",sort:77,active:true},
-   {category:"Пластирі TL",name:"122 TL",price:1100,unit:"",sort:78,active:true},
-   {category:"Пластирі TL",name:"124 TL",price:1150,unit:"",sort:79,active:true},
-   {category:"Пластирі TL",name:"125 TL",price:1200,unit:"",sort:80,active:true},
-   {category:"Пластирі TL",name:"126 TL",price:1250,unit:"",sort:81,active:true},
-   {category:"Пластирі TL",name:"128 TL",price:1300,unit:"",sort:82,active:true},
-   {category:"Пластирі TL",name:"135 TL",price:1750,unit:"",sort:83,active:true},
-   {category:"Пластирі TL",name:"140 TL",price:1400,unit:"",sort:84,active:true},
-   {category:"Пластирі TL",name:"142 TL",price:1850,unit:"",sort:85,active:true},
-   {category:"Пластирі TL",name:"144 TL",price:1950,unit:"",sort:86,active:true},
-   {category:"Пластирі TL",name:"146 TL",price:2050,unit:"",sort:87,active:true},
-   {category:"Пластирі TL",name:"331 TL",price:1650,unit:"",sort:88,active:true},
-   {category:"Пластирі TL",name:"333 TL",price:1750,unit:"",sort:89,active:true},
-   {category:"Пластирі TL",name:"335 TL",price:1850,unit:"",sort:90,active:true},
-   {category:"Пластирі TL",name:"337 TL",price:1950,unit:"",sort:91,active:true},
-   {category:"Пластирі TL",name:"533 TL",price:1750,unit:"",sort:92,active:true},
-   {category:"Пластирі TL",name:"537 TL",price:2100,unit:"",sort:93,active:true},
-   {category:"Пластирі CT",name:"CT 10",price:650,unit:"",sort:94,active:true},
-   {category:"Пластирі CT",name:"CT 10 HD",price:700,unit:"",sort:95,active:true},
-   {category:"Пластирі CT",name:"CT 12",price:820,unit:"",sort:96,active:true},
-   {category:"Пластирі CT",name:"CT 12 HD",price:850,unit:"",sort:97,active:true},
-   {category:"Пластирі CT",name:"CT 20",price:1000,unit:"",sort:98,active:true},
-   {category:"Пластирі CT",name:"CT 22",price:1100,unit:"",sort:99,active:true},
-   {category:"Пластирі CT",name:"CT 24",price:1150,unit:"",sort:100,active:true},
-   {category:"Пластирі CT",name:"CT 26",price:1250,unit:"",sort:101,active:true},
-   {category:"Пластирі CT",name:"CT 33",price:1300,unit:"",sort:102,active:true},
-   {category:"Пластирі CT",name:"CT 35",price:1450,unit:"",sort:103,active:true},
-   {category:"Пластирі CT",name:"CT 37",price:1550,unit:"",sort:104,active:true},
-   {category:"Пластирі CT",name:"CT 40",price:1700,unit:"",sort:105,active:true},
-   {category:"Пластирі CT",name:"CT 42",price:1850,unit:"",sort:106,active:true},
-   {category:"Пластирі CT",name:"CT 44",price:1950,unit:"",sort:107,active:true},
-   {category:"Пластирі CT",name:"CT 46",price:2050,unit:"",sort:108,active:true},
-   {category:"Пластирі BP",name:"BP 0 (60мм)",price:360,unit:"",sort:109,active:true},
-   {category:"Пластирі BP",name:"BP 1 (70мм)",price:380,unit:"",sort:110,active:true},
-   {category:"Пластирі BP",name:"BP 2 (90мм)",price:1300,unit:"",sort:111,active:true},
-   {category:"Пластирі BP",name:"BP 3 (100мм)",price:1500,unit:"",sort:112,active:true},
-   {category:"Пластирі BP",name:"BP 4 (130мм)",price:1700,unit:"",sort:113,active:true},
-   {category:"Пластирі BP",name:"BP 5 (165мм)",price:2000,unit:"",sort:114,active:true},
-   {category:"Пластирі BP",name:"BP 6 (240мм)",price:2600,unit:"",sort:115,active:true},
-   {category:"Пластирі BP",name:"BP 7 (290мм)",price:3000,unit:"",sort:116,active:true},
-   {category:"Пластирі UP",name:"UP 3",price:400,unit:"",sort:117,active:true},
-   {category:"Пластирі UP",name:"UP 4,5",price:420,unit:"",sort:118,active:true},
-   {category:"Пластирі UP",name:"UP 6",price:450,unit:"",sort:119,active:true},
-   {category:"Пластирі UP",name:"UP 8",price:700,unit:"",sort:120,active:true},
-   {category:"Ремонт камер",name:"Латка овальна Mini (40×30)",price:120,unit:"",sort:121,active:true},
-   {category:"Ремонт камер",name:"Латка овальна Small (65×40)",price:150,unit:"",sort:122,active:true},
-   {category:"Ремонт камер",name:"Латка овальна Medium (100×50)",price:180,unit:"",sort:123,active:true},
-   {category:"Ремонт камер",name:"Латка овальна Large (150×70)",price:200,unit:"",sort:124,active:true},
-   {category:"Ремонт камер",name:"Латка овальна Giant (160×100)",price:270,unit:"",sort:125,active:true},
-   {category:"Ремонт камер",name:"Латка овальна Giant Rim (240×60)",price:300,unit:"",sort:126,active:true},
-   {category:"Ремонт камер",name:"Латка кругла Tiny (25)",price:180,unit:"",sort:127,active:true},
-   {category:"Ремонт камер",name:"Латка кругла Miny (35)",price:120,unit:"",sort:128,active:true},
-   {category:"Ремонт камер",name:"Латка кругла Small (45)",price:150,unit:"",sort:129,active:true},
-   {category:"Ремонт камер",name:"Латка кругла Medium (60)",price:180,unit:"",sort:130,active:true},
-   {category:"Ремонт камер",name:"Латка кругла Large (80)",price:200,unit:"",sort:131,active:true},
-   {category:"Ремонт камер",name:"Латка кругла Maxi (100)",price:270,unit:"",sort:132,active:true},
-   {category:"Ремонт камер",name:"Латка кругла Giant (125)",price:300,unit:"",sort:133,active:true},
-   {category:"Ремонт камер",name:"Вентильна основа VG8",price:350,unit:"",sort:134,active:true},
-   {category:"Ремонт камер",name:"Вложка VS3 (d90)",price:150,unit:"",sort:135,active:true},
-   {category:"Ремонт камер",name:"ТП прокол",price:150,unit:"",sort:136,active:true},
-   {category:"Ремонт камер",name:"ТП 5 см",price:250,unit:"",sort:137,active:true},
-   {category:"Ремонт камер",name:"ТП 10 см",price:300,unit:"",sort:138,active:true},
-   {category:"Ремонт камер",name:"ТП 15 см",price:400,unit:"",sort:139,active:true},
-   {category:"Ремонт камер",name:"ТП 20 см",price:500,unit:"",sort:140,active:true},
-   {category:"Додатковий ремонт",name:"Косметичний ремонт (боковина) 1см²",price:35,unit:"",sort:141,active:true},
-   {category:"Додатковий ремонт",name:"Косметичний ремонт (протектор/плече) 1см²",price:50,unit:"",sort:142,active:true},
-   {category:"Додатковий ремонт",name:"Ремонт гумою A+B, 5 см",price:300,unit:"",sort:143,active:true},
-   {category:"Додатковий ремонт",name:"Дублювання ремонтного матеріалу",price:300,unit:"",sort:144,active:true},
-   {category:"Додатковий ремонт",name:"Зняття старого ремонтного елементу",price:350,unit:"",sort:145,active:true},
-   {category:"Балансування вантаж",name:"Балансув. до R17.5 забивні (без вартості)",price:250,unit:"",sort:146,active:true},
-   {category:"Балансування вантаж",name:"Балансув. до R17.5 забивні (з вартістю)",price:400,unit:"",sort:147,active:true},
-   {category:"Балансування вантаж",name:"Балансув. до R17.5 адгезивні (без вартості)",price:300,unit:"",sort:148,active:true},
-   {category:"Балансування вантаж",name:"Балансув. R19.5-R24.5 забивні (без вартості)",price:300,unit:"",sort:149,active:true},
-   {category:"Балансування вантаж",name:"Балансув. R19.5-R24.5 забивні (з вартістю)",price:450,unit:"",sort:150,active:true},
-   {category:"Балансування вантаж",name:"Балансув. R19.5-R24.5 адгезивні (без вартості)",price:350,unit:"",sort:151,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 25г",price:60,unit:"",sort:152,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 50г",price:70,unit:"",sort:153,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 75г",price:80,unit:"",sort:154,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 100г",price:90,unit:"",sort:155,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 150г",price:100,unit:"",sort:156,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 200г",price:120,unit:"",sort:157,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 250г",price:140,unit:"",sort:158,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 300г",price:160,unit:"",sort:159,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 350г",price:170,unit:"",sort:160,active:true},
-   {category:"Балансування вантаж",name:"Тягарець забивний 400г",price:190,unit:"",sort:161,active:true},
-   {category:"Балансування вантаж",name:"Тягарець адгезивний 50г",price:80,unit:"",sort:162,active:true},
-   {category:"Балансування вантаж",name:"Тягарець адгезивний 75г",price:90,unit:"",sort:163,active:true},
-   {category:"Балансування вантаж",name:"Тягарець адгезивний 100г",price:100,unit:"",sort:164,active:true},
-   {category:"Балансування вантаж",name:"Тягарець адгезивний 150г",price:110,unit:"",sort:165,active:true},
-   {category:"Балансування вантаж",name:"Тягарець адгезивний 175г",price:120,unit:"",sort:166,active:true},
-   {category:"Балансування вантаж",name:"Тягарець адгезивний 200г",price:130,unit:"",sort:167,active:true},
-   {category:"Балансування вантаж",name:"Тягарець адгезивний 250г",price:150,unit:"",sort:168,active:true},
-   {category:"Балансування вантаж",name:"Тягарець адгезивний 300г",price:170,unit:"",sort:169,active:true},
-   {category:"Балансування вантаж",name:"Балансування гранулами (1г)",price:1.2,unit:"",sort:170,active:true},
-   {category:"Балансування вантаж",name:"Оптимізація дисбалансу колеса",price:1000,unit:"",sort:171,active:true},
-   {category:"Кріплення",name:"Заміна гайки М22 (32)",price:150,unit:"",sort:172,active:true},
-   {category:"Кріплення",name:"Центруюче кільце 6мм/18мм",price:80,unit:"",sort:173,active:true},
-   {category:"Кріплення",name:"Шайба конусна цільна/розрізна",price:80,unit:"",sort:174,active:true},
-   {category:"Кріплення",name:"Перевірка затяжки динам. ключем",price:100,unit:"",sort:175,active:true},
-   {category:"Кріплення",name:"Зрізання гайки",price:250,unit:"",sort:176,active:true},
-   {category:"Кріплення",name:"Ключ для важких гайок",price:100,unit:"",sort:177,active:true},
-   {category:"Кріплення",name:"Змащування шпильок (1 колесо)",price:25,unit:"",sort:178,active:true},
-   {category:"Кріплення",name:"Встановлення ковпачка",price:25,unit:"",sort:179,active:true},
-   {category:"Вентилі",name:"Заміна ковпачка / золотника",price:10,unit:"",sort:180,active:true},
-   {category:"Вентилі",name:"Вентиль легкосплавний диск",price:275,unit:"",sort:181,active:true},
-   {category:"Вентилі",name:"Вентиль прямий 32мм/42мм",price:200,unit:"",sort:182,active:true},
-   {category:"Вентилі",name:"Вентиль прямий 84мм",price:250,unit:"",sort:183,active:true},
-   {category:"Вентилі",name:"Вентиль вигнутий 90°",price:300,unit:"",sort:184,active:true},
-   {category:"Вентилі",name:"Подовжувач пластик",price:100,unit:"",sort:185,active:true},
-   {category:"Вентилі",name:"Подовжувач латунний",price:200,unit:"",sort:186,active:true},
-   {category:"Вентилі",name:"Подовжувач гумовий",price:150,unit:"",sort:187,active:true},
-   {category:"Рихтування дисків",name:"Сталевий R13-R14",price:200,unit:"",sort:188,active:true},
-   {category:"Рихтування дисків",name:"Сталевий R15",price:250,unit:"",sort:189,active:true},
-   {category:"Рихтування дисків",name:"Сталевий R16",price:300,unit:"",sort:190,active:true},
-   {category:"Рихтування дисків",name:"Сталевий R17",price:350,unit:"",sort:191,active:true},
-   {category:"Рихтування дисків",name:"Легкосплавний R13",price:300,unit:"",sort:192,active:true},
-   {category:"Рихтування дисків",name:"Легкосплавний R14-15",price:350,unit:"",sort:193,active:true},
-   {category:"Рихтування дисків",name:"Легкосплавний R16",price:400,unit:"",sort:194,active:true},
-   {category:"Рихтування дисків",name:"Легкосплавний R17-18",price:450,unit:"",sort:195,active:true},
-   {category:"Рихтування дисків",name:"Легкосплавний R19",price:500,unit:"",sort:196,active:true},
-   {category:"Рихтування дисків",name:"Легкосплавний R20",price:550,unit:"",sort:197,active:true},
-   {category:"Рихтування дисків",name:"Легкосплавний R21+",price:600,unit:"",sort:198,active:true},
-   {category:"Рихтування дисків",name:"Ремонт осьового зміщення",price:400,unit:"",sort:199,active:true}
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R13",price:175,unit:"",sort:1,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R14",price:190,unit:"",sort:2,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R15",price:210,unit:"",sort:3,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R16",price:220,unit:"",sort:4,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R17",price:250,unit:"",sort:5,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R18",price:290,unit:"",sort:6,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R19",price:310,unit:"",sort:7,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R20",price:335,unit:"",sort:8,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R21",price:355,unit:"",sort:9,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R22",price:375,unit:"",sort:10,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R23",price:405,unit:"",sort:11,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан/Хетчбек R24",price:435,unit:"",sort:12,active:true},
+   {group:"car",sub:"Седан / Хетчбек / Універсал",name:"Седан S45/RunFlat доплата",price:50,unit:"",sort:13,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R14",price:205,unit:"",sort:14,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R15",price:220,unit:"",sort:15,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R16",price:250,unit:"",sort:16,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R17",price:290,unit:"",sort:17,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R18",price:315,unit:"",sort:18,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R19",price:340,unit:"",sort:19,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R20",price:355,unit:"",sort:20,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R21",price:375,unit:"",sort:21,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R22",price:400,unit:"",sort:22,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R23",price:435,unit:"",sort:23,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/Джип/SUV R24",price:455,unit:"",sort:24,active:true},
+   {group:"car",sub:"SUV / Кросовер",name:"Мінівен/SUV S45/RunFlat доплата",price:60,unit:"",sort:25,active:true},
+   {group:"car",sub:"Бус / Комерційний транспорт",name:"Бус/Комерційний R13",price:205,unit:"",sort:26,active:true},
+   {group:"car",sub:"Бус / Комерційний транспорт",name:"Бус/Комерційний R14",price:220,unit:"",sort:27,active:true},
+   {group:"car",sub:"Бус / Комерційний транспорт",name:"Бус/Комерційний R15",price:250,unit:"",sort:28,active:true},
+   {group:"car",sub:"Бус / Комерційний транспорт",name:"Бус/Комерційний R16",price:290,unit:"",sort:29,active:true},
+   {group:"car",sub:"Бус / Комерційний транспорт",name:"Бус/Комерційний R16 Газель",price:340,unit:"",sort:30,active:true},
+   {group:"car",sub:"Бус / Комерційний транспорт",name:"Бус/Комерційний R17",price:315,unit:"",sort:31,active:true},
+   {group:"car",sub:"Бус / Комерційний транспорт",name:"Бус/Комерційний R18",price:340,unit:"",sort:32,active:true},
+   {group:"car",sub:"Бус / Комерційний транспорт",name:"Спаровані колеса доплата/шт",price:25,unit:"",sort:33,active:true},
+   {group:"truck",sub:"Безкамерні",name:"Шиномонтаж R17.5 (безкамерні)",price:400,unit:"",sort:34,active:true},
+   {group:"truck",sub:"Безкамерні",name:"Шиномонтаж R22.5 (безкамерні)",price:450,unit:"",sort:35,active:true},
+   {group:"truck",sub:"Камерні",name:"Шиномонтаж R20 (камерні)",price:650,unit:"",sort:36,active:true},
+   {group:"truck",sub:"Камерні",name:"Шиномонтаж R22.5+ (камерні)",price:800,unit:"",sort:37,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Зняття/встановлення 1 колеса",price:180,unit:"",sort:38,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Зняття/встановлення здвоєного",price:275,unit:"",sort:39,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Поглиблення поздовжнє R17.5",price:380,unit:"",sort:40,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Поглиблення поздовжнє R22.5",price:450,unit:"",sort:41,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Поглиблення змішане R17.5",price:580,unit:"",sort:42,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Поглиблення змішане R22.5",price:700,unit:"",sort:43,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Поглиблення водовідводів R17.5",price:250,unit:"",sort:44,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Поглиблення водовідводів R22.5",price:300,unit:"",sort:45,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Слюсарні роботи / 1 година",price:800,unit:"",sort:46,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Піддомкрачування ТЗ",price:150,unit:"",sort:47,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Накачка",price:75,unit:"",sort:48,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Підкачка",price:50,unit:"",sort:49,active:true},
+   {group:"agri",sub:"Загальні",name:"Шиномонтаж с/г до 24\\\"",price:1200,unit:"",sort:50,active:true},
+   {group:"agri",sub:"Загальні",name:"Шиномонтаж с/г 33\\\"+",price:3200,unit:"",sort:51,active:true},
+   {group:"spec",sub:"Загальні",name:"Великогабаритні до 28\\\"",price:3200,unit:"",sort:52,active:true},
+   {group:"spec",sub:"Загальні",name:"Великогабаритні понад 28\\\"",price:3850,unit:"",sort:53,active:true},
+   {group:"agri",sub:"Загальні",name:"Вентиль TR218A",price:280,unit:"",sort:54,active:true},
+   {group:"agri",sub:"Загальні",name:"Вентиль TR618A",price:460,unit:"",sort:55,active:true},
+   {group:"agri",sub:"Загальні",name:"Вентиль TRJ 653-03",price:700,unit:"",sort:56,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Латка УП-3",price:80,unit:"",sort:57,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Латка УП-4,5",price:100,unit:"",sort:58,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Латка TL-110",price:200,unit:"",sort:59,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Латка TL-120",price:350,unit:"",sort:60,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Латка TL-125",price:500,unit:"",sort:61,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Вентиль TR 414",price:80,unit:"",sort:62,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Вентиль TR 414 (X)",price:90,unit:"",sort:63,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Вентиль розбірний",price:130,unit:"",sort:64,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Усунення розгерметизації",price:40,unit:"",sort:65,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Відновлення посадкового місця",price:150,unit:"",sort:66,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Оптимізація покришки",price:50,unit:"",sort:67,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Датчик тиску встановл./зняття",price:50,unit:"",sort:68,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Пакет для колеса",price:30,unit:"",sort:69,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Вулканізація гаряча (3 см)",price:300,unit:"",sort:70,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Наступний 1 см вулканізації",price:100,unit:"",sort:71,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"110 TL",price:700,unit:"",sort:72,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"112 TL",price:760,unit:"",sort:73,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"114 TL",price:820,unit:"",sort:74,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"115 TL",price:880,unit:"",sort:75,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"116 TL",price:940,unit:"",sort:76,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"120 TL",price:1000,unit:"",sort:77,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"122 TL",price:1100,unit:"",sort:78,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"124 TL",price:1150,unit:"",sort:79,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"125 TL",price:1200,unit:"",sort:80,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"126 TL",price:1250,unit:"",sort:81,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"128 TL",price:1300,unit:"",sort:82,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"135 TL",price:1750,unit:"",sort:83,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"140 TL",price:1400,unit:"",sort:84,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"142 TL",price:1850,unit:"",sort:85,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"144 TL",price:1950,unit:"",sort:86,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"146 TL",price:2050,unit:"",sort:87,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"331 TL",price:1650,unit:"",sort:88,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"333 TL",price:1750,unit:"",sort:89,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"335 TL",price:1850,unit:"",sort:90,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"337 TL",price:1950,unit:"",sort:91,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"533 TL",price:1750,unit:"",sort:92,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"537 TL",price:2100,unit:"",sort:93,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 10",price:650,unit:"",sort:94,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 10 HD",price:700,unit:"",sort:95,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 12",price:820,unit:"",sort:96,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 12 HD",price:850,unit:"",sort:97,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 20",price:1000,unit:"",sort:98,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 22",price:1100,unit:"",sort:99,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 24",price:1150,unit:"",sort:100,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 26",price:1250,unit:"",sort:101,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 33",price:1300,unit:"",sort:102,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 35",price:1450,unit:"",sort:103,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 37",price:1550,unit:"",sort:104,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 40",price:1700,unit:"",sort:105,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 42",price:1850,unit:"",sort:106,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 44",price:1950,unit:"",sort:107,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"CT 46",price:2050,unit:"",sort:108,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"BP 0 (60мм)",price:360,unit:"",sort:109,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"BP 1 (70мм)",price:380,unit:"",sort:110,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"BP 2 (90мм)",price:1300,unit:"",sort:111,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"BP 3 (100мм)",price:1500,unit:"",sort:112,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"BP 4 (130мм)",price:1700,unit:"",sort:113,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"BP 5 (165мм)",price:2000,unit:"",sort:114,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"BP 6 (240мм)",price:2600,unit:"",sort:115,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"BP 7 (290мм)",price:3000,unit:"",sort:116,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"UP 3",price:400,unit:"",sort:117,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"UP 4,5",price:420,unit:"",sort:118,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"UP 6",price:450,unit:"",sort:119,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"UP 8",price:700,unit:"",sort:120,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка овальна Mini (40×30)",price:120,unit:"",sort:121,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка овальна Small (65×40)",price:150,unit:"",sort:122,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка овальна Medium (100×50)",price:180,unit:"",sort:123,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка овальна Large (150×70)",price:200,unit:"",sort:124,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка овальна Giant (160×100)",price:270,unit:"",sort:125,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка овальна Giant Rim (240×60)",price:300,unit:"",sort:126,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка кругла Tiny (25)",price:180,unit:"",sort:127,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка кругла Miny (35)",price:120,unit:"",sort:128,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка кругла Small (45)",price:150,unit:"",sort:129,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка кругла Medium (60)",price:180,unit:"",sort:130,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка кругла Large (80)",price:200,unit:"",sort:131,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка кругла Maxi (100)",price:270,unit:"",sort:132,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Латка кругла Giant (125)",price:300,unit:"",sort:133,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Вентильна основа VG8",price:350,unit:"",sort:134,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"Вложка VS3 (d90)",price:150,unit:"",sort:135,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"ТП прокол",price:150,unit:"",sort:136,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"ТП 5 см",price:250,unit:"",sort:137,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"ТП 10 см",price:300,unit:"",sort:138,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"ТП 15 см",price:400,unit:"",sort:139,active:true},
+   {group:"truck",sub:"Ремонт камер",name:"ТП 20 см",price:500,unit:"",sort:140,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Косметичний ремонт (боковина) 1см²",price:35,unit:"",sort:141,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Косметичний ремонт (протектор/плече) 1см²",price:50,unit:"",sort:142,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Ремонт гумою A+B, 5 см",price:300,unit:"",sort:143,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Дублювання ремонтного матеріалу",price:300,unit:"",sort:144,active:true},
+   {group:"truck",sub:"Ремонт шин",name:"Зняття старого ремонтного елементу",price:350,unit:"",sort:145,active:true},
+   {group:"truck",sub:"Балансування",name:"Балансув. до R17.5 забивні (без вартості)",price:250,unit:"",sort:146,active:true},
+   {group:"truck",sub:"Балансування",name:"Балансув. до R17.5 забивні (з вартістю)",price:400,unit:"",sort:147,active:true},
+   {group:"truck",sub:"Балансування",name:"Балансув. до R17.5 адгезивні (без вартості)",price:300,unit:"",sort:148,active:true},
+   {group:"truck",sub:"Балансування",name:"Балансув. R19.5-R24.5 забивні (без вартості)",price:300,unit:"",sort:149,active:true},
+   {group:"truck",sub:"Балансування",name:"Балансув. R19.5-R24.5 забивні (з вартістю)",price:450,unit:"",sort:150,active:true},
+   {group:"truck",sub:"Балансування",name:"Балансув. R19.5-R24.5 адгезивні (без вартості)",price:350,unit:"",sort:151,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 25г",price:60,unit:"",sort:152,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 50г",price:70,unit:"",sort:153,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 75г",price:80,unit:"",sort:154,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 100г",price:90,unit:"",sort:155,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 150г",price:100,unit:"",sort:156,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 200г",price:120,unit:"",sort:157,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 250г",price:140,unit:"",sort:158,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 300г",price:160,unit:"",sort:159,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 350г",price:170,unit:"",sort:160,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець забивний 400г",price:190,unit:"",sort:161,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець адгезивний 50г",price:80,unit:"",sort:162,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець адгезивний 75г",price:90,unit:"",sort:163,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець адгезивний 100г",price:100,unit:"",sort:164,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець адгезивний 150г",price:110,unit:"",sort:165,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець адгезивний 175г",price:120,unit:"",sort:166,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець адгезивний 200г",price:130,unit:"",sort:167,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець адгезивний 250г",price:150,unit:"",sort:168,active:true},
+   {group:"truck",sub:"Балансування",name:"Тягарець адгезивний 300г",price:170,unit:"",sort:169,active:true},
+   {group:"truck",sub:"Балансування",name:"Балансування гранулами (1г)",price:1.2,unit:"",sort:170,active:true},
+   {group:"truck",sub:"Балансування",name:"Оптимізація дисбалансу колеса",price:1000,unit:"",sort:171,active:true},
+   {group:"truck",sub:"Кріплення",name:"Заміна гайки М22 (32)",price:150,unit:"",sort:172,active:true},
+   {group:"truck",sub:"Кріплення",name:"Центруюче кільце 6мм/18мм",price:80,unit:"",sort:173,active:true},
+   {group:"truck",sub:"Кріплення",name:"Шайба конусна цільна/розрізна",price:80,unit:"",sort:174,active:true},
+   {group:"truck",sub:"Кріплення",name:"Перевірка затяжки динам. ключем",price:100,unit:"",sort:175,active:true},
+   {group:"truck",sub:"Кріплення",name:"Зрізання гайки",price:250,unit:"",sort:176,active:true},
+   {group:"truck",sub:"Кріплення",name:"Ключ для важких гайок",price:100,unit:"",sort:177,active:true},
+   {group:"truck",sub:"Кріплення",name:"Змащування шпильок (1 колесо)",price:25,unit:"",sort:178,active:true},
+   {group:"truck",sub:"Кріплення",name:"Встановлення ковпачка",price:25,unit:"",sort:179,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Заміна ковпачка / золотника",price:10,unit:"",sort:180,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Вентиль легкосплавний диск",price:275,unit:"",sort:181,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Вентиль прямий 32мм/42мм",price:200,unit:"",sort:182,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Вентиль прямий 84мм",price:250,unit:"",sort:183,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Вентиль вигнутий 90°",price:300,unit:"",sort:184,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Подовжувач пластик",price:100,unit:"",sort:185,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Подовжувач латунний",price:200,unit:"",sort:186,active:true},
+   {group:"truck",sub:"Вентильна арматура",name:"Подовжувач гумовий",price:150,unit:"",sort:187,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Сталевий R13-R14",price:200,unit:"",sort:188,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Сталевий R15",price:250,unit:"",sort:189,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Сталевий R16",price:300,unit:"",sort:190,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Сталевий R17",price:350,unit:"",sort:191,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Легкосплавний R13",price:300,unit:"",sort:192,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Легкосплавний R14-15",price:350,unit:"",sort:193,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Легкосплавний R16",price:400,unit:"",sort:194,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Легкосплавний R17-18",price:450,unit:"",sort:195,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Легкосплавний R19",price:500,unit:"",sort:196,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Легкосплавний R20",price:550,unit:"",sort:197,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Легкосплавний R21+",price:600,unit:"",sort:198,active:true},
+   {group:"truck",sub:"Слюсарні роботи",name:"Ремонт осьового зміщення",price:400,unit:"",sort:199,active:true}
   ].map(s=>Object.assign({id:uid()},s));
-  const sv=(name,unit)=>services.find(s=>s.name===name&&(unit==null||s.unit===unit));
-  const clients=[
-    {id:uid(),name:'Іваненко Іван',phone:'+380671112233',plate:'AA 0000 BB',car:'VW Passat',note:'',createdAt:now},
-    {id:uid(),name:'Петренко Олег',phone:'+380672223344',plate:'KA 1234 AB',car:'Skoda Octavia',note:'',createdAt:now},
-    {id:uid(),name:'Сидоренко Марія',phone:'+380673334455',plate:'BC 5678 CD',car:'Toyota RAV4',note:'',createdAt:now},
-    {id:uid(),name:'Шевченко Тарас',phone:'+380674445566',plate:'AA 1111 KK',car:'BMW X5',note:'',createdAt:now},
-    {id:uid(),name:'Коваленко Ірина',phone:'+380675556677',plate:'KA 4321 AC',car:'Renault Duster',note:'',createdAt:now}
-  ];
-  const mk=(num,ci,items,status,post,minsAgo)=>{
-    const total=items.reduce((a,b)=>a+b.price*b.qty,0);
-    return {id:uid(),num,clientId:clients[ci].id,clientName:clients[ci].name,plate:clients[ci].plate,car:clients[ci].car,
-      items:items.map(i=>({name:i.name,price:i.price,qty:i.qty,unit:i.unit||''})),total,status,post,paid:status==='done',createdAt:now-minsAgo*60000};
-  };
-  const I=(n,q)=>{const s=sv(n);return{name:s.name,price:s.price,qty:q,unit:s.unit||''};};
-  const orders=[
-    mk(124,0,[I('Седан/Хетчбек R16',4),I('Балансув. до R17.5 забивні (без вартості)',4)],'work',1,40),
-    mk(123,1,[I('Мінівен/Джип/SUV R17',4)],'wait',2,50),
-    mk(122,2,[I('Шиномонтаж R22.5 (безкамерні)',6)],'done',null,75),
-    mk(121,3,[I('Латка TL-110',1),I('Седан/Хетчбек R15',2)],'work',1,90),
-    mk(120,4,[I('Сталевий R16',2),I('Седан/Хетчбек R16',4)],'done',null,100),
-    mk(119,1,[I('Мінівен/Джип/SUV R18',4)],'done',null,160)
-  ];
-  const cash=orders.filter(o=>o.paid).map(o=>({id:uid(),type:'in',amount:o.total,note:'Заказ #'+pad6(o.num),orderId:o.id,createdAt:o.createdAt}));
   return {
-    settings:{shopName:'GT Tires Service',address:'вул. Соборна 106, Велика Димерка',phone:'+380682590196',hours:'Пн–Сб 08:00–20:00',masterRate:35,theme:'red',orderSeq:124,posts:['Легковий монтаж','Вантажний монтаж','Ремонт','Балансування']},
-    clients,services,orders,products:[
-      {id:uid(),name:'Michelin Primacy 4',size:'205/55 R16',brand:'Michelin',qty:8,price:3200},
-      {id:uid(),name:'Nokian Hakka Green',size:'195/65 R15',brand:'Nokian',qty:4,price:2800},
-      {id:uid(),name:'Continental EcoContact',size:'225/45 R17',brand:'Continental',qty:2,price:3900}
-    ],cash,voiceAliases:[]
+    settings:{shopName:'GT Tires',address:'вул. Соборна 106, Велика Димерка',phone:'+380682590196',hours:'Пн–Сб 08:00–20:00',extra:'TIR Parking',masterRate:35,theme:'red',orderSeq:0,seedVersion:3,posts:['Безкамерні','Камерні','Балансування','Ремонт']},
+    clients:[],services,orders:[],products:[],cash:[],voiceAliases:[]
   };
 }
+
 function pad6(n){return '#'+String(n).padStart(6,'0');}
 
 let S;
@@ -621,6 +639,17 @@ function load(){try{const r=localStorage.getItem(LS_KEY);if(r){const d=JSON.pars
 function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){toast('Не вдалося зберегти');}}
 S=load();
 S.voiceAliases=S.voiceAliases||[];
+S.clients=S.clients||[];S.orders=S.orders||[];S.cash=S.cash||[];S.products=S.products||[];S.services=S.services||[];
+const SEED_VERSION=3;
+if((S.settings.seedVersion||0)<SEED_VERSION){
+  const fresh=seed();
+  S.services=fresh.services;            // оновити прайс до повної версії (199 позицій, нова структура)
+  S.clients=[];S.orders=[];S.cash=[];S.products=[];   // прибрати старі тестові (демо) дані
+  S.settings.seedVersion=SEED_VERSION;
+  try{save();}catch(e){}
+}
+S.services.forEach(migrateSvc);
+S.orders.forEach(o=>{if(o.driver==null)o.driver='';if(o.comment==null)o.comment='';if(o.phone==null){const c=S.clients.find(x=>x.id===o.clientId);o.phone=c?(c.phone||''):'';}if(o.paidAmount==null)o.paidAmount=o.paid?o.total:0;});
 if(!localStorage.getItem(LS_KEY)){try{save();}catch(e){}}
 
 /* ============ THEME / VIEW ============ */
@@ -817,19 +846,22 @@ vehicles(){
 
 services(){
   let list=[...S.services].sort((a,b)=>(a.sort||0)-(b.sort||0));
-  if(query)list=list.filter(s=>(s.name+(s.unit||'')+catLabel(s.category)).toLowerCase().includes(query));
-  const cats=[];list.forEach(s=>{if(!cats.includes(s.category))cats.push(s.category);});
+  if(query)list=list.filter(s=>(s.name+(s.unit||'')+groupMeta(s.group).name+(s.sub||'')).toLowerCase().includes(query));
+  const ED='<svg viewBox="0 0 24 24" fill="none"><path d="M4 20h4L19 9l-4-4L4 16v4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+  const DL='<svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const cards=GROUPS.map(g=>{
+    const gi=list.filter(s=>s.group===g.key); if(!gi.length) return '';
+    const subs=[...g.subs]; gi.forEach(s=>{const u=s.sub||'Загальні'; if(!subs.includes(u))subs.push(u);});
+    const body=subs.map(sub=>{const si=gi.filter(s=>(s.sub||'Загальні')===sub); if(!si.length)return '';
+      return `<div class="pk-sub">${esc(sub)}</div><table class="tbl"><tbody>${si.map(s=>`<tr><td>${esc(s.name)}${s.unit?` <span class="chip">${esc(s.unit)}</span>`:''}</td><td class="num">${money(s.price)}</td><td class="actions"><button class="mini" data-act="editService" data-id="${s.id}">${ED}</button><button class="mini" data-act="delService" data-id="${s.id}">${DL}</button></td></tr>`).join('')}</tbody></table>`;
+    }).join('');
+    return `<div class="card"><div class="card-h"><h3>${g.icon} ${esc(g.name)}</h3><span class="sub" style="color:var(--muted);font-size:11px">${gi.length} поз.</span></div>${body}</div>`;
+  }).join('');
   return `
-  <div class="page-h"><h2>Послуги</h2><span class="sub">${S.services.length} позицій</span><span class="spacer" style="flex:1"></span>
+  <div class="page-h"><h2>Прайс</h2><span class="sub">${S.services.length} позицій</span><span class="spacer" style="flex:1"></span>
     <button class="btn ghost" data-act="importPrices"><svg viewBox="0 0 24 24" fill="none"><path d="M12 20V8M7 13l5-5 5 5M5 4h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Імпорт CSV</button>
-    <button class="btn" data-act="newService"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>Додати</button></div>
-  ${cats.length?cats.map(cat=>`<div class="card"><div class="card-h"><h3>${esc(catLabel(cat))}</h3><span class="sub" style="color:var(--muted);font-size:11px">${list.filter(s=>s.category===cat).length} поз.</span></div><table class="tbl"><tbody>
-    ${list.filter(s=>s.category===cat).map(s=>`<tr><td>${esc(s.name)}${s.unit?` <span class="chip">${esc(s.unit)}</span>`:''}${s.active===false?' <span class="chip" style="background:var(--panel-2);color:var(--muted)">не активна</span>':''}</td><td class="num">${money(s.price)}</td>
-    <td class="actions">
-      <button class="mini" data-act="editService" data-id="${s.id}"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20h4L19 9l-4-4L4 16v4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
-      <button class="mini" data-act="delService" data-id="${s.id}"><svg viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    </td></tr>`).join('')}
-  </tbody></table></div>`).join(''):`<div class="card"><div class="empty"><div class="big">🛠</div>Послуг ще немає. Натисніть «Імпорт CSV», щоб завантажити прайс із Supabase.</div></div>`}`;
+    <button class="btn" data-act="newService"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>Додати послугу</button></div>
+  ${cards||`<div class="card"><div class="empty"><div class="big">🛠</div>Прайс порожній. Натисніть «Додати послугу» або «Імпорт CSV».</div></div>`}`;
 },
 
 products(){
@@ -928,7 +960,7 @@ reports(){
 },
 
 marketing(){
-  const withDebt=S.orders.filter(o=>!o.paid&&o.status==='done');
+  const withDebt=S.orders.filter(o=>(o.total-(o.paidAmount||0))>0.5);
   const list=[...S.clients].map(c=>({c,visits:S.orders.filter(o=>o.clientId===c.id).length,spent:S.orders.filter(o=>o.clientId===c.id&&o.paid).reduce((a,o)=>a+o.total,0)})).sort((a,b)=>b.spent-a.spent);
   return `
   <div class="page-h"><h2>Маркетинг</h2><span class="sub">клієнтська база та нагадування</span></div>
@@ -936,7 +968,7 @@ marketing(){
     <div class="stat"><div class="lbl">Клієнтів у базі</div><div class="val">${S.clients.length}</div></div>
     <div class="stat"><div class="lbl">Постійних (3+ візити)</div><div class="val">${list.filter(x=>x.visits>=3).length}</div></div>
     <div class="stat is-accent"><div class="lbl">Незакриті борги</div><div class="val">${withDebt.length}</div></div>
-    <div class="stat"><div class="lbl">Заборгованість</div><div class="val">${money(withDebt.reduce((a,o)=>a+o.total,0))}</div></div>
+    <div class="stat"><div class="lbl">Заборгованість</div><div class="val">${money(withDebt.reduce((a,o)=>a+(o.total-(o.paidAmount||0)),0))}</div></div>
   </section>
   <div class="card"><div class="card-h"><h3>Найкращі клієнти</h3></div><table class="tbl"><thead><tr><th>Клієнт</th><th>Телефон</th><th>Візитів</th><th class="num">Витрачено</th><th></th></tr></thead><tbody>
   ${list.length?list.slice(0,30).map(x=>`<tr>
@@ -1025,11 +1057,11 @@ settings(){
 };
 
 function updateStatusbar(){
-  const debts=S.orders.filter(o=>!o.paid&&o.status==='done');
+  const debts=S.orders.filter(o=>(o.total-(o.paidAmount||0))>0.5);
   const low=S.products.filter(p=>p.qty<=2);
   const active=S.orders.filter(o=>o.status!=='done').length;
   let txt='Все спокійно — активних нагадувань немає',n=0;
-  if(debts.length){txt=`Незакритих заказів: <b>${debts.length}</b> на суму ${money(debts.reduce((a,o)=>a+o.total,0))}`;n+=debts.length;}
+  if(debts.length){txt=`Незакритих заказів: <b>${debts.length}</b> на суму ${money(debts.reduce((a,o)=>a+(o.total-(o.paidAmount||0)),0))}`;n+=debts.length;}
   else if(low.length){txt=`Закінчується товар: <b>${low.map(p=>p.name).join(', ')}</b>`;n+=low.length;}
   else if(active){txt=`Активних заказів у роботі: <b>${active}</b>`;}
   $('reminderTxt').innerHTML=txt;
@@ -1048,34 +1080,85 @@ $('modalBg').addEventListener('click',e=>{if(e.target===$('modalBg'))closeModal(
 let draft=null;
 function orderModal(existing){
   const o=existing||{};
-  draft={id:o.id||null,num:o.num||null,clientName:o.clientName||'',phone:'',plate:o.plate||'',car:o.car||'',
-    items:(o.items||[]).reduce((m,i)=>{const s=S.services.find(x=>x.name===i.name&&(i.unit==null||i.unit===''||x.unit===i.unit));if(s)m[s.id]=i.qty;return m;},{}),
-    status:o.status||'work',post:o.post||'',paid:!!o.paid};
-  if(o.clientId){const c=S.clients.find(x=>x.id===o.clientId);if(c)draft.phone=c.phone||'';}
-  const sorted=[...S.services].sort((a,b)=>(a.sort||0)-(b.sort||0));
-  const cats=[];sorted.forEach(s=>{if(!cats.includes(s.category))cats.push(s.category);});
-  const pick=cats.map(cat=>`<div class="pr" style="background:var(--panel);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">${esc(catLabel(cat))}</div>`+
-    sorted.filter(s=>s.category===cat).map(s=>`<div class="pr"><span class="nm">${esc(s.name)}${s.unit?` <span class="chip">${esc(s.unit)}</span>`:''}</span><span class="pp">${money(s.price)}</span>
-      <div class="qty"><button data-act="qty" data-sid="${s.id}" data-d="-1">−</button><span id="q_${s.id}">${draft.items[s.id]||0}</span><button data-act="qty" data-sid="${s.id}" data-d="1">+</button></div></div>`).join('')).join('');
-  openModal(existing&&existing.id?'Редагувати заказ '+pad6(o.num):'Новий заказ',`
-    <div class="field"><label>Клієнт (імʼя)</label><input id="oName" list="clientNames" value="${esc(draft.clientName)}" placeholder="Іваненко Іван"></div>
-    <datalist id="clientNames">${S.clients.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist>
-    <div class="field row">
-      <div class="field"><label>Телефон</label><input id="oPhone" value="${esc(draft.phone)}" placeholder="+380..."></div>
-      <div class="field"><label>Номер авто</label><input id="oPlate" value="${esc(draft.plate)}" placeholder="AA 0000 BB"></div>
-    </div>
-    <div class="field"><label>Авто</label><input id="oCar" value="${esc(draft.car)}" placeholder="VW Passat"></div>
-    <div class="field"><label>Послуги</label><div class="svc-pick">${pick}</div></div>
-    <div class="field row">
-      <div class="field"><label>Статус</label><select id="oStatus"><option value="wait"${draft.status==='wait'?' selected':''}>Очікує</option><option value="work"${draft.status==='work'?' selected':''}>В роботі</option><option value="done"${draft.status==='done'?' selected':''}>Виконано</option></select></div>
-      <div class="field"><label>Пост</label><select id="oPost"><option value="">—</option>${S.settings.posts.map((p,i)=>`<option value="${i+1}"${draft.post==(i+1)?' selected':''}>Пост ${i+1} · ${esc(p)}</option>`).join('')}</select></div>
-    </div>
-    <label class="checkbox"><input type="checkbox" id="oPaid" ${draft.paid?'checked':''}> Оплачено (внести в касу)</label>
-    <div class="total-line"><span class="t">Разом до сплати</span><span class="v" id="oTotal">${money(orderTotal())}</span></div>
-  `,`<button class="btn ghost" data-act="closeModal">Скасувати</button><button class="btn" data-act="saveOrder">${existing&&existing.id?'Зберегти':'Створити заказ'}</button>`);
+  draft={id:o.id||null,num:o.num||null,
+    name:o.clientName||'',phone:o.phone||'',driver:o.driver||'',car:o.car||'',plate:o.plate||'',comment:o.comment||'',
+    items:(o.items||[]).map(i=>({name:i.name,price:i.price,qty:i.qty,unit:i.unit||''})),
+    status:o.status||'work',paidAmount:o.paidAmount||0};
+  if(o.clientId&&!o.phone){const c=S.clients.find(x=>x.id===o.clientId);if(c){draft.phone=c.phone||'';if(!draft.driver)draft.driver=c.driver||'';}}
+  renderOrderEditor(!!(existing&&existing.id));
 }
-function orderTotal(){return Object.entries(draft.items).reduce((a,[sid,q])=>{const s=S.services.find(x=>x.id===sid);return a+(s?s.price*q:0);},0);}
-function refreshTotal(){const el=$('oTotal');if(el)el.textContent=money(orderTotal());}
+function renderOrderEditor(isEdit){
+  const lines=draft.items.map((i,idx)=>`<div class="oline">
+    <div class="onm">${esc(i.name)}${i.unit?` <span class="chip">${esc(i.unit)}</span>`:''}${i.price?'':' <span class="chip" style="background:rgba(240,169,43,.16);color:var(--warn)">вкажіть ціну</span>'}</div>
+    <input class="oprice" type="number" data-act="oprice" data-i="${idx}" value="${i.price}">
+    <div class="qty"><button data-act="oqty" data-i="${idx}" data-d="-1">−</button><span>${i.qty}</span><button data-act="oqty" data-i="${idx}" data-d="1">+</button></div>
+    <div class="osum">${money(i.price*i.qty)}</div>
+    <button class="mini" data-act="odel" data-i="${idx}">✕</button></div>`).join('')||'<div class="hint">Послуг ще немає — натисніть «Додати послугу».</div>';
+  const total=draft.items.reduce((a,i)=>a+i.price*i.qty,0);
+  const debt=Math.max(0,total-(draft.paidAmount||0));
+  openModal(isEdit?'Заказ '+pad6(draft.num):'Новий заказ',`
+    <div class="field row"><div class="field"><label>Клієнт</label><input id="oName" list="clientNames" class="big-field" value="${esc(draft.name)}"></div>
+      <div class="field"><label>Телефон</label><input id="oPhone" class="big-field" value="${esc(draft.phone)}"></div></div>
+    <datalist id="clientNames">${S.clients.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist>
+    <div class="field row"><div class="field"><label>Водій</label><input id="oDriver" class="big-field" value="${esc(draft.driver)}"></div>
+      <div class="field"><label>Номер авто</label><input id="oPlate" class="big-field" value="${esc(draft.plate)}"></div></div>
+    <div class="field"><label>Марка авто</label><input id="oCar" class="big-field" value="${esc(draft.car)}"></div>
+    <div class="field"><label>Коментар</label><input id="oComment" class="big-field" value="${esc(draft.comment)}"></div>
+    <div class="field"><label>Послуги</label><div class="olines">${lines}</div>
+      <button class="btn ghost" data-act="oAddSvc" style="margin-top:8px;width:100%"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Додати послугу</button></div>
+    <div class="field row"><div class="field"><label>Статус</label><select id="oStatus"><option value="wait"${draft.status==='wait'?' selected':''}>Очікує</option><option value="work"${draft.status==='work'?' selected':''}>В роботі</option><option value="done"${draft.status==='done'?' selected':''}>Виконано</option></select></div>
+      <div class="field"><label>Оплачено (₴)</label><input id="oPaid" class="big-field" type="number" value="${draft.paidAmount||0}"></div></div>
+    <div class="total-line"><span class="t">Всього</span><span class="v" id="oTotal">${money(total)}</span></div>
+    <div class="hint" id="oDebt">Оплачено: ${money(draft.paidAmount||0)} · Борг: ${money(debt)}</div>
+  `,`<button class="btn ghost" data-act="closeModal">Скасувати</button><button class="btn ghost" data-act="saveOrder" data-print="0">Зберегти</button><button class="btn big-confirm" data-act="saveOrder" data-print="1">💾 Зберегти і друк</button>`);
+}
+function oSync(){const n=$('oName');if(!n)return;draft.name=n.value.trim();draft.phone=$('oPhone').value.trim();draft.driver=$('oDriver').value.trim();draft.plate=$('oPlate').value.trim();draft.car=$('oCar').value.trim();draft.comment=$('oComment').value.trim();draft.status=$('oStatus').value;draft.paidAmount=+$('oPaid').value||0;}
+function updateOrderTotals(){const total=draft.items.reduce((a,i)=>a+i.price*i.qty,0);const debt=Math.max(0,total-(draft.paidAmount||0));const t=$('oTotal');if(t)t.textContent=money(total);const d=$('oDebt');if(d)d.textContent='Оплачено: '+money(draft.paidAmount||0)+' · Борг: '+money(debt);document.querySelectorAll('.osum').forEach((el,i)=>{if(draft.items[i])el.textContent=money(draft.items[i].price*draft.items[i].qty);});}
+let pickQuery='';
+function openPicker(){pickQuery='';renderPicker();}
+function renderPicker(){
+  let list=[...S.services].filter(s=>s.active!==false).sort((a,b)=>(a.sort||0)-(b.sort||0));
+  if(pickQuery)list=list.filter(s=>(s.name+(s.unit||'')+groupMeta(s.group).name+(s.sub||'')).toLowerCase().includes(pickQuery));
+  let html='';
+  GROUPS.forEach(g=>{const gi=list.filter(s=>s.group===g.key);if(!gi.length)return;
+    html+=`<div class="pk-g">${g.icon} ${esc(g.name)}</div>`;
+    const subs=[...g.subs];gi.forEach(s=>{const u=s.sub||'Загальні';if(!subs.includes(u))subs.push(u);});
+    subs.forEach(sub=>{const si=gi.filter(s=>(s.sub||'Загальні')===sub);if(!si.length)return;
+      html+=`<div class="pk-sub">${esc(sub)}</div>`;
+      si.forEach(s=>{html+=`<div class="pr" data-act="pickSvc" data-id="${s.id}" style="cursor:pointer"><span class="nm">${esc(s.name)}${s.unit?` <span class="chip">${esc(s.unit)}</span>`:''}</span><span class="pp">${money(s.price)}</span></div>`;});
+    });
+  });
+  openModal('Додати послугу',`
+    <input id="pickSearch" class="big-field" placeholder="Пошук послуги..." style="margin-bottom:10px">
+    <button class="btn" data-act="oNewSvc" style="width:100%;margin-bottom:10px"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>Створити нову послугу</button>
+    <div class="svc-pick">${html||'<div class="empty">Нічого не знайдено</div>'}</div>
+  `,`<button class="btn ghost" data-act="oBack">← Назад до заказу</button>`);
+}
+function pickSvc(id){const s=S.services.find(x=>x.id===id);if(!s)return;const ex=draft.items.find(i=>i.name===s.name&&i.unit===(s.unit||''));if(ex)ex.qty++;else draft.items.push({name:s.name,price:s.price,qty:1,unit:s.unit||''});renderOrderEditor(!!draft.id);toast('Додано: '+s.name);}
+function oBack(){renderOrderEditor(!!draft.id);}
+function oNewSvc(){
+  const opts=GROUPS.map(g=>`<option value="${g.key}">${g.icon} ${esc(g.name)}</option>`).join('');
+  openModal('➕ Нова послуга',`
+    <div class="field"><label>Назва послуги</label><input id="nsName" class="big-field" autofocus></div>
+    <div class="field row"><div class="field"><label>Ціна (₴)</label><input id="nsPrice" class="big-field" type="number"></div>
+      <div class="field"><label>Розмір</label><input id="nsUnit" class="big-field"></div></div>
+    <div class="field row"><div class="field"><label>Категорія (група)</label><select id="nsGroup">${opts}</select></div>
+      <div class="field"><label>Підкатегорія</label><select id="nsSub"></select></div></div>
+  `,`<button class="btn ghost" data-act="oBack">Назад</button><button class="btn ghost" data-act="oSaveNewSvc" data-mode="price">💾 Зберегти в прайс</button><button class="btn" data-act="oSaveNewSvc" data-mode="order">➕ Додати в заказ</button>`);
+  fillSubs();$('nsGroup').addEventListener('change',()=>fillSubs());
+}
+function fillSubs(){const g=groupMeta($('nsGroup').value);$('nsSub').innerHTML=g.subs.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');}
+function oSaveNewSvc(mode){
+  const name=$('nsName').value.trim();if(!name){toast('Вкажіть назву');return;}
+  const price=+$('nsPrice').value||0,unit=$('nsUnit').value.trim(),group=$('nsGroup').value,sub=$('nsSub').value;
+  const mx=Math.max(0,...S.services.map(s=>s.sort||0));
+  const s={id:uid(),group,sub,name,price,unit,sort:mx+1,active:true};
+  S.services.push(s);save();
+  if(mode==='order'){draft.items.push({name,price,qty:1,unit});toast('Додано в заказ і прайс');}
+  else toast('Збережено в прайс');
+  renderOrderEditor(!!draft.id);
+}
+function refreshTotal(){updateOrderTotals();}
 
 /* ============ ACTION HANDLER ============ */
 document.addEventListener('click',e=>{
@@ -1087,8 +1170,7 @@ document.addEventListener('click',e=>{
     case 'newOrder':orderModal(null);break;
     case 'editOrder':{const o=S.orders.find(x=>x.id===id);if(o)orderModal(o);break;}
     case 'openOrder':{const o=S.orders.find(x=>x.id===id);if(o)orderModal(o);break;}
-    case 'qty':{const sid=el.dataset.sid,d=+el.dataset.d;draft.items[sid]=Math.max(0,(draft.items[sid]||0)+d);if(!draft.items[sid])delete draft.items[sid];$('q_'+sid).textContent=draft.items[sid]||0;refreshTotal();break;}
-    case 'saveOrder':saveOrder();break;
+    case 'saveOrder':saveOrder(el.dataset.print==='1');break;
     case 'delOrder':if(confirm('Видалити заказ?')){S.orders=S.orders.filter(o=>o.id!==id);S.cash=S.cash.filter(c=>c.orderId!==id);save();renderNav();render();toast('Заказ видалено');}break;
     case 'cycleStatus':{const o=S.orders.find(x=>x.id===id);if(o){const seq=['wait','work','done'];o.status=seq[(seq.indexOf(o.status)+1)%3];if(o.status==='done'&&!o.paid){/*leave paid as is*/}save();renderNav();render();}break;}
     case 'printOrder':printOrder(id);break;
@@ -1118,19 +1200,24 @@ document.addEventListener('click',e=>{
     case 'voiceStart':voiceStart();break;
     case 'micToggle':micToggle();break;
     case 'micManualGo':micManualGo();break;
-    case 'vqty':{vSync();const i=+el.dataset.i;vDraft.items[i].qty=Math.max(1,vDraft.items[i].qty+ +el.dataset.d);voicePreview(vDraft);break;}
-    case 'vdel':{vSync();vDraft.items.splice(+el.dataset.i,1);voicePreview(vDraft);break;}
-    case 'vCreate':vCreateService(+el.dataset.i);break;
-    case 'vSaveService':vSaveService();break;
-    case 'vBack':vBack();break;
-    case 'vConfirm':vConfirm();break;
-    case 'vEdit':vEdit();break;
+    case 'oAddSvc':oSync();openPicker();break;
+    case 'pickSvc':pickSvc(id);break;
+    case 'oBack':oBack();break;
+    case 'oqty':{oSync();const i=+el.dataset.i;draft.items[i].qty=Math.max(1,draft.items[i].qty+ +el.dataset.d);renderOrderEditor(!!draft.id);break;}
+    case 'odel':{oSync();draft.items.splice(+el.dataset.i,1);renderOrderEditor(!!draft.id);break;}
+    case 'oNewSvc':oNewSvc();break;
+    case 'oSaveNewSvc':oSaveNewSvc(el.dataset.mode);break;
     case 'vTestRun':vTestRun();break;
     case 'alAdd':{const ph=vnorm($('alPhrase').value);const sid=$('alSvc').value;if(!ph){toast('Введіть фразу');break;}S.voiceAliases.push({phrase:ph,serviceId:sid});save();render();toast('Фразу збережено');break;}
     case 'alDel':S.voiceAliases.splice(+el.dataset.i,1);save();render();toast('Видалено');break;
   }
 });
-document.addEventListener('input',e=>{if(e.target.id==='search'){query=e.target.value.trim().toLowerCase();if(['orders','clients','vehicles','services','products'].includes(route))render();}});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='search'){query=t.value.trim().toLowerCase();if(['orders','clients','vehicles','services','products'].includes(route))render();return;}
+  if(t.dataset&&t.dataset.act==='oprice'){const i=+t.dataset.i;if(draft&&draft.items[i]){draft.items[i].price=+t.value||0;updateOrderTotals();}return;}
+  if(t.id==='oPaid'){if(draft){draft.paidAmount=+t.value||0;updateOrderTotals();}return;}
+  if(t.id==='pickSearch'){pickQuery=t.value.trim().toLowerCase();renderPicker();const ps=$('pickSearch');if(ps){ps.focus();ps.value=pickQuery;}return;}
+});
 document.addEventListener('change',e=>{if(e.target.id==='importFile')doImport(e.target.files[0]);if(e.target.id==='priceFile')doImportPrices(e.target.files[0]);});
 
 function doImportPrices(file){if(!file)return;const r=new FileReader();r.onload=()=>{try{
@@ -1142,37 +1229,33 @@ function doImportPrices(file){if(!file)return;const r=new FileReader();r.onload=
   for(let k=1;k<rows.length;k++){const row=rows[k];if(!row||!row[ti]||!row[ti].trim())continue;
     list.push({id:uid(),category:ci>=0?(row[ci]||'').trim()||'Інше':'Інше',name:row[ti].trim(),price:parseFloat(String(row[pi]).replace(',','.'))||0,unit:ui>=0?(row[ui]||'').trim():'',sort:si>=0?(parseInt(row[si])||k):k,active:ai<0?true:String(row[ai]).trim().toLowerCase()==='true'});}
   if(!list.length)throw 0;
-  S.services=list;save();go('services');toast('Імпортовано позицій: '+list.length);
+  S.services=list;S.services.forEach(migrateSvc);save();go('services');toast('Імпортовано позицій: '+list.length);
 }catch(e){toast('Не вдалося прочитати CSV — перевірте формат');}};r.readAsText(file);}
 
-function saveOrder(){
-  const name=$('oName').value.trim();
-  if(!name){toast('Вкажіть імʼя клієнта');return;}
-  if(!Object.keys(draft.items).length){toast('Додайте хоча б одну послугу');return;}
-  const phone=$('oPhone').value.trim(),plate=$('oPlate').value.trim(),car=$('oCar').value.trim();
-  const status=$('oStatus').value,post=$('oPost').value?+$('oPost').value:null,paid=$('oPaid').checked;
-  // upsert client
-  let client=S.clients.find(c=>c.name.toLowerCase()===name.toLowerCase()||(plate&&c.plate&&c.plate.toLowerCase()===plate.toLowerCase()));
-  if(!client){client={id:uid(),name,phone,plate,car,note:'',createdAt:Date.now()};S.clients.push(client);}
-  else{if(phone)client.phone=phone;if(plate)client.plate=plate;if(car)client.car=car;}
-  const items=Object.entries(draft.items).map(([sid,q])=>{const s=S.services.find(x=>x.id===sid);return {name:s.name,price:s.price,qty:q,unit:s.unit||''};});
+function saveOrder(doPrint){
+  oSync();
+  if(!draft.name){toast('Вкажіть клієнта');return;}
+  if(!draft.items.length){toast('Додайте хоча б одну послугу');return;}
+  let c=S.clients.find(x=>x.name.toLowerCase()===draft.name.toLowerCase()||(draft.plate&&x.plate&&x.plate.toLowerCase()===draft.plate.toLowerCase()));
+  if(!c){c={id:uid(),name:draft.name,phone:draft.phone,plate:draft.plate,car:draft.car,driver:draft.driver,note:'',createdAt:Date.now()};S.clients.push(c);}
+  else{if(draft.phone)c.phone=draft.phone;if(draft.plate)c.plate=draft.plate;if(draft.car)c.car=draft.car;if(draft.driver)c.driver=draft.driver;}
+  const items=draft.items.map(i=>({name:i.name,price:i.price,qty:i.qty,unit:i.unit||''}));
   const total=items.reduce((a,i)=>a+i.price*i.qty,0);
-  if(draft.id){
-    const o=S.orders.find(x=>x.id===draft.id);
-    Object.assign(o,{clientId:client.id,clientName:name,plate,car,items,total,status,post});
-    // sync cash
-    S.cash=S.cash.filter(c=>c.orderId!==o.id);
-    if(paid){S.cash.push({id:uid(),type:'in',amount:total,note:'Заказ '+pad6(o.num),orderId:o.id,createdAt:Date.now()});}
-    o.paid=paid;
-    toast('Заказ оновлено');
+  const paidAmount=Math.min(Math.max(0,draft.paidAmount||0),total);
+  let oid;
+  if(draft.id){const o=S.orders.find(x=>x.id===draft.id);
+    Object.assign(o,{clientId:c.id,clientName:draft.name,phone:draft.phone,driver:draft.driver,car:draft.car,plate:draft.plate,comment:draft.comment,items,total,status:draft.status,paidAmount,paid:paidAmount>=total&&total>0});
+    S.cash=S.cash.filter(x=>x.orderId!==o.id);if(paidAmount>0)S.cash.push({id:uid(),type:'in',amount:paidAmount,note:'Заказ '+pad6(o.num),orderId:o.id,createdAt:Date.now()});
+    oid=o.id;toast('Заказ оновлено');
   }else{
     const num=++S.settings.orderSeq;
-    const o={id:uid(),num,clientId:client.id,clientName:name,plate,car,items,total,status,post,paid,createdAt:Date.now()};
-    S.orders.push(o);
-    if(paid)S.cash.push({id:uid(),type:'in',amount:total,note:'Заказ '+pad6(num),orderId:o.id,createdAt:Date.now()});
+    const o={id:uid(),num,clientId:c.id,clientName:draft.name,phone:draft.phone,driver:draft.driver,car:draft.car,plate:draft.plate,comment:draft.comment,items,total,status:draft.status,post:null,paidAmount,paid:paidAmount>=total&&total>0,createdAt:Date.now()};
+    S.orders.push(o);oid=o.id;
+    if(paidAmount>0)S.cash.push({id:uid(),type:'in',amount:paidAmount,note:'Заказ '+pad6(num),orderId:o.id,createdAt:Date.now()});
     toast('Заказ '+pad6(num)+' створено');
   }
   save();closeModal();renderNav();render();
+  if(doPrint)printOrder(oid);
 }
 
 function clientModal(c){c=c||{};openModal(c.id?'Редагувати клієнта':'Новий клієнт',`
@@ -1188,16 +1271,19 @@ function saveClient(){const id=$('cId').value;const name=$('cName').value.trim()
   if(id){Object.assign(S.clients.find(c=>c.id===id),data);}else{S.clients.push(Object.assign({id:uid(),createdAt:Date.now()},data));}
   save();closeModal();render();toast('Збережено');}
 
-function serviceModal(s){s=s||{};const cats=[...new Set(S.services.map(x=>x.category))];openModal(s.id?'Редагувати послугу':'Нова послуга',`
+function serviceModal(s){s=s||{};const cur=s.group||'truck';const opts=GROUPS.map(g=>`<option value="${g.key}"${g.key===cur?' selected':''}>${g.icon} ${esc(g.name)}</option>`).join('');
+  openModal(s.id?'Редагувати послугу':'Нова послуга',`
   <input type="hidden" id="sId" value="${s.id||''}">
-  <div class="field"><label>Назва</label><input id="sName" value="${esc(s.name||'')}"></div>
-  <div class="field row"><div class="field"><label>Ціна (₴)</label><input id="sPrice" type="number" value="${s.price||0}"></div>
-  <div class="field"><label>Розмір / одиниця</label><input id="sUnit" value="${esc(s.unit||'')}" placeholder='напр. 29"–32"'></div></div>
-  <div class="field"><label>Категорія</label><input id="sCat" list="catList" value="${esc(s.category||'agri')}"></div>
-  <datalist id="catList">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
-`,`<button class="btn ghost" data-act="closeModal">Скасувати</button><button class="btn" data-act="saveService">Зберегти</button>`);}
+  <div class="field"><label>Назва</label><input id="sName" class="big-field" value="${esc(s.name||'')}"></div>
+  <div class="field row"><div class="field"><label>Ціна (₴)</label><input id="sPrice" class="big-field" type="number" value="${s.price||0}"></div>
+  <div class="field"><label>Розмір</label><input id="sUnit" class="big-field" value="${esc(s.unit||'')}" placeholder='напр. 33"+'></div></div>
+  <div class="field row"><div class="field"><label>Категорія (група)</label><select id="sGroup">${opts}</select></div>
+  <div class="field"><label>Підкатегорія</label><select id="sSub"></select></div></div>
+`,`<button class="btn ghost" data-act="closeModal">Скасувати</button><button class="btn" data-act="saveService">Зберегти</button>`);
+  fillSSubs(s.sub);$('sGroup').addEventListener('change',()=>fillSSubs());}
+function fillSSubs(sel){const g=groupMeta($('sGroup').value);$('sSub').innerHTML=g.subs.map(x=>`<option value="${esc(x)}"${x===sel?' selected':''}>${esc(x)}</option>`).join('');}
 function saveService(){const id=$('sId').value;const name=$('sName').value.trim();if(!name){toast('Вкажіть назву');return;}
-  const data={name,price:+$('sPrice').value||0,unit:$('sUnit').value.trim(),category:$('sCat').value.trim()||'Інше'};
+  const data={name,price:+$('sPrice').value||0,unit:$('sUnit').value.trim(),group:$('sGroup').value,sub:$('sSub').value};
   if(id){Object.assign(S.services.find(s=>s.id===id),data);}else{const mx=Math.max(0,...S.services.map(s=>s.sort||0));S.services.push(Object.assign({id:uid(),sort:mx+1,active:true},data));}
   save();closeModal();render();toast('Збережено');}
 
@@ -1231,27 +1317,34 @@ function doImport(file){if(!file)return;const r=new FileReader();r.onload=()=>{t
 /* ---- print work order ---- */
 function printOrder(id){
   const o=S.orders.find(x=>x.id===id);if(!o)return;const g=S.settings;
+  const total=o.items.reduce((a,i)=>a+i.price*i.qty,0);
+  const paid=o.paidAmount||0,debt=Math.max(0,total-paid);
   const rows=o.items.map(i=>`<tr><td>${esc(i.name)}${i.unit?' · '+esc(i.unit):''}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">${money(i.price)}</td><td style="text-align:right">${money(i.price*i.qty)}</td></tr>`).join('');
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8"><title>Заказ-наряд ${pad6(o.num)}</title>
-  <style>@page{size:A4;margin:16mm}body{font-family:Arial,sans-serif;color:#111;background:#fff}
-  .hh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #e81f29;padding-bottom:12px;margin-bottom:18px}
-  .hh h1{font-size:26px;color:#e81f29;margin:0}.hh .s{font-size:12px;color:#444;line-height:1.6}
-  h2{font-size:18px;margin:0 0 4px}.meta{font-size:13px;color:#444;margin-bottom:18px}
-  table{width:100%;border-collapse:collapse;margin-bottom:18px}th,td{border:1px solid #ccc;padding:8px 10px;font-size:13px}
-  th{background:#f3f3f3;text-align:left}.tot{text-align:right;font-size:20px;font-weight:bold;margin-bottom:30px}
-  .sig{display:flex;justify-content:space-between;margin-top:50px;font-size:13px}.sig div{width:45%;border-top:1px solid #333;padding-top:6px}
-  .disc{font-size:10px;color:#777;margin-top:24px;line-height:1.5}</style></head><body>
-  <div class="hh"><div><h1>GT TIRES</h1><div class="s">${esc(g.shopName)}</div></div>
-  <div class="s" style="text-align:right">${esc(g.address)}<br>${esc(g.phone)}<br>${esc(g.hours)}</div></div>
-  <h2>Заказ-наряд ${pad6(o.num)}</h2>
-  <div class="meta">Дата: ${fmtDate(o.createdAt)} ${fmtTime(o.createdAt)} &nbsp;|&nbsp; Клієнт: <b>${esc(o.clientName)}</b> &nbsp;|&nbsp; Авто: ${esc(o.car||'—')} ${esc(o.plate||'')}</div>
-  <table><thead><tr><th>Послуга</th><th style="text-align:center">К-сть</th><th style="text-align:right">Ціна</th><th style="text-align:right">Сума</th></tr></thead><tbody>${rows}</tbody></table>
-  <div class="tot">Разом: ${money(o.total)}</div>
-  <div class="sig"><div>Майстер _______________</div><div>Клієнт _______________</div></div>
-  <div class="disc">Підписанням цього заказ-наряду клієнт підтверджує згоду з переліком та вартістю робіт. Гарантія на виконані роботи — згідно з чинним законодавством України. Претензії приймаються протягом 7 днів.</div>
-  <script>window.onload=function(){window.print()}<\/script></body></html>`);
-  w.document.close();
+  const html=`<html lang="uk"><head><meta charset="UTF-8"><title>Заказ-наряд ${pad6(o.num)}</title><style>
+   @page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;margin:0}
+   .hh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #e81f29;padding-bottom:10px;margin-bottom:14px}
+   .hh h1{font-size:26px;color:#e81f29;margin:0;letter-spacing:1px}.hh .s{font-size:12px;color:#444;line-height:1.5}
+   h2{font-size:17px;margin:0 0 8px}.meta{font-size:13px;color:#222;margin-bottom:14px;line-height:1.8}
+   table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #bbb;padding:7px 9px;font-size:13px}
+   th{background:#e81f29;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+   .tot{margin-left:auto;width:260px;font-size:14px}.tot div{display:flex;justify-content:space-between;padding:3px 0}
+   .tot .big{font-size:18px;font-weight:bold;border-top:2px solid #e81f29;padding-top:6px}.tot .debt{color:#c0392b;font-weight:bold}
+   .sig{display:flex;justify-content:space-between;margin-top:46px;font-size:13px}.sig div{width:45%;border-top:1px solid #333;padding-top:6px}
+   .cm{font-size:12px;color:#555;margin-top:12px}</style></head><body>
+   <div class="hh"><div><h1>GT TIRES</h1><div class="s">Велика Димерка<br>вул. Соборна 106<br>TIR Parking</div></div>
+   <div class="s" style="text-align:right">${esc(g.phone)}<br>${esc(g.hours)}<br>${fmtDate(o.createdAt)} ${fmtTime(o.createdAt)}</div></div>
+   <h2>Заказ-наряд ${pad6(o.num)}</h2>
+   <div class="meta"><b>Клієнт:</b> ${esc(o.clientName||'—')} &nbsp;&nbsp; <b>Телефон:</b> ${esc(o.phone||'—')}${o.driver?'<br><b>Водій:</b> '+esc(o.driver):''}<br>
+   <b>Авто:</b> ${esc(o.car||'—')} &nbsp;&nbsp; <b>Номер авто:</b> ${esc(o.plate||'—')}</div>
+   <table><thead><tr><th>Послуга</th><th style="text-align:center;width:60px">К-сть</th><th style="text-align:right;width:90px">Ціна</th><th style="text-align:right;width:100px">Сума</th></tr></thead><tbody>${rows}</tbody></table>
+   <div class="tot"><div class="big"><span>Всього:</span><span>${money(total)}</span></div><div><span>Оплачено:</span><span>${money(paid)}</span></div><div class="debt"><span>Борг:</span><span>${money(debt)}</span></div></div>
+   ${o.comment?'<div class="cm"><b>Коментар:</b> '+esc(o.comment)+'</div>':''}
+   <div class="sig"><div>Підпис клієнта</div><div>Підпис майстра</div></div>
+   </body></html>`;
+  let frm=document.getElementById('printFrame');
+  if(!frm){frm=document.createElement('iframe');frm.id='printFrame';frm.style.cssText='position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:0';document.body.appendChild(frm);}
+  const doc=frm.contentDocument||frm.contentWindow.document;doc.open();doc.write(html);doc.close();
+  setTimeout(()=>{try{frm.contentWindow.focus();frm.contentWindow.print();}catch(e){}},350);
 }
 
 /* ============ VOICE ============ */
@@ -1337,69 +1430,14 @@ function handleVoice(raw){
   if(/^друк|друк заказ/.test(t)){closeModal();const last=[...S.orders].sort((a,b)=>b.createdAt-a.createdAt)[0];if(last)printOrder(last.id);else toast('Немає заказів для друку');return;}
   if(/борг/.test(t)){closeModal();go('marketing');return;}
   if(/навчанн|вивчи|голос/.test(t)&&!VTRIG.test(t)){closeModal();go('voice');return;}
-  voicePreview(parseOrder(raw));
+  voiceToEditor(parseOrder(raw));
 }
-let vDraft=null;
-function vTotal(){return vDraft.items.reduce((a,i)=>a+i.price*i.qty,0);}
-function vSync(){const n=$('vName');if(!n)return;vDraft.name=n.value.trim();vDraft.phone=$('vPhone').value.trim();vDraft.plate=$('vPlate').value.trim();vDraft.car=$('vCar').value.trim();}
-function voicePreview(p){
-  vDraft=p;
-  const items=p.items.map((i,idx)=>`<div class="vrow"><span class="nm">${esc(i.name)}${i.unit?` <span class="chip">${esc(i.unit)}</span>`:''}</span><span class="pp">${money(i.price)}</span><div class="qty"><button data-act="vqty" data-i="${idx}" data-d="-1">−</button><span>${i.qty}</span><button data-act="vqty" data-i="${idx}" data-d="1">+</button></div><button class="mini" data-act="vdel" data-i="${idx}">✕</button></div>`).join('')||'<div class="hint">Послуги не розпізнано — повторіть або відкрийте деталі.</div>';
-  const miss=p.unmatched.map((u,idx)=>`<div class="vrow miss"><span class="nm" style="flex-basis:100%">⚠ Не знайдено у прайсі: «${esc(u.text)}»</span><button class="btn sm" data-act="vCreate" data-i="${idx}">➕ Створити нову послугу</button></div>`).join('');
-  openModal('🎤 Перевірте заказ',`
-    <div class="field"><label>Клієнт</label><input id="vName" class="big-field" value="${esc(p.name)}"></div>
-    <div class="field row"><div class="field"><label>Телефон</label><input id="vPhone" class="big-field" value="${esc(p.phone)}"></div>
-    <div class="field"><label>Номер авто</label><input id="vPlate" class="big-field" value="${esc(p.plate)}"></div></div>
-    <div class="field"><label>Авто</label><input id="vCar" class="big-field" value="${esc(p.car)}"></div>
-    <div class="field"><label>Послуги</label><div>${items}</div></div>
-    ${miss}
-    <div class="total-line"><span class="t">Разом до сплати</span><span class="v" id="vTot">${money(vTotal())}</span></div>
-    <div class="hint">Розпізнано: «${esc(p.raw)}»</div>
-  `,`<button class="btn ghost" data-act="voiceStart">🎤 Повторити</button><button class="btn ghost" data-act="vEdit">✏️ Деталі</button><button class="btn big-confirm" data-act="vConfirm">✅ Підтвердити</button>`);
+function voiceToEditor(p){
+  const items=p.items.map(i=>({name:i.name,price:i.price,qty:i.qty,unit:i.unit||''}));
+  p.unmatched.forEach(u=>items.push({name:capName(u.text),price:0,qty:u.qty||1,unit:u.size?u.size.toUpperCase():''}));
+  const temp={clientName:p.name,phone:p.phone,plate:p.plate,car:p.car,driver:'',comment:'',items,status:'work',paidAmount:0};
+  closeModal();orderModal(temp);
 }
-function vCreateService(idx){
-  vSync();const u=vDraft.unmatched[idx];const cats=[...new Set(S.services.map(s=>s.category))];
-  openModal('➕ Нова послуга',`
-    <input type="hidden" id="vsIdx" value="${idx}">
-    <div class="field"><label>Назва</label><input id="vsName" class="big-field" value="${esc(capName(u.text))}"></div>
-    <div class="field row"><div class="field"><label>Ціна (₴)</label><input id="vsPrice" class="big-field" type="number" autofocus></div>
-      <div class="field"><label>Розмір</label><input id="vsUnit" class="big-field" value="${esc(u.size?u.size.toUpperCase():'')}"></div></div>
-    <div class="field"><label>Категорія</label><input id="vsCat" list="catListV" value="Вантажний монтаж"></div>
-    <datalist id="catListV">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
-    <label class="checkbox"><input type="checkbox" id="vsAddPrice" checked> Додати в прайс</label>
-    <label class="checkbox"><input type="checkbox" id="vsAddOrder" checked> Додати в заказ-наряд</label>
-    <label class="checkbox"><input type="checkbox" id="vsLearn" checked> Запамʼятати фразу (навчання)</label>
-  `,`<button class="btn ghost" data-act="vBack">Назад</button><button class="btn" data-act="vSaveService">Зберегти</button>`);
-}
-function vSaveService(){
-  const idx=+$('vsIdx').value;const u=vDraft.unmatched[idx];
-  const name=$('vsName').value.trim();const price=+$('vsPrice').value||0;
-  if(!name){toast('Вкажіть назву');return;}
-  const unit=$('vsUnit').value.trim(),cat=$('vsCat').value.trim()||'Інше';
-  const addPrice=$('vsAddPrice').checked,addOrder=$('vsAddOrder').checked,learn=$('vsLearn').checked;
-  let svcId=null;
-  if(addPrice){const mx=Math.max(0,...S.services.map(s=>s.sort||0));const s={id:uid(),category:cat,name,price,unit,sort:mx+1,active:true};S.services.push(s);svcId=s.id;}
-  if(learn&&svcId){if(!(S.voiceAliases||[]).some(a=>a.phrase===u.text))S.voiceAliases.push({phrase:u.text,serviceId:svcId});}
-  if(addOrder)vDraft.items.push({id:svcId,name,price,unit,qty:u.qty||1});
-  vDraft.unmatched.splice(idx,1);
-  save();voicePreview(vDraft);toast('Послугу додано');
-}
-function vBack(){voicePreview(vDraft);}
-function vConfirm(){
-  vSync();
-  if(!vDraft.name){toast('Вкажіть клієнта');return;}
-  if(!vDraft.items.length){toast('Додайте хоча б одну послугу');return;}
-  let c=S.clients.find(x=>x.name.toLowerCase()===vDraft.name.toLowerCase()||(vDraft.plate&&x.plate&&x.plate.toLowerCase()===vDraft.plate.toLowerCase()));
-  if(!c){c={id:uid(),name:vDraft.name,phone:vDraft.phone,plate:vDraft.plate,car:vDraft.car,note:'',createdAt:Date.now()};S.clients.push(c);}
-  else{if(vDraft.phone)c.phone=vDraft.phone;if(vDraft.plate)c.plate=vDraft.plate;if(vDraft.car)c.car=vDraft.car;}
-  const num=++S.settings.orderSeq;
-  const items=vDraft.items.map(i=>({name:i.name,price:i.price,qty:i.qty,unit:i.unit||''}));
-  const total=items.reduce((a,i)=>a+i.price*i.qty,0);
-  const o={id:uid(),num,clientId:c.id,clientName:vDraft.name,plate:vDraft.plate,car:vDraft.car,items,total,status:'work',post:null,paid:false,createdAt:Date.now()};
-  S.orders.push(o);save();closeModal();renderNav();render();toast('Заказ '+pad6(num)+' створено');
-  printOrder(o.id);
-}
-function vEdit(){vSync();const temp={clientName:vDraft.name,plate:vDraft.plate,car:vDraft.car,items:vDraft.items.map(i=>({name:i.name,price:i.price,qty:i.qty,unit:i.unit})),status:'work'};closeModal();orderModal(temp);const ph=$('oPhone');if(ph)ph.value=vDraft.phone||'';}
 function vTestRun(){const el=$('vTest');const out=$('vTestOut');if(!el||!out)return;const p=parseOrder(el.value);out.innerHTML=`Клієнт: <b>${esc(p.name||'—')}</b> · Авто: ${esc(p.car||'—')} · Номер: ${esc(p.plate||'—')}<br>Послуги: ${p.items.length?p.items.map(i=>esc(i.name)+' ×'+i.qty).join(', '):'—'}${p.unmatched.length?'<br>Не знайдено: '+p.unmatched.map(u=>'«'+esc(u.text)+'»').join(', '):''}`;}
 
 /* ============ INIT ============ */
