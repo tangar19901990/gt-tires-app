@@ -387,6 +387,21 @@ body.locked{padding-left:0!important}
 .auth-err{color:#ff6b6b;font-size:.82rem;min-height:18px;margin-bottom:4px}
 .logout-wrap{margin-top:auto;padding:14px 12px}
 .logout-wrap .btn{width:100%}
+.hdr-photo{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.hdr-title{display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-weight:700;font-size:2rem;letter-spacing:2px;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.85);padding:0 16px;text-align:center}
+body.has-hdr-photo .hdr-photo{display:block}
+body.has-hdr-photo .banner-logo{display:none}
+body.has-hdr-title .hdr-title{display:flex}
+body.has-hdr-title .banner-logo{display:none}
+.hdr-toggle{position:fixed;top:13px;right:13px;z-index:120;width:42px;height:42px;border-radius:11px;border:1px solid var(--border);background:rgba(28,28,28,.92);color:var(--text);font-size:15px;cursor:pointer;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.hdr-toggle:active{transform:scale(.93)}
+body.hdr-collapsed .banner{display:none!important}
+body.locked .hdr-toggle{display:none!important}
+@media print{ .hdr-toggle{display:none!important} }
+@keyframes gtPulse{0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.45)}50%{box-shadow:0 4px 14px rgba(0,0,0,.45),0 0 18px 3px var(--red)}}
+.menu-toggle,.hdr-toggle{animation:gtPulse 2.2s ease-in-out infinite}
+body.hdr-collapsed{padding-top:54px}
+@media print{ body.hdr-collapsed{padding-top:0} }
 /* ================= END MODERN UI LAYER ================= */
 </style>
 </head>
@@ -408,6 +423,8 @@ body.locked{padding-left:0!important}
 
 <!-- BANNER -->
 <div class="banner">
+  <img id="hdrPhoto" class="hdr-photo" alt="">
+  <div id="hdrTitle" class="hdr-title"></div>
   <div class="banner-logo">
     <svg viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -438,6 +455,7 @@ body.locked{padding-left:0!important}
 
 <!-- NAV -->
 <button class="menu-toggle" id="menuToggle" aria-label="Меню" onclick="toggleMenu()">☰</button>
+<button class="hdr-toggle" id="hdrToggle" title="Згорнути/розгорнути шапку" onclick="toggleHeader()">▲</button>
 <div class="nav-backdrop" id="navBackdrop" onclick="toggleMenu(false)"></div>
 <aside class="nav-wrap" id="sidebar">
   <div class="side-brand"><span class="sb-gt">GT</span> TIRES</div>
@@ -613,6 +631,19 @@ body.locked{padding-left:0!important}
     <div class="gap-btns mt">
       <button class="btn btn-dark btn-sm" onclick="exportData()">📤 Експорт резервної копії JSON</button>
       <button class="btn btn-dark btn-sm" onclick="document.getElementById('importFile').click()">📥 Імпорт резервної копії JSON</button>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <h3>🖼️ Шапка</h3>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:10px">Назва, фото та згортання верхньої шапки (де «Top_Secret»)</p>
+    <label style="font-size:0.8rem;color:var(--text-dim)">Назва шапки</label>
+    <input id="hdrTitleInput" placeholder="напр. GT TIRES" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:#0d0d0d;color:var(--text);margin:4px 0 10px" oninput="setHeaderTitle(this.value)">
+    <div class="gap-btns">
+      <button class="btn btn-dark btn-sm" onclick="document.getElementById('hdrFile').click()">📷 Фото шапки</button>
+      <input type="file" id="hdrFile" accept="image/*" style="display:none" onchange="loadHeaderPhoto(this)">
+      <button class="btn btn-dark btn-sm" onclick="clearHeaderPhoto()">🚫 Прибрати фото</button>
+      <button class="btn btn-dark btn-sm" onclick="toggleHeader()">↕️ Згорнути</button>
     </div>
   </div>
 
@@ -913,7 +944,17 @@ function resetPrice(id){ id=+id; delete priceOverrides[id]; localStorage.setItem
 function addCustomService(){ const name=prompt('Назва нової послуги:'); if(!name) return; const price=parseFloat(prompt('Ціна, ₴:','0'))||0; const maxId=(customServices||[]).reduce((m,x)=>Math.max(m,x.id),9000); customServices.push({id:maxId+1,name:name.trim(),price}); save('customSvc',customServices); renderPrice(); }
 function delCustomService(id){ id=+id; if(!confirm('Видалити власну послугу?'))return; customServices=customServices.filter(x=>x.id!==id); save('customSvc',customServices); quickServices=quickServices.filter(q=>q!==id); save('quickSvc',quickServices); renderPrice(); }
 function toggleQuick(id){ id=+id; if(quickServices.includes(id)) quickServices=quickServices.filter(q=>q!==id); else quickServices.push(id); save('quickSvc',quickServices); renderPrice(); if(document.getElementById('oQuick')) renderOrderQuick(); }
-function renderOrderQuick(){ const el=document.getElementById('oQuick'); if(!el) return; if(!quickServices.length){ el.innerHTML='<div style="font-size:0.72rem;color:var(--text-dim)">⭐ Швидкі: відмітьте послуги зірочкою у Прайсі</div>'; return; } el.innerHTML='<div style="font-size:0.72rem;color:var(--text-dim);width:100%">⭐ Швидкі послуги:</div>'+quickServices.map(id=>{ const x=findSvc(id); if(!x) return ''; return `<button type="button" class="btn btn-sm btn-dark" style="font-size:0.72rem;padding:5px 9px" onclick="addOrderSvc(${x.id})">${x.name} · ${fmtMoney(x.price)}</button>`; }).join(''); }
+function renderOrderQuick(){
+  const el=document.getElementById('oQuick'); if(!el) return;
+  const list = quickServices.map(id=>{ const x=findSvc(id); if(!x) return ''; return `<div onclick="addOrderSvc(${x.id})" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:0.82rem"><span>${x.name}</span><b style="color:var(--red-light)">${fmtMoney(x.price)}</b></div>`; }).join('');
+  el.innerHTML = `<button type="button" class="btn btn-dark btn-sm" style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:0.8rem" onclick="toggleQuickPanel()"><span>⭐ Швидкі послуги (${quickServices.length})</span><span id="oQuickArrow">▾</span></button>
+    <div id="oQuickList" style="display:none;border:1px solid var(--border);border-radius:8px;margin-top:6px;overflow:hidden">
+      ${list || '<div style="padding:10px;font-size:0.78rem;color:var(--text-dim)">Поки порожньо. Створи нижче або постав ⭐ у Прайсі.</div>'}
+      <div style="padding:8px"><button type="button" class="btn btn-red btn-sm" style="width:100%;font-size:0.74rem" onclick="createQuickService()">＋ Створити швидку послугу</button></div>
+    </div>`;
+}
+function toggleQuickPanel(){ const l=document.getElementById('oQuickList'); const a=document.getElementById('oQuickArrow'); if(!l) return; const open=l.style.display==='none'; l.style.display=open?'block':'none'; if(a) a.textContent=open?'▴':'▾'; }
+function createQuickService(){ const name=prompt('Назва швидкої послуги:'); if(!name) return; const price=parseFloat(prompt('Ціна, ₴:','0'))||0; const maxId=(customServices||[]).reduce((m,x)=>Math.max(m,x.id),9000); const id=maxId+1; customServices.push({id,name:name.trim(),price}); save('customSvc',customServices); if(!quickServices.includes(id)){ quickServices.push(id); save('quickSvc',quickServices); } renderOrderQuick(); const l=document.getElementById('oQuickList'); if(l) l.style.display='block'; if(typeof renderPrice==='function') renderPrice(); }
 function normPhone(p){ const d=(p||'').replace(/\D/g,''); return d.length>9?d.slice(-9):d; }
 function findClientByPhone(p){ const n=normPhone(p); if(!n) return null; return clients.find(c=>c.phone&&normPhone(c.phone)===n)||null; }
 function orderPhoneLookup(){ const pe=document.getElementById('oPhone'); if(!pe) return; const c=findClientByPhone(pe.value); if(!c) return; const ce=document.getElementById('oClient'); const cae=document.getElementById('oCar'); if(ce&&!ce.value.trim()) ce.value=c.name||''; if(cae&&!cae.value.trim()&&c.car) cae.value=c.car; }
@@ -1728,7 +1769,22 @@ async function initAuth(){
     s.auth.onAuthStateChange((ev,sess)=>{ _session=sess; if(!sess) document.body.classList.add('locked'); }); }catch(e){} }
   else if(_hasPersistedSession()){ document.body.classList.remove('locked'); }
 }
-(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); initAuth(); setInterval(gtAutoSync,30000); })();
+function applyHeader(){
+  const t=localStorage.getItem(LS_KEY+'hdrTitle')||'';
+  const img=localStorage.getItem(LS_KEY+'hdrImg')||'';
+  const te=document.getElementById('hdrTitle'); if(te) te.textContent=t;
+  document.body.classList.toggle('has-hdr-title', !!t);
+  const ie=document.getElementById('hdrPhoto'); if(ie&&img) ie.src=img;
+  document.body.classList.toggle('has-hdr-photo', !!img);
+  if(localStorage.getItem(LS_KEY+'hdrCollapsed')==='1') document.body.classList.add('hdr-collapsed');
+  const ti=document.getElementById('hdrTitleInput'); if(ti&&!ti.value) ti.value=t;
+  const bt=document.getElementById('hdrToggle'); if(bt) bt.textContent=document.body.classList.contains('hdr-collapsed')?'▼':'▲';
+}
+function setHeaderTitle(v){ v=(v||'').trim(); localStorage.setItem(LS_KEY+'hdrTitle',v); const te=document.getElementById('hdrTitle'); if(te) te.textContent=v; document.body.classList.toggle('has-hdr-title',!!v); }
+function loadHeaderPhoto(input){ const f=input.files&&input.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const max=1000; let w=im.width,h=im.height; if(w>max){h=Math.round(h*max/w);w=max;} const c=document.createElement('canvas'); c.width=w;c.height=h; c.getContext('2d').drawImage(im,0,0,w,h); let data; try{data=c.toDataURL('image/jpeg',.78);}catch(e){data=r.result;} const ie=document.getElementById('hdrPhoto'); if(ie) ie.src=data; document.body.classList.add('has-hdr-photo'); try{localStorage.setItem(LS_KEY+'hdrImg',data);}catch(e){alert('Фото показано, але завелике для збереження');} }; im.src=r.result; }; r.readAsDataURL(f); }
+function clearHeaderPhoto(){ localStorage.removeItem(LS_KEY+'hdrImg'); const ie=document.getElementById('hdrPhoto'); if(ie) ie.src=''; document.body.classList.remove('has-hdr-photo'); }
+function toggleHeader(){ const c=document.body.classList.toggle('hdr-collapsed'); localStorage.setItem(LS_KEY+'hdrCollapsed', c?'1':'0'); const bt=document.getElementById('hdrToggle'); if(bt) bt.textContent=c?'▼':'▲'; }
+(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); initAuth(); setInterval(gtAutoSync,30000); })();
 </script>
 </body>
 </html>
