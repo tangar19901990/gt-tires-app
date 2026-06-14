@@ -427,6 +427,7 @@ body.nav-open .nav-wrap{transform:none}
     <button data-tab="tires"><span class="ni">🛞</span><span class="nl">Шини</span></button>
     <button data-tab="warehouse"><span class="ni">📦</span><span class="nl">Склад</span></button>
     <button data-tab="cash"><span class="ni">💵</span><span class="nl">Каса</span></button>
+    <button data-tab="debtors"><span class="ni">⚠️</span><span class="nl">Боржники</span></button>
     <button data-tab="salary"><span class="ni">👷</span><span class="nl">Зарплата</span></button>
     <button data-tab="reports"><span class="ni">📊</span><span class="nl">Звіти</span></button>
     <button data-tab="settings"><span class="ni">⚙️</span><span class="nl">Налаштування</span></button>
@@ -525,6 +526,17 @@ body.nav-open .nav-wrap{transform:none}
   </div>
   <div class="stats-grid" id="cashStats"></div>
   <div id="cashList"></div>
+</div>
+
+<!-- ===================== БОРЖНИКИ ===================== -->
+<div class="section" id="sec-debtors">
+  <div class="print-header"><h2>GT Tires Service — Боржники</h2></div>
+  <div class="flex-between mb">
+    <h2 style="font-family:'Oswald';color:var(--red-light)">Боржники</h2>
+    <button class="btn btn-dark no-print" onclick="printSection('sec-debtors')">🖨️</button>
+  </div>
+  <div class="stats-grid" id="debtorsStats"></div>
+  <div id="debtorsList"></div>
 </div>
 
 <!-- ===================== ЗАРПЛАТА ===================== -->
@@ -838,6 +850,7 @@ document.querySelectorAll('.nav button').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
     document.getElementById('sec-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='debtors') renderDebtors();
   });
 });
 
@@ -939,17 +952,21 @@ function filterOrders(){
         <div>👤 ${o.clientName||'—'} ${o.phone?'• '+o.phone:''}</div>
         <div style="color:var(--text-dim);font-size:0.78rem">${fmtDate(o.date)}</div>
       </div>
-      <div style="margin-top:6px;font-family:'Oswald';font-size:1.1rem">${fmtMoney(o.total||0)}${topSecret?' <span class="ts-price">(майстер: '+fmtMoney(Math.round((o.total||0)*0.35))+')</span>':''}</div>
+      <div style="margin-top:6px;font-family:'Oswald';font-size:1.1rem">${fmtMoney(o.total||0)}${o.debt>0?' <span style="color:var(--accent);font-size:0.82rem">• борг '+fmtMoney(o.debt)+'</span>':''}${topSecret?' <span class="ts-price">(майстер: '+fmtMoney(Math.round((o.total||0)*0.35))+')</span>':''}</div>
     </div>`;
   });
   document.getElementById('ordersList').innerHTML = html;
 }
+function nextOrderNumber(){ let n=parseInt(localStorage.getItem(LS_KEY+'orderSeq')||'0',10)||0; n++; try{localStorage.setItem(LS_KEY+'orderSeq',n);}catch(e){} return String(n).padStart(5,'0'); }
 function openNewOrder(){
   openModal(`
     <h3>Нове замовлення</h3>
     <label>Клієнт</label><input id="oClient" placeholder="Ім'я клієнта">
     <label>Телефон</label><input id="oPhone" type="tel" placeholder="+380...">
     <label>Авто</label><input id="oCar" placeholder="Марка, модель, номер">
+    <label>Держномер</label><input id="oPlate" placeholder="напр. AA1234BB">
+    <label>Оплата</label><select id="oPayType" style="width:100%"><option value="cash">💵 Готівка</option><option value="cashless">💳 Безготівка</option></select>
+    <label>Оплачено, ₴ <span style="color:var(--text-dim);font-weight:400">(порожнє = повна сума)</span></label><input id="oPaid" type="number" placeholder="повна сума">
     <label>Послуги</label>
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="oSvcCatBtns"></div>
     <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:6px">
@@ -1054,10 +1071,15 @@ function saveNewOrder(){
     clientName: document.getElementById('oClient').value.trim(),
     phone: document.getElementById('oPhone').value.trim(),
     car: document.getElementById('oCar').value.trim(),
+    plate: (document.getElementById('oPlate')?document.getElementById('oPlate').value.trim():''),
+    paymentType: (document.getElementById('oPayType')?document.getElementById('oPayType').value:'cash'),
+    orderNumber: nextOrderNumber(),
     services, total,
     notes: document.getElementById('oNotes').value.trim(),
     status: 'new'
   };
+  { const _pe=document.getElementById('oPaid'); let _p=(_pe&&_pe.value!=='')?(parseFloat(_pe.value)||0):(order.total||0); if(_p<0)_p=0; if(_p>(order.total||0))_p=order.total||0; order.paidAmount=_p; order.debt=Math.max(0,(order.total||0)-_p); }
+  if(order.paidAmount>0){ cashbook.push({id:uid(),date:order.date,type:'income',amount:order.paidAmount,method:order.paymentType||'cash',desc:'Замовлення #'+(order.orderNumber||order.id.slice(-5).toUpperCase())+' — '+order.clientName,orderId:order.id}); save('cash',cashbook); }
   // auto-add client (or update existing)
   if(order.clientName){
     const existing = clients.find(c=>c.name===order.clientName);
@@ -1093,11 +1115,15 @@ function showOrderPrint(o){
         <div style="font-size:0.75rem;color:#888">ЗАКАЗ-НАРЯД</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px">
-        <div><b>№:</b> ${o.id.slice(-6).toUpperCase()}</div>
+        <div><b>№:</b> ${o.orderNumber||o.id.slice(-6).toUpperCase()}</div>
         <div><b>Дата:</b> ${fmtDate(o.date)}</div>
         <div><b>Клієнт:</b> ${o.clientName||'—'}</div>
         <div><b>Тел:</b> ${o.phone||'—'}</div>
         <div style="grid-column:1/-1"><b>Авто:</b> ${o.car||'—'}</div>
+        <div><b>Держномер:</b> ${o.plate||'—'}</div>
+        <div><b>Оплата:</b> ${o.paymentType==='cashless'?'Безготівка':o.paymentType==='cash'?'Готівка':'—'}</div>
+        <div><b>Оплачено:</b> ${fmtMoney(o.paidAmount!=null?o.paidAmount:(o.total||0))}</div>
+        <div><b>Борг:</b> ${fmtMoney(o.debt||0)}</div>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
         <thead>
@@ -1178,11 +1204,15 @@ function viewOrder(oid){
         <div style="font-size:0.75rem;color:#888">ЗАКАЗ-НАРЯД</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem;margin-bottom:12px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px">
-        <div><b>№:</b> ${o.id.slice(-6).toUpperCase()}</div>
+        <div><b>№:</b> ${o.orderNumber||o.id.slice(-6).toUpperCase()}</div>
         <div><b>Дата:</b> ${fmtDate(o.date)}</div>
         <div><b>Клієнт:</b> ${o.clientName||'—'}</div>
         <div><b>Тел:</b> ${o.phone||'—'}</div>
         <div><b>Авто:</b> ${o.car||'—'}</div>
+        <div><b>Держномер:</b> ${o.plate||'—'}</div>
+        <div><b>Оплата:</b> ${o.paymentType==='cashless'?'Безготівка':o.paymentType==='cash'?'Готівка':'—'}</div>
+        <div><b>Оплачено:</b> ${fmtMoney(o.paidAmount!=null?o.paidAmount:(o.total||0))}</div>
+        <div><b>Борг:</b> ${fmtMoney(o.debt||0)}</div>
         <div><b>Статус:</b> ${statusLabels[o.status]||o.status}</div>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
@@ -1230,7 +1260,9 @@ function updateOrderStatus(oid){
 function completeAndCash(oid){
   const o=orders.find(x=>x.id===oid); if(!o) return;
   o.status='done';
-  cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:o.total||0,desc:'Замовлення #'+o.id.slice(-5).toUpperCase()+' — '+o.clientName,orderId:o.id});
+  const _rem=Math.max(0,(o.total||0)-(o.paidAmount||0));
+  if(_rem>0){ cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:_rem,method:o.paymentType||'cash',desc:'Замовлення #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+o.clientName,orderId:o.id}); }
+  o.paidAmount=o.total||0; o.debt=0;
   save('orders',orders); save('cash',cashbook);
   closeModal(); renderOrders();
 }
@@ -1345,13 +1377,41 @@ function saveNewItem(){
 }
 
 // ==================== CASH ====================
+function renderDebtors(){
+  const list=(orders||[]).filter(o=>(o.debt||0)>0).sort((a,b)=>(b.debt||0)-(a.debt||0));
+  const totalDebt=list.reduce((s,o)=>s+(o.debt||0),0);
+  const st=document.getElementById('debtorsStats');
+  if(st) st.innerHTML=`<div class="stat-card"><div class="num" style="color:var(--accent)">${fmtMoney(totalDebt)}</div><div class="lbl">Загальний борг</div></div><div class="stat-card"><div class="num">${list.length}</div><div class="lbl">Боржників</div></div>`;
+  const el=document.getElementById('debtorsList'); if(!el)return;
+  if(!list.length){ el.innerHTML='<div class="card" style="text-align:center;color:var(--text-dim);padding:24px">Боргів немає 🎉</div>'; return; }
+  el.innerHTML=list.map(o=>`<div class="card" style="margin-bottom:10px">
+    <div class="flex-between"><div><b>#${o.orderNumber||o.id.slice(-5).toUpperCase()}</b> · ${o.clientName||'—'}${o.phone?' · '+o.phone:''}</div><span>${o.paymentType==='cashless'?'💳':'💵'}</span></div>
+    <div style="font-size:0.82rem;color:var(--text-dim);margin:4px 0">${o.car||''} ${o.plate?'· '+o.plate:''} · ${fmtDate(o.date)}</div>
+    <div style="font-family:'Oswald';font-size:1.02rem">Сума ${fmtMoney(o.total||0)} · Оплач. ${fmtMoney(o.paidAmount||0)} · <span style="color:var(--accent)">Борг ${fmtMoney(o.debt||0)}</span></div>
+    <div class="gap-btns mt no-print"><input type="number" id="pay_${o.id}" placeholder="${o.debt||0}" style="max-width:130px"><button class="btn btn-red btn-sm" onclick="settleDebt('${o.id}')">💵 Погасити</button></div>
+  </div>`).join('');
+}
+function settleDebt(oid){
+  const o=orders.find(x=>x.id===oid); if(!o) return;
+  const inp=document.getElementById('pay_'+oid);
+  let amt=(inp&&inp.value!=='')?(parseFloat(inp.value)||0):(o.debt||0);
+  if(amt<=0) return; if(amt>(o.debt||0)) amt=o.debt||0;
+  cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:amt,method:o.paymentType||'cash',desc:'Погашення боргу #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+(o.clientName||''),orderId:o.id});
+  o.paidAmount=(o.paidAmount||0)+amt; o.debt=Math.max(0,(o.total||0)-o.paidAmount);
+  save('orders',orders); save('cash',cashbook);
+  renderDebtors(); renderOrders();
+}
 function renderCash(){
   const income=cashbook.filter(c=>c.type==='income').reduce((s,c)=>s+c.amount,0);
   const expense=cashbook.filter(c=>c.type==='expense').reduce((s,c)=>s+c.amount,0);
+  const incCash=cashbook.filter(c=>c.type==='income'&&(c.method||'cash')==='cash').reduce((s,c)=>s+c.amount,0);
+  const incCashless=cashbook.filter(c=>c.type==='income'&&c.method==='cashless').reduce((s,c)=>s+c.amount,0);
   document.getElementById('cashStats').innerHTML=`
     <div class="stat-card"><div class="num" style="color:var(--green)">${fmtMoney(income)}</div><div class="lbl">Дохід</div></div>
     <div class="stat-card"><div class="num" style="color:var(--accent)">${fmtMoney(expense)}</div><div class="lbl">Витрати</div></div>
     <div class="stat-card"><div class="num">${fmtMoney(income-expense)}</div><div class="lbl">Баланс</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--green)">${fmtMoney(incCash)}</div><div class="lbl">💵 Готівка</div></div>
+    <div class="stat-card"><div class="num" style="color:#42a5f5">${fmtMoney(incCashless)}</div><div class="lbl">💳 Безготівка</div></div>
   `;
   const sorted=[...cashbook].sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(!sorted.length){ document.getElementById('cashList').innerHTML='<p style="color:var(--text-dim);text-align:center;padding:40px">Записів немає</p>'; return; }
@@ -1566,7 +1626,7 @@ function clearBg(){localStorage.removeItem(LS_KEY+'bgImage');applyBg('');}
 })();
 
 // ==================== SUPABASE SYNC (additive, offline-first) ====================
-const SUPA_CFG={url:()=>localStorage.getItem('gt_supa_url')||'',key:()=>localStorage.getItem('gt_supa_key')||''};
+const SUPA_URL_DEFAULT='https://lxeswqlkereptdtwytbp.supabase.co';const SUPA_KEY_DEFAULT='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZXN3cWxrZXJlcHRkdHd5dGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzEyNDgsImV4cCI6MjA5NjQwNzI0OH0.CIkN-KAhlM6TgFzdkaCyUbnvTq4OmiNH953IHJR4x5E';const SUPA_CFG={url:()=>localStorage.getItem('gt_supa_url')||SUPA_URL_DEFAULT,key:()=>localStorage.getItem('gt_supa_key')||SUPA_KEY_DEFAULT};
 let _supaClient=null;
 function getSupa(){ if(_supaClient)return _supaClient; const u=SUPA_CFG.url(),k=SUPA_CFG.key(); if(!u||!k||!window.supabase)return null; try{_supaClient=window.supabase.createClient(u,k);}catch(e){_supaClient=null;} return _supaClient; }
 const SYNC_Q_KEY='gt_tires_v4_syncQueue';
@@ -1575,23 +1635,23 @@ function _setQ(a){ try{localStorage.setItem(SYNC_Q_KEY,JSON.stringify(a.slice(-5
 function enqueue(table,rows){ const q=_q(); (Array.isArray(rows)?rows:[rows]).forEach(r=>q.push({table,row:r})); _setQ(q); updateSyncStatus(); }
 function _rSize(n){ const m=(n||'').match(/R\s?(\d{1,2}(?:[.,]\d)?)/i); return m?('R'+m[1].replace(',','.')):''; }
 function mapClient(c){ return {id:c.id,name:c.name||'',phone:c.phone||'',car:c.car||'',plate:c.plate||'',driver:c.driver||'',note:c.note||'',tire_size:c.tireSize||c.tire_size||'',created_at:c.date||c.created_at||new Date().toISOString(),updated_at:new Date().toISOString()}; }
-function mapOrder(o){ const paid=o.status==='paid'?(o.total||0):(o.paidAmount||o.paid_amount||0); return {id:o.id,order_number:o.order_number||o.orderNumber||null,client_id:o.client_id||o.clientId||null,client_name:o.clientName||o.client_name||'',phone:o.phone||'',car:o.car||'',plate:o.plate||'',driver:o.driver||'',status:o.status||'new',total:o.total||0,paid_amount:paid,debt:Math.max(0,(o.total||0)-paid),payment_type:o.payment_type||null,comment:o.notes||o.comment||'',created_at:o.date||o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()}; }
+function mapOrder(o){ const paid=(o.paidAmount!=null)?o.paidAmount:(o.status==='paid'?(o.total||0):(o.paid_amount||0)); return {id:o.id,order_number:o.order_number||o.orderNumber||null,client_id:o.client_id||o.clientId||null,client_name:o.clientName||o.client_name||'',phone:o.phone||'',car:o.car||'',plate:o.plate||'',driver:o.driver||'',status:o.status||'new',total:o.total||0,paid_amount:paid,debt:Math.max(0,(o.total||0)-paid),payment_type:o.payment_type||o.paymentType||null,comment:o.notes||o.comment||'',created_at:o.date||o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()}; }
 function mapItems(o){ return (o.services||o.items||[]).map((s,i)=>({id:o.id+'_'+i,order_id:o.id,name:s.name||'',category:s.category||null,qty:s.qty||1,unit:s.unit||'шт',price:s.price||0,total:(s.price||0)*(s.qty||1),created_at:o.date||new Date().toISOString()})); }
 function mapServicesFromPrice(){ if(typeof PRICE_LIST==='undefined')return []; let cat='';const out=[]; PRICE_LIST.forEach(it=>{ if(it&&it.cat!=null){ cat=(typeof CAT_META!=='undefined'&&CAT_META[it.cat])?CAT_META[it.cat].name:String(it.cat); return; } if(it&&it.id!=null&&it.name){ out.push({id:'svc_'+it.id,name:it.name,category:cat,type:null,size:_rSize(it.name),unit:'шт',price:it.price||0,is_active:true,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}); } }); return out; }
 function mapProducts(){ const out=[]; (typeof warehouse!=='undefined'?warehouse:[]).forEach(w=>out.push({id:w.id,name:w.name||'',category:'Матеріали',sku:w.sku||null,qty:w.qty||0,min_qty:w.min_qty||0,buy_price:w.buy_price||0,sell_price:w.price||w.sell_price||0,image:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})); (typeof tires!=='undefined'?tires:[]).forEach(t=>out.push({id:t.id,name:((t.brand||'Шина')+' '+(t.size||'')).trim(),category:'Шини',sku:null,qty:t.qty||0,min_qty:0,buy_price:0,sell_price:t.price||0,image:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})); return out; }
 function mapCash(){ return (typeof cashbook!=='undefined'?cashbook:[]).map(c=>({id:c.id,type:c.type||'income',amount:c.amount||0,method:c.method||null,order_id:c.orderId||null,comment:c.desc||c.comment||'',created_at:c.date||new Date().toISOString()})); }
 async function _upsert(table,rows,conflict){ const s=getSupa(); if(!s||!navigator.onLine){ enqueue(table,rows); return {queued:true}; } try{ const {error}=await s.from(table).upsert(rows,{onConflict:conflict||'id'}); if(error){ enqueue(table,rows); return {error}; } return {ok:true}; }catch(e){ enqueue(table,rows); return {error:e}; } }
-async function saveClientToSupabase(c){ return _upsert('clients',mapClient(c)); }
-async function saveOrderToSupabase(o){ const r=await _upsert('orders',mapOrder(o)); const it=mapItems(o); if(it.length)await _upsert('order_items',it); return r; }
-async function saveServiceToSupabase(s){ return _upsert('services',s); }
-async function saveProductToSupabase(p){ return _upsert('products',p); }
-async function savePaymentToSupabase(p){ return _upsert('payments',p); }
+async function saveClientToSupabase(c){ return _upsert('v4_clients',mapClient(c)); }
+async function saveOrderToSupabase(o){ const r=await _upsert('v4_orders',mapOrder(o)); const it=mapItems(o); if(it.length)await _upsert('v4_order_items',it); return r; }
+async function saveServiceToSupabase(s){ return _upsert('v4_services',s); }
+async function saveProductToSupabase(p){ return _upsert('v4_products',p); }
+async function savePaymentToSupabase(p){ return _upsert('v4_payments',p); }
 async function flushQueue(){ const s=getSupa(); if(!s||!navigator.onLine){updateSyncStatus();return;} const q=_q(); if(!q.length){updateSyncStatus();return;} const byT={}; q.forEach(it=>{(byT[it.table]=byT[it.table]||[]).push(it.row);}); try{ for(const t in byT){ const {error}=await s.from(t).upsert(byT[t],{onConflict:'id'}); if(error)return; } _setQ([]); updateSyncStatus(); }catch(e){} }
-async function syncToSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!navigator.onLine){alert('Немає інтернету');return;} const sb=document.getElementById('supaStatus'); if(sb)sb.textContent='Вивантаження…'; const steps=[['clients',(clients||[]).map(mapClient)],['services',mapServicesFromPrice()],['products',mapProducts()],['orders',(orders||[]).map(mapOrder)],['order_items',[].concat(...(orders||[]).map(mapItems))],['cash_operations',mapCash()]]; const log=[]; for(const [t,rows] of steps){ if(!rows.length){log.push(t+': 0');continue;} try{ const {error}=await s.from(t).upsert(rows,{onConflict:'id'}); log.push(t+': '+(error?('ПОМИЛКА '+error.message):rows.length)); }catch(e){ log.push(t+': ПОМИЛКА '+e.message); } } if(sb)sb.textContent='Готово'; updateSyncStatus(); alert('Вивантажено:\n'+log.join('\n')); }
-async function loadFromSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!confirm("Завантажити дані з Supabase і обʼєднати з локальними? Локальні записи НЕ видаляються."))return; const mergeById=(local,cloud)=>{const m={};(local||[]).forEach(x=>m[x.id]=x);cloud.forEach(x=>m[x.id]={...m[x.id],...x});return Object.values(m);}; try{ const cl=((await s.from('clients').select('*')).data)||[]; const or=((await s.from('orders').select('*')).data)||[]; const oi=((await s.from('order_items').select('*')).data)||[]; clients=mergeById(clients,cl.map(c=>({id:c.id,name:c.name,phone:c.phone,car:c.car,plate:c.plate,driver:c.driver,note:c.note,tireSize:c.tire_size,date:c.created_at}))); save('clients',clients); const ibo={}; oi.forEach(i=>{(ibo[i.order_id]=ibo[i.order_id]||[]).push({id:i.id,name:i.name,price:+i.price,qty:+i.qty,unit:i.unit});}); const cloudOrders=or.map(o=>({id:o.id,date:o.created_at,clientName:o.client_name,phone:o.phone,car:o.car,plate:o.plate,driver:o.driver,total:+o.total,notes:o.comment,status:o.status,services:ibo[o.id]||[]})); orders=mergeById(orders,cloudOrders); save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderClients==='function')renderClients(); updateSyncStatus(); alert('Завантажено: клієнтів '+cl.length+', заказів '+or.length+', позицій '+oi.length); }catch(e){ alert('Помилка завантаження: '+e.message); } }
+async function syncToSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!navigator.onLine){alert('Немає інтернету');return;} const sb=document.getElementById('supaStatus'); if(sb)sb.textContent='Вивантаження…'; const steps=[['v4_clients',(clients||[]).map(mapClient)],['v4_services',mapServicesFromPrice()],['v4_products',mapProducts()],['v4_orders',(orders||[]).map(mapOrder)],['v4_order_items',[].concat(...(orders||[]).map(mapItems))],['v4_cash_operations',mapCash()]]; const log=[]; for(const [t,rows] of steps){ if(!rows.length){log.push(t+': 0');continue;} try{ const {error}=await s.from(t).upsert(rows,{onConflict:'id'}); log.push(t+': '+(error?('ПОМИЛКА '+error.message):rows.length)); }catch(e){ log.push(t+': ПОМИЛКА '+e.message); } } if(sb)sb.textContent='Готово'; updateSyncStatus(); alert('Вивантажено:\n'+log.join('\n')); }
+async function loadFromSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!confirm("Завантажити дані з Supabase і обʼєднати з локальними? Локальні записи НЕ видаляються."))return; const mergeById=(local,cloud)=>{const m={};(local||[]).forEach(x=>m[x.id]=x);cloud.forEach(x=>m[x.id]={...m[x.id],...x});return Object.values(m);}; try{ const cl=((await s.from('v4_clients').select('*')).data)||[]; const or=((await s.from('v4_orders').select('*')).data)||[]; const oi=((await s.from('v4_order_items').select('*')).data)||[]; clients=mergeById(clients,cl.map(c=>({id:c.id,name:c.name,phone:c.phone,car:c.car,plate:c.plate,driver:c.driver,note:c.note,tireSize:c.tire_size,date:c.created_at}))); save('clients',clients); const ibo={}; oi.forEach(i=>{(ibo[i.order_id]=ibo[i.order_id]||[]).push({id:i.id,name:i.name,price:+i.price,qty:+i.qty,unit:i.unit});}); const cloudOrders=or.map(o=>({id:o.id,date:o.created_at,clientName:o.client_name,phone:o.phone,car:o.car,plate:o.plate,driver:o.driver,total:+o.total,notes:o.comment,status:o.status,services:ibo[o.id]||[]})); orders=mergeById(orders,cloudOrders); save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderClients==='function')renderClients(); updateSyncStatus(); alert('Завантажено: клієнтів '+cl.length+', заказів '+or.length+', позицій '+oi.length); }catch(e){ alert('Помилка завантаження: '+e.message); } }
 let _sig={};
 function _collSig(n,a){ return n+':'+(a?a.length:0)+':'+(a?JSON.stringify(a).length:0); }
-async function gtAutoSync(){ if(!getSupa()||!navigator.onLine){updateSyncStatus();return;} await flushQueue(); const colls={clients:(clients||[]).map(mapClient),orders:(orders||[]).map(mapOrder),order_items:[].concat(...(orders||[]).map(mapItems)),cash_operations:mapCash()}; const s=getSupa(); for(const t in colls){ const sig=_collSig(t,colls[t]); if(sig!==_sig[t]&&colls[t].length){ try{ const {error}=await s.from(t).upsert(colls[t],{onConflict:'id'}); if(!error)_sig[t]=sig; }catch(e){} } else _sig[t]=sig; } updateSyncStatus(); }
+async function gtAutoSync(){ if(!getSupa()||!navigator.onLine){updateSyncStatus();return;} await flushQueue(); const colls={'v4_clients':(clients||[]).map(mapClient),'v4_orders':(orders||[]).map(mapOrder),'v4_order_items':[].concat(...(orders||[]).map(mapItems)),'v4_cash_operations':mapCash()}; const s=getSupa(); for(const t in colls){ const sig=_collSig(t,colls[t]); if(sig!==_sig[t]&&colls[t].length){ try{ const {error}=await s.from(t).upsert(colls[t],{onConflict:'id'}); if(!error)_sig[t]=sig; }catch(e){} } else _sig[t]=sig; } updateSyncStatus(); }
 function updateSyncStatus(){ const el=document.getElementById('supaStatus'); if(!el)return; const cfg=!!(SUPA_CFG.url()&&SUPA_CFG.key()); el.textContent=(navigator.onLine?'🟢 Online':'🔴 Offline')+' · '+(cfg?'налаштовано':'НЕ налаштовано')+' · у черзі: '+_q().length; }
 function saveSupaCfg(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); localStorage.setItem('gt_supa_url',(u?u.value:'').trim()); localStorage.setItem('gt_supa_key',(k?k.value:'').trim()); _supaClient=null; getSupa(); updateSyncStatus(); flushQueue(); alert('Підключення збережено.'); }
 window.addEventListener('online',()=>{flushQueue();updateSyncStatus();});
