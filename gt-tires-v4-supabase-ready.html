@@ -19,6 +19,7 @@
   --black-soft: #2C2C2C;
   --dark-bg: #121212;
   --card-bg: #1E1E1E;
+  --order-bg: #1E1E1E;
   --card-hover: #282828;
   --text: #F5F5F5;
   --text-dim: #AAAAAA;
@@ -411,7 +412,7 @@ body.hdr-collapsed{padding-top:54px}
 @media print{ body.hdr-collapsed{padding-top:0} }
 .nav button .ni img{width:24px;height:24px;object-fit:contain;display:block;margin:0 auto;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 .cat-tile .tileimg{width:84px;height:84px;object-fit:contain;display:block;margin:0 auto 2px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
-.modal.modal-wide{max-width:1080px;max-height:92vh}
+.modal.modal-wide{max-width:1080px;max-height:92vh;background:var(--order-bg)}
 .order-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .order-layout{display:grid;grid-template-columns:1fr 322px;gap:16px}
 .order-pick{min-width:0}
@@ -429,7 +430,7 @@ body.hdr-collapsed{padding-top:54px}
 .osvc-btn .sn{font-size:0.82rem;font-weight:600;line-height:1.15}
 .osvc-btn .sp{font-family:'Oswald';font-size:1.05rem;color:var(--red-light)}
 .osvc-btn.added{border-color:var(--green);background:rgba(76,175,80,.12)}
-.order-cart{background:#141414;border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;align-self:start;position:sticky;top:0}
+.order-cart{background:linear-gradient(180deg,#1f1f1f,#151515);border:1px solid #353535;border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:9px;align-self:start;position:sticky;top:0;box-shadow:0 14px 34px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.04),0 0 26px rgba(211,47,47,.12)}
 .cart-head{font-family:'Oswald';color:#fff;font-size:1rem}
 .cart-fields{display:flex;flex-direction:column;gap:6px}
 .cart-fields input,.cart-fields select,.cart-fields textarea{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:#0d0d0d;color:var(--text);font-size:0.82rem}
@@ -708,6 +709,15 @@ body.hdr-collapsed{padding-top:54px}
       <input type="file" id="hdrFile" accept="image/*" style="display:none" onchange="loadHeaderPhoto(this)">
       <button class="btn btn-dark btn-sm" onclick="clearHeaderPhoto()">🚫 Прибрати фото</button>
       <button class="btn btn-dark btn-sm" onclick="toggleHeader()">↕️ Згорнути</button>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <h3>🖥️ Фон екрана замовлення</h3>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:10px">Колір заднього фону у формі створення замовлення</p>
+    <div style="display:flex;align-items:center;gap:12px">
+      <input type="color" id="orderBgInput" value="#1e1e1e" oninput="setOrderBg(this.value)" style="width:54px;height:40px;border:none;border-radius:8px;background:none;cursor:pointer">
+      <button class="btn btn-dark btn-sm" onclick="resetOrderBg()">↩️ Скинути</button>
     </div>
   </div>
 
@@ -1855,12 +1865,14 @@ function showApp(){ document.body.classList.remove('locked'); updateSyncStatus()
 function _hasPersistedSession(){ try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf('-auth-token')>-1 && (localStorage.getItem(k)||'').length>20) return true; } }catch(e){} return false; }
 function _previewBadge(txt){ if(document.getElementById('previewBadge'))return; const d=document.createElement('div'); d.id='previewBadge'; d.textContent=txt; d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:9998;background:rgba(211,47,47,.92);color:#fff;font-size:0.72rem;padding:6px 13px;border-radius:20px;box-shadow:0 4px 14px rgba(0,0,0,.5);max-width:92vw;text-align:center'; document.body.appendChild(d); }
 async function initAuth(){
-  if(location.protocol==='file:'){ document.body.classList.remove('locked'); _previewBadge('📂 Локальний перегляд — без входу й хмари (тест дизайну). Реальна робота — через посилання'); return; }
-  const s=getSupa();
-  if(s){ try{ const {data}=await s.auth.getSession(); if(data&&data.session){ _session=data.session; document.body.classList.remove('locked'); }
-    s.auth.onAuthStateChange((ev,sess)=>{ _session=sess; if(!sess) document.body.classList.add('locked'); }); }catch(e){} }
-  else if(_hasPersistedSession()){ document.body.classList.remove('locked'); }
+  // === ВХІД ТИМЧАСОВО ВИМКНЕНО ===
+  document.body.classList.remove('locked');
+  _session = {bypass:true};
+  const lo=document.querySelector('.logout-wrap'); if(lo) lo.style.display='none';
 }
+function setOrderBg(v){ document.documentElement.style.setProperty('--order-bg', v); localStorage.setItem(LS_KEY+'orderBg', v); }
+function resetOrderBg(){ localStorage.removeItem(LS_KEY+'orderBg'); document.documentElement.style.setProperty('--order-bg','#1E1E1E'); var i=document.getElementById('orderBgInput'); if(i)i.value='#1e1e1e'; }
+function applyOrderBg(){ var v=localStorage.getItem(LS_KEY+'orderBg'); if(v){ document.documentElement.style.setProperty('--order-bg', v); } var i=document.getElementById('orderBgInput'); if(i)i.value=(v||'#1e1e1e'); }
 function applyHeader(){
   const t=localStorage.getItem(LS_KEY+'hdrTitle')||'';
   const img=localStorage.getItem(LS_KEY+'hdrImg')||'';
@@ -1929,7 +1941,7 @@ function toggleHomeWidget(k,onv){
   if(onv){ if(!homeWidgets.includes(k)) homeWidgets.push(k); } else { homeWidgets=homeWidgets.filter(x=>x!==k); }
   save('homeW',homeWidgets); renderHome();
 }
-(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); (function(){var _pet=document.getElementById('priceEditToggle'); if(_pet)_pet.checked=priceEditOn;})(); initAuth(); setInterval(gtAutoSync,30000); })();
+(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); applyOrderBg(); (function(){var _pet=document.getElementById('priceEditToggle'); if(_pet)_pet.checked=priceEditOn;})(); initAuth(); setInterval(gtAutoSync,30000); })();
 </script>
 </body>
 </html>
