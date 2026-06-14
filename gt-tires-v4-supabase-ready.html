@@ -375,12 +375,33 @@ body.nav-open .nav-wrap{transform:none}
 
 /* hide UI chrome when printing */
 @media print{ .menu-toggle,.nav-wrap,.nav-backdrop,#appBg{display:none!important} body{padding-left:0!important} }
+#authGate{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:radial-gradient(800px 500px at 50% 18%,rgba(211,47,47,.14),transparent),var(--dark-bg,#121212);padding:20px}
+body.locked #authGate{display:flex}
+body.locked .menu-toggle,body.locked .nav-wrap,body.locked .nav-backdrop,body.locked .section,body.locked #appBg,body.locked .ts-banner,body.locked .banner{display:none!important}
+body.locked{padding-left:0!important}
+.auth-card{width:100%;max-width:340px;background:linear-gradient(160deg,#1f1f1f,#151515);border:1px solid var(--border);border-radius:18px;padding:30px 22px;box-shadow:0 30px 80px rgba(0,0,0,.6);text-align:center}
+.auth-logo{font-family:'Oswald',sans-serif;font-weight:700;font-size:2rem;letter-spacing:3px;color:#fff}
+.auth-sub{color:var(--text-dim);font-size:.85rem;margin:2px 0 20px}
+#authGate input{width:100%;padding:13px 14px;margin-bottom:10px;border-radius:10px;border:1px solid var(--border);background:#0d0d0d;color:#fff;font-size:16px}
+#authGate .btn{width:100%;margin-top:6px;height:50px}
+.auth-err{color:#ff6b6b;font-size:.82rem;min-height:18px;margin-bottom:4px}
+.logout-wrap{margin-top:auto;padding:14px 12px}
+.logout-wrap .btn{width:100%}
 /* ================= END MODERN UI LAYER ================= */
 </style>
 </head>
-<body>
+<body class="locked">
 
 <div id="appBg"></div>
+<!-- AUTH GATE -->
+<div id="authGate"><div class="auth-card">
+  <div class="auth-logo"><span class="sb-gt">GT</span> TIRES</div>
+  <div class="auth-sub">Вхід у систему</div>
+  <input id="authEmail" type="email" placeholder="Email" autocomplete="username">
+  <input id="authPass" type="password" placeholder="Пароль" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+  <div id="authErr" class="auth-err"></div>
+  <button class="btn btn-red" id="authBtn" onclick="doLogin()">Увійти</button>
+</div></div>
 
 <!-- TOP SECRET BANNER -->
 <div class="ts-banner" id="tsBanner">⚡ TOP SECRET MODE — Майстер 35% ⚡</div>
@@ -432,6 +453,7 @@ body.nav-open .nav-wrap{transform:none}
     <button data-tab="reports"><span class="ni">📊</span><span class="nl">Звіти</span></button>
     <button data-tab="settings"><span class="ni">⚙️</span><span class="nl">Налаштування</span></button>
   </nav>
+  <div class="logout-wrap"><button class="btn btn-dark" onclick="doLogout()">🚪 Вийти</button></div>
 </aside>
 
 <!-- ===================== ЗАМОВЛЕННЯ ===================== -->
@@ -1627,7 +1649,7 @@ function clearBg(){localStorage.removeItem(LS_KEY+'bgImage');applyBg('');}
 
 // ==================== SUPABASE SYNC (additive, offline-first) ====================
 const SUPA_URL_DEFAULT='https://lxeswqlkereptdtwytbp.supabase.co';const SUPA_KEY_DEFAULT='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZXN3cWxrZXJlcHRkdHd5dGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzEyNDgsImV4cCI6MjA5NjQwNzI0OH0.CIkN-KAhlM6TgFzdkaCyUbnvTq4OmiNH953IHJR4x5E';const SUPA_CFG={url:()=>localStorage.getItem('gt_supa_url')||SUPA_URL_DEFAULT,key:()=>localStorage.getItem('gt_supa_key')||SUPA_KEY_DEFAULT};
-let _supaClient=null;
+let _supaClient=null;let _session=null;
 function getSupa(){ if(_supaClient)return _supaClient; const u=SUPA_CFG.url(),k=SUPA_CFG.key(); if(!u||!k||!window.supabase)return null; try{_supaClient=window.supabase.createClient(u,k);}catch(e){_supaClient=null;} return _supaClient; }
 const SYNC_Q_KEY='gt_tires_v4_syncQueue';
 function _q(){ try{return JSON.parse(localStorage.getItem(SYNC_Q_KEY))||[];}catch(e){return[];} }
@@ -1646,17 +1668,38 @@ async function saveOrderToSupabase(o){ const r=await _upsert('v4_orders',mapOrde
 async function saveServiceToSupabase(s){ return _upsert('v4_services',s); }
 async function saveProductToSupabase(p){ return _upsert('v4_products',p); }
 async function savePaymentToSupabase(p){ return _upsert('v4_payments',p); }
-async function flushQueue(){ const s=getSupa(); if(!s||!navigator.onLine){updateSyncStatus();return;} const q=_q(); if(!q.length){updateSyncStatus();return;} const byT={}; q.forEach(it=>{(byT[it.table]=byT[it.table]||[]).push(it.row);}); try{ for(const t in byT){ const {error}=await s.from(t).upsert(byT[t],{onConflict:'id'}); if(error)return; } _setQ([]); updateSyncStatus(); }catch(e){} }
-async function syncToSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!navigator.onLine){alert('Немає інтернету');return;} const sb=document.getElementById('supaStatus'); if(sb)sb.textContent='Вивантаження…'; const steps=[['v4_clients',(clients||[]).map(mapClient)],['v4_services',mapServicesFromPrice()],['v4_products',mapProducts()],['v4_orders',(orders||[]).map(mapOrder)],['v4_order_items',[].concat(...(orders||[]).map(mapItems))],['v4_cash_operations',mapCash()]]; const log=[]; for(const [t,rows] of steps){ if(!rows.length){log.push(t+': 0');continue;} try{ const {error}=await s.from(t).upsert(rows,{onConflict:'id'}); log.push(t+': '+(error?('ПОМИЛКА '+error.message):rows.length)); }catch(e){ log.push(t+': ПОМИЛКА '+e.message); } } if(sb)sb.textContent='Готово'; updateSyncStatus(); alert('Вивантажено:\n'+log.join('\n')); }
-async function loadFromSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!confirm("Завантажити дані з Supabase і обʼєднати з локальними? Локальні записи НЕ видаляються."))return; const mergeById=(local,cloud)=>{const m={};(local||[]).forEach(x=>m[x.id]=x);cloud.forEach(x=>m[x.id]={...m[x.id],...x});return Object.values(m);}; try{ const cl=((await s.from('v4_clients').select('*')).data)||[]; const or=((await s.from('v4_orders').select('*')).data)||[]; const oi=((await s.from('v4_order_items').select('*')).data)||[]; clients=mergeById(clients,cl.map(c=>({id:c.id,name:c.name,phone:c.phone,car:c.car,plate:c.plate,driver:c.driver,note:c.note,tireSize:c.tire_size,date:c.created_at}))); save('clients',clients); const ibo={}; oi.forEach(i=>{(ibo[i.order_id]=ibo[i.order_id]||[]).push({id:i.id,name:i.name,price:+i.price,qty:+i.qty,unit:i.unit});}); const cloudOrders=or.map(o=>({id:o.id,date:o.created_at,clientName:o.client_name,phone:o.phone,car:o.car,plate:o.plate,driver:o.driver,total:+o.total,notes:o.comment,status:o.status,services:ibo[o.id]||[]})); orders=mergeById(orders,cloudOrders); save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderClients==='function')renderClients(); updateSyncStatus(); alert('Завантажено: клієнтів '+cl.length+', заказів '+or.length+', позицій '+oi.length); }catch(e){ alert('Помилка завантаження: '+e.message); } }
+async function flushQueue(){ const s=getSupa(); if(!s||!navigator.onLine||!_session){updateSyncStatus();return;} const q=_q(); if(!q.length){updateSyncStatus();return;} const byT={}; q.forEach(it=>{(byT[it.table]=byT[it.table]||[]).push(it.row);}); try{ for(const t in byT){ const {error}=await s.from(t).upsert(byT[t],{onConflict:'id'}); if(error)return; } _setQ([]); updateSyncStatus(); }catch(e){} }
+async function syncToSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!_session){alert('Спочатку увійдіть у систему');return;} if(!navigator.onLine){alert('Немає інтернету');return;} const sb=document.getElementById('supaStatus'); if(sb)sb.textContent='Вивантаження…'; const steps=[['v4_clients',(clients||[]).map(mapClient)],['v4_services',mapServicesFromPrice()],['v4_products',mapProducts()],['v4_orders',(orders||[]).map(mapOrder)],['v4_order_items',[].concat(...(orders||[]).map(mapItems))],['v4_cash_operations',mapCash()]]; const log=[]; for(const [t,rows] of steps){ if(!rows.length){log.push(t+': 0');continue;} try{ const {error}=await s.from(t).upsert(rows,{onConflict:'id'}); log.push(t+': '+(error?('ПОМИЛКА '+error.message):rows.length)); }catch(e){ log.push(t+': ПОМИЛКА '+e.message); } } if(sb)sb.textContent='Готово'; updateSyncStatus(); alert('Вивантажено:\n'+log.join('\n')); }
+async function loadFromSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!_session){alert('Спочатку увійдіть у систему');return;} if(!confirm("Завантажити дані з Supabase і обʼєднати з локальними? Локальні записи НЕ видаляються."))return; const mergeById=(local,cloud)=>{const m={};(local||[]).forEach(x=>m[x.id]=x);cloud.forEach(x=>m[x.id]={...m[x.id],...x});return Object.values(m);}; try{ const cl=((await s.from('v4_clients').select('*')).data)||[]; const or=((await s.from('v4_orders').select('*')).data)||[]; const oi=((await s.from('v4_order_items').select('*')).data)||[]; clients=mergeById(clients,cl.map(c=>({id:c.id,name:c.name,phone:c.phone,car:c.car,plate:c.plate,driver:c.driver,note:c.note,tireSize:c.tire_size,date:c.created_at}))); save('clients',clients); const ibo={}; oi.forEach(i=>{(ibo[i.order_id]=ibo[i.order_id]||[]).push({id:i.id,name:i.name,price:+i.price,qty:+i.qty,unit:i.unit});}); const cloudOrders=or.map(o=>({id:o.id,date:o.created_at,clientName:o.client_name,phone:o.phone,car:o.car,plate:o.plate,driver:o.driver,total:+o.total,notes:o.comment,status:o.status,services:ibo[o.id]||[]})); orders=mergeById(orders,cloudOrders); save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderClients==='function')renderClients(); updateSyncStatus(); alert('Завантажено: клієнтів '+cl.length+', заказів '+or.length+', позицій '+oi.length); }catch(e){ alert('Помилка завантаження: '+e.message); } }
 let _sig={};
 function _collSig(n,a){ return n+':'+(a?a.length:0)+':'+(a?JSON.stringify(a).length:0); }
-async function gtAutoSync(){ if(!getSupa()||!navigator.onLine){updateSyncStatus();return;} await flushQueue(); const colls={'v4_clients':(clients||[]).map(mapClient),'v4_orders':(orders||[]).map(mapOrder),'v4_order_items':[].concat(...(orders||[]).map(mapItems)),'v4_cash_operations':mapCash()}; const s=getSupa(); for(const t in colls){ const sig=_collSig(t,colls[t]); if(sig!==_sig[t]&&colls[t].length){ try{ const {error}=await s.from(t).upsert(colls[t],{onConflict:'id'}); if(!error)_sig[t]=sig; }catch(e){} } else _sig[t]=sig; } updateSyncStatus(); }
+async function gtAutoSync(){ if(!getSupa()||!navigator.onLine||!_session){updateSyncStatus();return;} await flushQueue(); const colls={'v4_clients':(clients||[]).map(mapClient),'v4_orders':(orders||[]).map(mapOrder),'v4_order_items':[].concat(...(orders||[]).map(mapItems)),'v4_cash_operations':mapCash()}; const s=getSupa(); for(const t in colls){ const sig=_collSig(t,colls[t]); if(sig!==_sig[t]&&colls[t].length){ try{ const {error}=await s.from(t).upsert(colls[t],{onConflict:'id'}); if(!error)_sig[t]=sig; }catch(e){} } else _sig[t]=sig; } updateSyncStatus(); }
 function updateSyncStatus(){ const el=document.getElementById('supaStatus'); if(!el)return; const cfg=!!(SUPA_CFG.url()&&SUPA_CFG.key()); el.textContent=(navigator.onLine?'🟢 Online':'🔴 Offline')+' · '+(cfg?'налаштовано':'НЕ налаштовано')+' · у черзі: '+_q().length; }
 function saveSupaCfg(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); localStorage.setItem('gt_supa_url',(u?u.value:'').trim()); localStorage.setItem('gt_supa_key',(k?k.value:'').trim()); _supaClient=null; getSupa(); updateSyncStatus(); flushQueue(); alert('Підключення збережено.'); }
 window.addEventListener('online',()=>{flushQueue();updateSyncStatus();});
 window.addEventListener('offline',updateSyncStatus);
-(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); setInterval(gtAutoSync,30000); })();
+async function doLogin(){
+  const em=(document.getElementById('authEmail').value||'').trim();
+  const pw=document.getElementById('authPass').value||'';
+  const er=document.getElementById('authErr'); if(er)er.textContent='';
+  const s=getSupa(); if(!s){ if(er)er.textContent='Немає звʼязку з сервером'; return; }
+  const btn=document.getElementById('authBtn'); if(btn){btn.disabled=true;btn.textContent='Вхід…';}
+  try{ const {data,error}=await s.auth.signInWithPassword({email:em,password:pw});
+    if(error){ if(er)er.textContent='Невірний email або пароль'; }
+    else { _session=data.session; showApp(); }
+  }catch(e){ if(er)er.textContent='Помилка входу'; }
+  if(btn){btn.disabled=false;btn.textContent='Увійти';}
+}
+async function doLogout(){ const s=getSupa(); if(s){ try{ await s.auth.signOut(); }catch(e){} } _session=null; document.body.classList.add('locked'); const p=document.getElementById('authPass'); if(p)p.value=''; }
+function showApp(){ document.body.classList.remove('locked'); updateSyncStatus(); flushQueue(); }
+function _hasPersistedSession(){ try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf('-auth-token')>-1 && (localStorage.getItem(k)||'').length>20) return true; } }catch(e){} return false; }
+async function initAuth(){
+  const s=getSupa();
+  if(s){ try{ const {data}=await s.auth.getSession(); if(data&&data.session){ _session=data.session; document.body.classList.remove('locked'); }
+    s.auth.onAuthStateChange((ev,sess)=>{ _session=sess; if(!sess) document.body.classList.add('locked'); }); }catch(e){} }
+  else if(_hasPersistedSession()){ document.body.classList.remove('locked'); }
+}
+(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); initAuth(); setInterval(gtAutoSync,30000); })();
 </script>
 </body>
 </html>
