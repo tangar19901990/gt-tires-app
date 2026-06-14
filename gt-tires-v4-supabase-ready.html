@@ -460,7 +460,8 @@ body.hdr-collapsed{padding-top:54px}
 <aside class="nav-wrap" id="sidebar">
   <div class="side-brand"><span class="sb-gt">GT</span> TIRES</div>
   <nav class="nav" id="mainNav">
-    <button class="active" data-tab="orders"><span class="ni">📋</span><span class="nl">Замовлення</span></button>
+    <button class="active" data-tab="home"><span class="ni">🏠</span><span class="nl">Головна</span></button>
+    <button data-tab="orders"><span class="ni">📋</span><span class="nl">Замовлення</span></button>
     <button data-tab="clients"><span class="ni">👥</span><span class="nl">Клієнти</span></button>
     <button data-tab="pricelist"><span class="ni">💰</span><span class="nl">Прайс</span></button>
     <button data-tab="tires"><span class="ni">🛞</span><span class="nl">Шини</span></button>
@@ -475,7 +476,16 @@ body.hdr-collapsed{padding-top:54px}
 </aside>
 
 <!-- ===================== ЗАМОВЛЕННЯ ===================== -->
-<div class="section active" id="sec-orders">
+<div class="section active" id="sec-home">
+  <div class="flex-between mb">
+    <h2 style="font-family:'Oswald';color:var(--red-light)">Головна</h2>
+    <button class="btn btn-dark btn-sm no-print" onclick="toggleHomeEdit()">✏️ Налаштувати</button>
+  </div>
+  <div id="homeEditPanel" style="display:none"></div>
+  <div id="homeContent"></div>
+</div>
+
+<div class="section" id="sec-orders">
   <div class="print-header"><h2>GT Tires Service — Замовлення</h2></div>
   <div class="flex-between mb">
     <h2 style="font-family:'Oswald';color:var(--red-light)">Замовлення</h2>
@@ -906,7 +916,7 @@ document.querySelectorAll('.nav button').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
     document.getElementById('sec-'+btn.dataset.tab).classList.add('active');
-    if(btn.dataset.tab==='debtors') renderDebtors();
+    if(btn.dataset.tab==='debtors') renderDebtors(); if(btn.dataset.tab==='home') renderHome();
   });
 });
 
@@ -1763,7 +1773,9 @@ async function doLogin(){
 async function doLogout(){ const s=getSupa(); if(s){ try{ await s.auth.signOut(); }catch(e){} } _session=null; document.body.classList.add('locked'); const p=document.getElementById('authPass'); if(p)p.value=''; }
 function showApp(){ document.body.classList.remove('locked'); updateSyncStatus(); flushQueue(); }
 function _hasPersistedSession(){ try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf('-auth-token')>-1 && (localStorage.getItem(k)||'').length>20) return true; } }catch(e){} return false; }
+function _previewBadge(txt){ if(document.getElementById('previewBadge'))return; const d=document.createElement('div'); d.id='previewBadge'; d.textContent=txt; d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:9998;background:rgba(211,47,47,.92);color:#fff;font-size:0.72rem;padding:6px 13px;border-radius:20px;box-shadow:0 4px 14px rgba(0,0,0,.5);max-width:92vw;text-align:center'; document.body.appendChild(d); }
 async function initAuth(){
+  if(location.protocol==='file:'){ document.body.classList.remove('locked'); _previewBadge('📂 Локальний перегляд — без входу й хмари (тест дизайну). Реальна робота — через посилання'); return; }
   const s=getSupa();
   if(s){ try{ const {data}=await s.auth.getSession(); if(data&&data.session){ _session=data.session; document.body.classList.remove('locked'); }
     s.auth.onAuthStateChange((ev,sess)=>{ _session=sess; if(!sess) document.body.classList.add('locked'); }); }catch(e){} }
@@ -1784,7 +1796,60 @@ function setHeaderTitle(v){ v=(v||'').trim(); localStorage.setItem(LS_KEY+'hdrTi
 function loadHeaderPhoto(input){ const f=input.files&&input.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const max=1000; let w=im.width,h=im.height; if(w>max){h=Math.round(h*max/w);w=max;} const c=document.createElement('canvas'); c.width=w;c.height=h; c.getContext('2d').drawImage(im,0,0,w,h); let data; try{data=c.toDataURL('image/jpeg',.78);}catch(e){data=r.result;} const ie=document.getElementById('hdrPhoto'); if(ie) ie.src=data; document.body.classList.add('has-hdr-photo'); try{localStorage.setItem(LS_KEY+'hdrImg',data);}catch(e){alert('Фото показано, але завелике для збереження');} }; im.src=r.result; }; r.readAsDataURL(f); }
 function clearHeaderPhoto(){ localStorage.removeItem(LS_KEY+'hdrImg'); const ie=document.getElementById('hdrPhoto'); if(ie) ie.src=''; document.body.classList.remove('has-hdr-photo'); }
 function toggleHeader(){ const c=document.body.classList.toggle('hdr-collapsed'); localStorage.setItem(LS_KEY+'hdrCollapsed', c?'1':'0'); const bt=document.getElementById('hdrToggle'); if(bt) bt.textContent=c?'▼':'▲'; }
-(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); initAuth(); setInterval(gtAutoSync,30000); })();
+const HOME_WIDGETS=[
+ {k:'inc',t:'Дохід',ic:'💰'},{k:'exp',t:'Витрати',ic:'💸'},{k:'bal',t:'Баланс',ic:'⚖️'},
+ {k:'cashm',t:'Готівка',ic:'💵'},{k:'cashless',t:'Безготівка',ic:'💳'},
+ {k:'ordc',t:'Замовлень',ic:'📋'},{k:'debt',t:'Борг',ic:'⚠️'},{k:'cli',t:'Клієнтів',ic:'👥'},
+ {k:'recent',t:'Останні замовлення',ic:'🕓'},{k:'newbtn',t:'Кнопка «Нове замовлення»',ic:'➕'}
+];
+const HOME_DEFAULT=['inc','exp','bal','cashm','ordc','debt','recent'];
+let homeWidgets=(()=>{ const a=load('homeW'); return (a&&a.length)?a:HOME_DEFAULT.slice(); })();
+let homeEdit=false;
+function homeMetrics(){
+  const inc=(cashbook||[]).filter(c=>c.type==='income').reduce((s,c)=>s+c.amount,0);
+  const exp=(cashbook||[]).filter(c=>c.type==='expense').reduce((s,c)=>s+c.amount,0);
+  const cashm=(cashbook||[]).filter(c=>c.type==='income'&&(c.method||'cash')==='cash').reduce((s,c)=>s+c.amount,0);
+  const cashless=(cashbook||[]).filter(c=>c.type==='income'&&c.method==='cashless').reduce((s,c)=>s+c.amount,0);
+  const debt=(orders||[]).reduce((s,o)=>s+(o.debt||0),0);
+  const debtc=(orders||[]).filter(o=>(o.debt||0)>0).length;
+  return {inc,exp,bal:inc-exp,cashm,cashless,ordc:(orders||[]).length,debt,debtc,cli:(clients||[]).length};
+}
+function _statCard(num,lbl,color){ return `<div class="stat-card"><div class="num"${color?` style="color:${color}"`:''}>${num}</div><div class="lbl">${lbl}</div></div>`; }
+function renderHome(){
+  const c=document.getElementById('homeContent'); if(!c) return;
+  const m=homeMetrics(); const on=k=>homeWidgets.includes(k);
+  let cards='';
+  if(on('inc')) cards+=_statCard(fmtMoney(m.inc),'Дохід','var(--green)');
+  if(on('exp')) cards+=_statCard(fmtMoney(m.exp),'Витрати','var(--accent)');
+  if(on('bal')) cards+=_statCard(fmtMoney(m.bal),'Баланс');
+  if(on('cashm')) cards+=_statCard(fmtMoney(m.cashm),'💵 Готівка','var(--green)');
+  if(on('cashless')) cards+=_statCard(fmtMoney(m.cashless),'💳 Безготівка','#42a5f5');
+  if(on('ordc')) cards+=_statCard(m.ordc,'Замовлень');
+  if(on('debt')) cards+=_statCard(fmtMoney(m.debt),'Борг ('+m.debtc+')','var(--accent)');
+  if(on('cli')) cards+=_statCard(m.cli,'Клієнтів');
+  let html='';
+  if(on('newbtn')) html+=`<button class="btn btn-red" style="width:100%;margin-bottom:12px" onclick="openNewOrder()">＋ Нове замовлення</button>`;
+  if(cards) html+=`<div class="stats-grid">${cards}</div>`;
+  if(on('recent')){
+    const rec=[...(orders||[])].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+    html+=`<div class="card mt"><h3 style="margin-bottom:8px">🕓 Останні замовлення</h3>`;
+    html+= rec.length? rec.map(o=>`<div class="flex-between" style="padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="viewOrder('${o.id}')"><span style="font-size:0.84rem">#${o.orderNumber||o.id.slice(-5).toUpperCase()} · ${o.clientName||'—'}</span><b style="font-family:'Oswald'">${fmtMoney(o.total||0)}</b></div>`).join('') : '<div style="color:var(--text-dim);font-size:0.84rem">Поки порожньо</div>';
+    html+=`</div>`;
+  }
+  if(!html) html='<div class="card" style="text-align:center;color:var(--text-dim);padding:24px">Немає блоків. Натисни «✏️ Налаштувати».</div>';
+  c.innerHTML=html;
+}
+function toggleHomeEdit(){
+  homeEdit=!homeEdit; const p=document.getElementById('homeEditPanel'); if(!p) return;
+  if(!homeEdit){ p.style.display='none'; return; }
+  p.style.display='block';
+  p.innerHTML='<div class="card"><h3 style="margin-bottom:8px">Які блоки показувати</h3>'+HOME_WIDGETS.map(w=>`<label style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:0.9rem;cursor:pointer"><input type="checkbox" ${homeWidgets.includes(w.k)?'checked':''} onchange="toggleHomeWidget('${w.k}',this.checked)" style="width:18px;height:18px"> ${w.ic} ${w.t}</label>`).join('')+'</div>';
+}
+function toggleHomeWidget(k,onv){
+  if(onv){ if(!homeWidgets.includes(k)) homeWidgets.push(k); } else { homeWidgets=homeWidgets.filter(x=>x!==k); }
+  save('homeW',homeWidgets); renderHome();
+}
+(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); initAuth(); setInterval(gtAutoSync,30000); })();
 </script>
 </body>
 </html>
