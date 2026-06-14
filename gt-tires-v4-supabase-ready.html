@@ -411,6 +411,34 @@ body.hdr-collapsed{padding-top:54px}
 @media print{ body.hdr-collapsed{padding-top:0} }
 .nav button .ni img{width:24px;height:24px;object-fit:contain;display:block;margin:0 auto;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 .cat-tile .tileimg{width:84px;height:84px;object-fit:contain;display:block;margin:0 auto 2px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
+.modal.modal-wide{max-width:1080px;max-height:92vh}
+.order-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.order-layout{display:grid;grid-template-columns:1fr 322px;gap:16px}
+.order-pick{min-width:0}
+.ocat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.ocat-card{position:relative;border-radius:14px;padding:12px 8px;text-align:center;cursor:pointer;border:2px solid transparent;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(0,0,0,.25));box-shadow:0 4px 14px rgba(0,0,0,.4);transition:.18s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.ocat-card:hover{transform:translateY(-2px)}
+.ocat-card.active{border-color:var(--red);box-shadow:0 0 0 1px var(--red),0 0 18px rgba(211,47,47,.5)}
+.ocat-card img{width:60px;height:60px;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
+.ocat-card .nm{font-size:0.74rem;font-weight:700;line-height:1.1}
+.ocat-card .cnt{font-size:0.62rem;color:var(--text-dim)}
+.osvc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.osvc-btn{min-height:66px;border-radius:12px;border:1px solid var(--border);background:#161616;color:var(--text);cursor:pointer;padding:8px 10px;display:flex;flex-direction:column;justify-content:center;gap:3px;text-align:left;transition:.15s}
+.osvc-btn:hover{border-color:var(--red);background:#1d1717}
+.osvc-btn .sn{font-size:0.82rem;font-weight:600;line-height:1.15}
+.osvc-btn .sp{font-family:'Oswald';font-size:1.05rem;color:var(--red-light)}
+.osvc-btn.added{border-color:var(--green);background:rgba(76,175,80,.12)}
+.order-cart{background:#141414;border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;align-self:start;position:sticky;top:0}
+.cart-head{font-family:'Oswald';color:#fff;font-size:1rem}
+.cart-fields{display:flex;flex-direction:column;gap:6px}
+.cart-fields input,.cart-fields select,.cart-fields textarea{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:#0d0d0d;color:var(--text);font-size:0.82rem}
+.cart-list{max-height:230px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px 0}
+.cart-total{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#d32f2f,#9a1f1f);color:#fff;border-radius:12px;padding:12px 14px;font-family:'Oswald'}
+.cart-total b{font-size:1.5rem}
+.cart-actions{display:flex;gap:8px}
+.cart-actions .btn{flex:1}
+@media(max-width:820px){ .order-layout{grid-template-columns:1fr} .order-cart{position:static} }
+@media(max-width:560px){ .ocat-grid{grid-template-columns:repeat(2,1fr)} }
 /* ================= END MODERN UI LAYER ================= */
 </style>
 </head>
@@ -931,7 +959,7 @@ document.querySelectorAll('.nav button').forEach(btn => {
 });
 
 // ==================== MODAL ====================
-function openModal(html){ document.getElementById('modalContent').innerHTML=html; document.getElementById('modalOverlay').classList.add('open'); }
+function openModal(html){ var mc=document.getElementById('modalContent'); mc.classList.remove('modal-wide'); mc.innerHTML=html; document.getElementById('modalOverlay').classList.add('open'); }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
 
 // ==================== PRICE TABLE ====================
@@ -1062,38 +1090,52 @@ function filterOrders(){
 function nextOrderNumber(){ let n=parseInt(localStorage.getItem(LS_KEY+'orderSeq')||'0',10)||0; n++; try{localStorage.setItem(LS_KEY+'orderSeq',n);}catch(e){} return String(n).padStart(5,'0'); }
 function openNewOrder(){
   openModal(`
-    <h3>Нове замовлення</h3>
-    <label>Клієнт</label><input id="oClient" placeholder="Ім'я клієнта">
-    <label>Телефон</label><input id="oPhone" type="tel" placeholder="+380..." oninput="orderPhoneLookup()">
-    <label>Авто</label><input id="oCar" placeholder="Марка, модель, номер">
-    <label>Держномер</label><input id="oPlate" placeholder="напр. AA1234BB">
-    <label>Оплата</label><select id="oPayType" style="width:100%"><option value="cash">💵 Готівка</option><option value="cashless">💳 Безготівка</option></select>
-    <label>Оплачено, ₴ <span style="color:var(--text-dim);font-weight:400">(порожнє = повна сума)</span></label><input id="oPaid" type="number" placeholder="повна сума">
-    <label>Послуги</label>
-    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="oSvcCatBtns"></div>
-    <div id="oQuick" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
-    <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:6px">
-    <div id="oSvcPickList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:8px"></div>
-    <div id="oSelectedSvcs" style="margin-bottom:8px"></div>
-    <div id="oSvcTotal" style="font-family:'Oswald';font-size:1.3rem;text-align:right;color:var(--red-light);margin-bottom:8px"></div>
-    <label>Нотатки</label><textarea id="oNotes" rows="2"></textarea>
-    <div class="gap-btns mt">
-      <button class="btn btn-red" onclick="saveNewOrder()">💾 Зберегти</button>
-      <button class="btn btn-dark" onclick="closeModal()">Скасувати</button>
+    <div class="order-head"><h3 style="margin:0">🧾 Нове замовлення</h3><button class="btn btn-dark btn-sm" onclick="closeModal()">✕</button></div>
+    <div class="order-layout">
+      <div class="order-pick">
+        <div id="oSvcCatBtns" class="ocat-grid"></div>
+        <div id="oQuick" style="margin-bottom:8px"></div>
+        <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:10px">
+        <div id="oSvcPickList" class="osvc-grid"></div>
+      </div>
+      <aside class="order-cart">
+        <div class="cart-head">🧾 Поточне замовлення</div>
+        <div class="cart-fields">
+          <input id="oClient" placeholder="Ім'я клієнта">
+          <input id="oPhone" type="tel" placeholder="Телефон +380..." oninput="orderPhoneLookup()">
+          <input id="oCar" placeholder="Авто (марка, модель)">
+          <input id="oPlate" placeholder="Держномер">
+          <select id="oPayType"><option value="cash">💵 Готівка</option><option value="cashless">💳 Безготівка</option></select>
+          <input id="oPaid" type="number" placeholder="Оплачено ₴ (порожнє = повна)">
+          <textarea id="oNotes" rows="1" placeholder="Нотатки"></textarea>
+        </div>
+        <div id="oSelectedSvcs" class="cart-list"></div>
+        <div class="cart-total"><span>Разом</span><b id="oSvcTotal">0 ₴</b></div>
+        <div class="cart-actions">
+          <button class="btn btn-dark" onclick="closeModal()">Скасувати</button>
+          <button class="btn btn-red" onclick="saveNewOrder()">✅ Оформити</button>
+        </div>
+      </aside>
     </div>
   `);
+  document.getElementById('modalContent').classList.add('modal-wide');
   window._orderSvcs = [];
-  window._orderCatFilter = -1;
+  window._orderCatFilter = 0;
   renderOrderCatBtns();
   renderOrderPickList();
   renderOrderQuick();
+  renderSelectedSvcs();
 }
 function renderOrderCatBtns(){
   const el = document.getElementById('oSvcCatBtns');
   if(!el) return;
-  let h = `<button class="btn btn-sm ${window._orderCatFilter===-1?'btn-red':'btn-dark'}" style="font-size:0.65rem;padding:4px 8px" onclick="window._orderCatFilter=-1;renderOrderCatBtns();renderOrderPickList()">Всі</button>`;
+  const counts={}; let cur=-1;
+  PRICE_LIST.forEach(it=>{ if(it.id===undefined && it.cat!==undefined){ cur=it.cat; return; } if(it.id) counts[cur]=(counts[cur]||0)+1; });
+  let h='';
   CAT_META.forEach((c,i)=>{
-    h += `<button class="btn btn-sm ${window._orderCatFilter===i?'':'btn-dark'}" style="font-size:0.65rem;padding:4px 8px;${window._orderCatFilter===i?'background:'+c.color+';color:#000;border-color:'+c.color:''}" onclick="window._orderCatFilter=${i};renderOrderCatBtns();renderOrderPickList()">${c.icon} ${c.short}</button>`;
+    const act=window._orderCatFilter===i?' active':'';
+    const ic=(typeof CAT_ICONS!=='undefined'&&CAT_ICONS[i])?`<img src="${CAT_ICONS[i]}">`:`<div style="font-size:1.9rem">${c.icon}</div>`;
+    h+=`<div class="ocat-card${act}" onclick="window._orderCatFilter=${i};document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderPickList()">${ic}<div class="nm">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
   });
   el.innerHTML = h;
 }
@@ -1103,27 +1145,18 @@ function renderOrderPickList(){
   if(!el) return;
   const q = (document.getElementById('oSvcSearch')?.value||'').toLowerCase();
   const cf = window._orderCatFilter;
-  let h = '';
-  let currentCat = -1;
-  const mkRow=(item,color,icon)=>{
-    const p=effPrice(item);
-    const alreadyAdded = window._orderSvcs.some(s=>s.id===item.id);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--border);${alreadyAdded?'opacity:0.4':'cursor:pointer'}" ${alreadyAdded?'':`onclick="addOrderSvc(${item.id})"`}>
-      <div style="flex:1;font-size:0.8rem"><span style="color:${color};font-weight:600">${icon}</span> ${item.name}</div>
-      <div style="font-weight:700;font-size:0.8rem;white-space:nowrap;margin-left:8px">${fmtMoney(p)}</div>
-      ${alreadyAdded?'<span style="margin-left:6px;font-size:0.7rem">✓</span>':'<span style="margin-left:6px;color:var(--red-light);font-size:1.1rem;font-weight:700">+</span>'}
-    </div>`;
-  };
+  let h=''; let currentCat=-1; let count=0;
+  const mk=(item)=>{ const p=effPrice(item); const added=window._orderSvcs.some(s=>s.id===item.id);
+    return `<button type="button" class="osvc-btn${added?' added':''}" onclick="addOrderSvc(${item.id})"><span class="sn">${item.name}</span><span class="sp">${fmtMoney(p)}${added?' ✓':''}</span></button>`; };
   PRICE_LIST.forEach(item=>{
     if(item.id===undefined && item.cat!==undefined){ currentCat=item.cat; return; }
     if(!item.id) return;
-    if(cf>=0 && currentCat!==cf) return;
-    if(q && !item.name.toLowerCase().includes(q)) return;
-    const c = CAT_META[currentCat]||{color:'#999',icon:'?'};
-    h += mkRow(item,c.color,c.icon);
+    if(q){ if(!item.name.toLowerCase().includes(q)) return; }
+    else { if(cf<0 || currentCat!==cf) return; }
+    h+=mk(item); count++;
   });
-  if(cf<0){ (customServices||[]).forEach(item=>{ if(q && !item.name.toLowerCase().includes(q)) return; h += mkRow(item,'#aaa','🧩'); }); }
-  if(!h) h = '<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:0.82rem">Нічого не знайдено</div>';
+  if(q){ (customServices||[]).forEach(item=>{ if(item.name.toLowerCase().includes(q)){ h+=mk(item); count++; } }); }
+  if(!count) h=`<div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--text-dim);font-size:0.84rem">${q?'Нічого не знайдено':'Оберіть категорію вгорі'}</div>`;
   el.innerHTML = h;
 }
 function addOrderSvc(id){
@@ -1150,23 +1183,22 @@ function renderSelectedSvcs(){
   const el = document.getElementById('oSelectedSvcs');
   const tel = document.getElementById('oSvcTotal');
   if(!el) return;
-  if(!window._orderSvcs.length){ el.innerHTML='<div style="text-align:center;color:var(--text-dim);font-size:0.8rem;padding:8px">Оберіть послуги вище</div>'; tel.innerHTML=''; return; }
   let total=0;
+  if(!window._orderSvcs.length){ el.innerHTML='<div style="text-align:center;color:var(--text-dim);font-size:0.8rem;padding:14px">Оберіть послуги зліва</div>'; if(tel)tel.textContent=fmtMoney(0); return; }
   let h = '';
   window._orderSvcs.forEach(s=>{
-    const sub = s.price*s.qty;
-    total+=sub;
-    h += `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
+    const sub = s.price*s.qty; total+=sub;
+    h += `<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
       <button class="btn btn-dark btn-sm" style="padding:2px 6px;font-size:0.7rem" onclick="removeOrderSvc(${s.id})">✕</button>
-      <span style="flex:1">${s.name}</span>
-      <button class="btn btn-dark btn-sm" style="padding:2px 6px" onclick="changeOrderSvcQty(${s.id},-1)">−</button>
-      <span style="min-width:20px;text-align:center;font-weight:700">${s.qty}</span>
-      <button class="btn btn-dark btn-sm" style="padding:2px 6px" onclick="changeOrderSvcQty(${s.id},1)">+</button>
-      <span style="min-width:70px;text-align:right;font-weight:700">${fmtMoney(sub)}</span>
+      <span style="flex:1;line-height:1.15">${s.name}</span>
+      <button class="btn btn-dark btn-sm" style="padding:2px 7px" onclick="changeOrderSvcQty(${s.id},-1)">−</button>
+      <span style="min-width:18px;text-align:center;font-weight:700">${s.qty}</span>
+      <button class="btn btn-dark btn-sm" style="padding:2px 7px" onclick="changeOrderSvcQty(${s.id},1)">+</button>
+      <span style="min-width:62px;text-align:right;font-weight:700">${fmtMoney(sub)}</span>
     </div>`;
   });
   el.innerHTML = h;
-  tel.innerHTML = `Всього: ${fmtMoney(total)}`;
+  if(tel) tel.textContent = fmtMoney(total);
 }
 function addServiceRow(){} // deprecated, kept for compat
 function saveNewOrder(){
