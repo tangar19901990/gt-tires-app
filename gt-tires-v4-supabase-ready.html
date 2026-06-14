@@ -439,6 +439,11 @@ body.hdr-collapsed{padding-top:54px}
 .cart-actions .btn{flex:1}
 @media(max-width:820px){ .order-layout{grid-template-columns:1fr} .order-cart{position:static} }
 @media(max-width:560px){ .ocat-grid{grid-template-columns:repeat(2,1fr)} }
+.orad-label{font-size:0.74rem;color:var(--text-dim);margin:2px 0 6px;font-weight:700}
+.orad-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;margin-bottom:14px}
+.orad-btn{min-height:64px;border-radius:12px;border:1px solid var(--border);background:#161616;color:var(--text);font-family:'Oswald';font-size:1.1rem;font-weight:600;cursor:pointer;transition:.15s}
+.orad-btn:hover{border-color:var(--red)}
+.orad-btn.active{background:linear-gradient(135deg,#d32f2f,#9a1f1f);border-color:var(--red);color:#fff;box-shadow:0 0 14px rgba(211,47,47,.5)}
 /* ================= END MODERN UI LAYER ================= */
 </style>
 </head>
@@ -1094,6 +1099,7 @@ function openNewOrder(){
     <div class="order-layout">
       <div class="order-pick">
         <div id="oSvcCatBtns" class="ocat-grid"></div>
+        <div id="oRadius"></div>
         <div id="oQuick" style="margin-bottom:8px"></div>
         <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:10px">
         <div id="oSvcPickList" class="osvc-grid"></div>
@@ -1121,7 +1127,9 @@ function openNewOrder(){
   document.getElementById('modalContent').classList.add('modal-wide');
   window._orderSvcs = [];
   window._orderCatFilter = 0;
+  window._orderRadius = null;
   renderOrderCatBtns();
+  renderOrderRadius();
   renderOrderPickList();
   renderOrderQuick();
   renderSelectedSvcs();
@@ -1135,11 +1143,25 @@ function renderOrderCatBtns(){
   CAT_META.forEach((c,i)=>{
     const act=window._orderCatFilter===i?' active':'';
     const ic=(typeof CAT_ICONS!=='undefined'&&CAT_ICONS[i])?`<img src="${CAT_ICONS[i]}">`:`<div style="font-size:1.9rem">${c.icon}</div>`;
-    h+=`<div class="ocat-card${act}" onclick="window._orderCatFilter=${i};document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderPickList()">${ic}<div class="nm">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
+    h+=`<div class="ocat-card${act}" onclick="window._orderCatFilter=${i};window._orderRadius=null;document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderRadius();renderOrderPickList()">${ic}<div class="nm">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
   });
   el.innerHTML = h;
 }
 function filterOrderServices(){ renderOrderPickList(); }
+function svcRadius(name){ const m=(name||'').match(/R\d+(?:\.\d+)?/); return m?m[0]:null; }
+function renderOrderRadius(){
+  const el=document.getElementById('oRadius'); if(!el) return;
+  const cf=window._orderCatFilter;
+  if(cf<0){ el.innerHTML=''; return; }
+  let cur=-1; const rads=[];
+  PRICE_LIST.forEach(it=>{ if(it.id===undefined&&it.cat!==undefined){cur=it.cat;return;} if(!it.id||cur!==cf) return; const r=svcRadius(it.name); if(r&&!rads.includes(r)) rads.push(r); });
+  if(rads.length<2){ el.innerHTML=''; return; }
+  rads.sort((a,b)=>parseFloat(a.slice(1))-parseFloat(b.slice(1)));
+  let h=`<div class="orad-label">Оберіть радіус</div><div class="orad-row"><button type="button" class="orad-btn${!window._orderRadius?' active':''}" onclick="window._orderRadius=null;renderOrderRadius();renderOrderPickList()">Всі</button>`;
+  rads.forEach(r=>{ h+=`<button type="button" class="orad-btn${window._orderRadius===r?' active':''}" onclick="window._orderRadius='${r}';renderOrderRadius();renderOrderPickList()">${r}</button>`; });
+  h+='</div>';
+  el.innerHTML=h;
+}
 function renderOrderPickList(){
   const el = document.getElementById('oSvcPickList');
   if(!el) return;
@@ -1152,7 +1174,7 @@ function renderOrderPickList(){
     if(item.id===undefined && item.cat!==undefined){ currentCat=item.cat; return; }
     if(!item.id) return;
     if(q){ if(!item.name.toLowerCase().includes(q)) return; }
-    else { if(cf<0 || currentCat!==cf) return; }
+    else { if(cf<0 || currentCat!==cf) return; if(window._orderRadius && svcRadius(item.name)!==window._orderRadius) return; }
     h+=mk(item); count++;
   });
   if(q){ (customServices||[]).forEach(item=>{ if(item.name.toLowerCase().includes(q)){ h+=mk(item); count++; } }); }
