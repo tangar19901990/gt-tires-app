@@ -675,6 +675,9 @@ let clients = load('clients');
 let tires = load('tires');
 let warehouse = load('warehouse');
 let cashbook = load('cash');
+let priceOverrides = (()=>{try{return JSON.parse(localStorage.getItem(LS_KEY+'priceOverrides'))||{};}catch(e){return {};}})();
+let customServices = load('customSvc');
+let quickServices = load('quickSvc');
 let topSecret = loadVal('ts') === '1';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -903,29 +906,45 @@ function setCatFilter(idx){
   renderCatTiles();
   renderPrice();
 }
+function effPrice(item){ if(!item) return 0; const o=priceOverrides[item.id]; return (o!=null)?o:item.price; }
+function findSvc(id){ id=+id; let it=PRICE_LIST.find(i=>i.id===id); if(it) return {id:it.id,name:it.name,price:effPrice(it)}; let c=(customServices||[]).find(i=>i.id===id); if(c) return {id:c.id,name:c.name,price:effPrice(c)}; return null; }
+function editPrice(id){ id=+id; const cur=findSvc(id); if(!cur) return; const v=prompt('Нова ціна для «'+cur.name+'»:', cur.price); if(v===null) return; const n=parseFloat(v); if(isNaN(n)||n<0){ alert('Невірна ціна'); return; } priceOverrides[id]=n; localStorage.setItem(LS_KEY+'priceOverrides',JSON.stringify(priceOverrides)); renderPrice(); }
+function resetPrice(id){ id=+id; delete priceOverrides[id]; localStorage.setItem(LS_KEY+'priceOverrides',JSON.stringify(priceOverrides)); renderPrice(); }
+function addCustomService(){ const name=prompt('Назва нової послуги:'); if(!name) return; const price=parseFloat(prompt('Ціна, ₴:','0'))||0; const maxId=(customServices||[]).reduce((m,x)=>Math.max(m,x.id),9000); customServices.push({id:maxId+1,name:name.trim(),price}); save('customSvc',customServices); renderPrice(); }
+function delCustomService(id){ id=+id; if(!confirm('Видалити власну послугу?'))return; customServices=customServices.filter(x=>x.id!==id); save('customSvc',customServices); quickServices=quickServices.filter(q=>q!==id); save('quickSvc',quickServices); renderPrice(); }
+function toggleQuick(id){ id=+id; if(quickServices.includes(id)) quickServices=quickServices.filter(q=>q!==id); else quickServices.push(id); save('quickSvc',quickServices); renderPrice(); if(document.getElementById('oQuick')) renderOrderQuick(); }
+function renderOrderQuick(){ const el=document.getElementById('oQuick'); if(!el) return; if(!quickServices.length){ el.innerHTML='<div style="font-size:0.72rem;color:var(--text-dim)">⭐ Швидкі: відмітьте послуги зірочкою у Прайсі</div>'; return; } el.innerHTML='<div style="font-size:0.72rem;color:var(--text-dim);width:100%">⭐ Швидкі послуги:</div>'+quickServices.map(id=>{ const x=findSvc(id); if(!x) return ''; return `<button type="button" class="btn btn-sm btn-dark" style="font-size:0.72rem;padding:5px 9px" onclick="addOrderSvc(${x.id})">${x.name} · ${fmtMoney(x.price)}</button>`; }).join(''); }
+function normPhone(p){ const d=(p||'').replace(/\D/g,''); return d.length>9?d.slice(-9):d; }
+function findClientByPhone(p){ const n=normPhone(p); if(!n) return null; return clients.find(c=>c.phone&&normPhone(c.phone)===n)||null; }
+function orderPhoneLookup(){ const pe=document.getElementById('oPhone'); if(!pe) return; const c=findClientByPhone(pe.value); if(!c) return; const ce=document.getElementById('oClient'); const cae=document.getElementById('oCar'); if(ce&&!ce.value.trim()) ce.value=c.name||''; if(cae&&!cae.value.trim()&&c.car) cae.value=c.car; }
+async function fetchServerOrderNumber(){ const sp=getSupa(); if(!sp||!navigator.onLine||!_session) return null; try{ const {data,error}=await sp.rpc('next_v4_order_number'); if(error||data==null) return null; return String(data); }catch(e){ return null; } }
+async function assignServerNumbers(){ let changed=false; for(const o of (orders||[])){ if(o.numSrc==='temp'){ const n=await fetchServerOrderNumber(); if(n){ o.orderNumber=n; o.numSrc='server'; changed=true; } else break; } } if(changed){ save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderDebtors==='function')renderDebtors(); } }
+function priceRow(item,isCustom,cols){
+  const p=effPrice(item); const edited=priceOverrides[item.id]!=null; const star=quickServices.includes(item.id)?'⭐':'☆';
+  let r=`<tr><td>${isCustom?'•':item.id}</td><td>${item.name}</td><td><b ${edited?'style="color:var(--red-light)"':''}>${fmtMoney(p)}</b></td>`;
+  if(topSecret) r+=`<td class="ts-price">${fmtMoney(Math.round(p*0.35))}</td>`;
+  r+=`<td style="white-space:nowrap"><span style="cursor:pointer" onclick="toggleQuick(${item.id})">${star}</span> <span style="cursor:pointer" onclick="editPrice(${item.id})">✏️</span>${edited?` <span style="cursor:pointer" title="Скинути" onclick="resetPrice(${item.id})">↩️</span>`:''}${isCustom?` <span style="cursor:pointer" onclick="delCustomService(${item.id})">🗑️</span>`:''}</td></tr>`;
+  return r;
+}
 function renderPrice(){
   const q = (document.getElementById('priceSearch')?.value||'').toLowerCase();
-  const cols = topSecret ? 4 : 3;
-  let html = '<thead><tr><th style="width:50px">№</th><th>Послуга</th><th style="width:90px">Ціна</th>'+(topSecret?'<th style="width:90px">35%</th>':'')+'</tr></thead><tbody>';
+  const cols = topSecret ? 5 : 4;
+  let html = `<thead><tr><th style="width:40px">№</th><th>Послуга</th><th style="width:80px">Ціна</th>`+(topSecret?'<th style="width:60px">35%</th>':'')+`<th style="width:90px">⭐/✏️</th></tr></thead><tbody>`;
+  html += `<tr><td colspan="${cols}"><button class="btn btn-red btn-sm" style="font-size:0.7rem" onclick="addCustomService()">＋ Нова послуга</button></td></tr>`;
   let currentCat = -1;
   PRICE_LIST.forEach(item => {
     if(item.id === undefined && item.cat !== undefined){ currentCat = item.cat; return; }
     if(!item.id) return;
-    // filter by category
     if(activeCatFilter >= 0 && currentCat !== activeCatFilter) return;
-    // filter by search
     if(q && !item.name.toLowerCase().includes(q)) return;
-    // show cat header if first item in this cat
-    const catMeta = CAT_META[currentCat] || {name:'?',color:'#999'};
-    const prevVisible = html.includes(`data-cidx="${currentCat}"`);
-    if(!prevVisible){
+    const catMeta = CAT_META[currentCat] || {name:'?',color:'#999',icon:''};
+    if(!html.includes(`data-cidx="${currentCat}"`)){
       html += `<tr class="cat-row" data-cidx="${currentCat}"><td colspan="${cols}">${catMeta.icon} ${catMeta.name}</td></tr>`;
     }
-    const master = Math.round(item.price*0.35);
-    html += `<tr><td>${item.id}</td><td>${item.name}</td><td><b>${fmtMoney(item.price)}</b></td>`;
-    if(topSecret) html += `<td class="ts-price">${fmtMoney(master)}</td>`;
-    html += '</tr>';
+    html += priceRow(item,false,cols);
   });
+  const cust=(customServices||[]).filter(x=>!q||x.name.toLowerCase().includes(q));
+  if(cust.length && activeCatFilter<0){ html += `<tr class="cat-row"><td colspan="${cols}">🧩 Власні послуги</td></tr>`; cust.forEach(x=>{ html+=priceRow(x,true,cols); }); }
   html += '</tbody>';
   document.getElementById('priceTable').innerHTML = html;
 }
@@ -984,13 +1003,14 @@ function openNewOrder(){
   openModal(`
     <h3>Нове замовлення</h3>
     <label>Клієнт</label><input id="oClient" placeholder="Ім'я клієнта">
-    <label>Телефон</label><input id="oPhone" type="tel" placeholder="+380...">
+    <label>Телефон</label><input id="oPhone" type="tel" placeholder="+380..." oninput="orderPhoneLookup()">
     <label>Авто</label><input id="oCar" placeholder="Марка, модель, номер">
     <label>Держномер</label><input id="oPlate" placeholder="напр. AA1234BB">
     <label>Оплата</label><select id="oPayType" style="width:100%"><option value="cash">💵 Готівка</option><option value="cashless">💳 Безготівка</option></select>
     <label>Оплачено, ₴ <span style="color:var(--text-dim);font-weight:400">(порожнє = повна сума)</span></label><input id="oPaid" type="number" placeholder="повна сума">
     <label>Послуги</label>
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="oSvcCatBtns"></div>
+    <div id="oQuick" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
     <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:6px">
     <div id="oSvcPickList" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:8px"></div>
     <div id="oSelectedSvcs" style="margin-bottom:8px"></div>
@@ -1005,6 +1025,7 @@ function openNewOrder(){
   window._orderCatFilter = -1;
   renderOrderCatBtns();
   renderOrderPickList();
+  renderOrderQuick();
 }
 function renderOrderCatBtns(){
   const el = document.getElementById('oSvcCatBtns');
@@ -1023,24 +1044,29 @@ function renderOrderPickList(){
   const cf = window._orderCatFilter;
   let h = '';
   let currentCat = -1;
+  const mkRow=(item,color,icon)=>{
+    const p=effPrice(item);
+    const alreadyAdded = window._orderSvcs.some(s=>s.id===item.id);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--border);${alreadyAdded?'opacity:0.4':'cursor:pointer'}" ${alreadyAdded?'':`onclick="addOrderSvc(${item.id})"`}>
+      <div style="flex:1;font-size:0.8rem"><span style="color:${color};font-weight:600">${icon}</span> ${item.name}</div>
+      <div style="font-weight:700;font-size:0.8rem;white-space:nowrap;margin-left:8px">${fmtMoney(p)}</div>
+      ${alreadyAdded?'<span style="margin-left:6px;font-size:0.7rem">✓</span>':'<span style="margin-left:6px;color:var(--red-light);font-size:1.1rem;font-weight:700">+</span>'}
+    </div>`;
+  };
   PRICE_LIST.forEach(item=>{
     if(item.id===undefined && item.cat!==undefined){ currentCat=item.cat; return; }
     if(!item.id) return;
     if(cf>=0 && currentCat!==cf) return;
     if(q && !item.name.toLowerCase().includes(q)) return;
     const c = CAT_META[currentCat]||{color:'#999',icon:'?'};
-    const alreadyAdded = window._orderSvcs.some(s=>s.id===item.id);
-    h += `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid var(--border);${alreadyAdded?'opacity:0.4':'cursor:pointer'}" ${alreadyAdded?'':`onclick="addOrderSvc(${item.id})"`}>
-      <div style="flex:1;font-size:0.8rem"><span style="color:${c.color};font-weight:600">${c.icon}</span> ${item.name}</div>
-      <div style="font-weight:700;font-size:0.8rem;white-space:nowrap;margin-left:8px">${fmtMoney(item.price)}</div>
-      ${alreadyAdded?'<span style="margin-left:6px;font-size:0.7rem">✓</span>':'<span style="margin-left:6px;color:var(--red-light);font-size:1.1rem;font-weight:700">+</span>'}
-    </div>`;
+    h += mkRow(item,c.color,c.icon);
   });
+  if(cf<0){ (customServices||[]).forEach(item=>{ if(q && !item.name.toLowerCase().includes(q)) return; h += mkRow(item,'#aaa','🧩'); }); }
   if(!h) h = '<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:0.82rem">Нічого не знайдено</div>';
   el.innerHTML = h;
 }
 function addOrderSvc(id){
-  const item = PRICE_LIST.find(i=>i.id===id);
+  id=+id; const item = findSvc(id);
   if(!item) return;
   const existing = window._orderSvcs.find(s=>s.id===id);
   if(existing){ existing.qty++; }
@@ -1095,7 +1121,7 @@ function saveNewOrder(){
     car: document.getElementById('oCar').value.trim(),
     plate: (document.getElementById('oPlate')?document.getElementById('oPlate').value.trim():''),
     paymentType: (document.getElementById('oPayType')?document.getElementById('oPayType').value:'cash'),
-    orderNumber: nextOrderNumber(),
+    orderNumber: 'TMP-'+nextOrderNumber(), numSrc:'temp',
     services, total,
     notes: document.getElementById('oNotes').value.trim(),
     status: 'new'
@@ -1103,14 +1129,16 @@ function saveNewOrder(){
   { const _pe=document.getElementById('oPaid'); let _p=(_pe&&_pe.value!=='')?(parseFloat(_pe.value)||0):(order.total||0); if(_p<0)_p=0; if(_p>(order.total||0))_p=order.total||0; order.paidAmount=_p; order.debt=Math.max(0,(order.total||0)-_p); }
   if(order.paidAmount>0){ cashbook.push({id:uid(),date:order.date,type:'income',amount:order.paidAmount,method:order.paymentType||'cash',desc:'Замовлення #'+(order.orderNumber||order.id.slice(-5).toUpperCase())+' — '+order.clientName,orderId:order.id}); save('cash',cashbook); }
   // auto-add client (or update existing)
-  if(order.clientName){
-    const existing = clients.find(c=>c.name===order.clientName);
+  if(order.clientName || order.phone){
+    let existing = order.phone ? findClientByPhone(order.phone) : null;
+    if(!existing && order.clientName) existing = clients.find(c=>c.name===order.clientName);
     if(existing){
+      if(order.clientName) existing.name = order.clientName;
       if(order.phone) existing.phone = order.phone;
       if(order.car) existing.car = order.car;
       existing.lastVisit = order.date;
     } else {
-      clients.push({id:uid(),name:order.clientName,phone:order.phone,car:order.car,date:order.date,lastVisit:order.date});
+      clients.push({id:uid(),name:order.clientName||'',phone:order.phone||'',car:order.car,date:order.date,lastVisit:order.date});
     }
     save('clients',clients);
   }
@@ -1120,6 +1148,7 @@ function saveNewOrder(){
   renderClients();
   // Show print-ready order
   showOrderPrint(order);
+  if(navigator.onLine && _session){ assignServerNumbers(); }
 }
 function showOrderPrint(o){
   let svcRows = (o.services||[]).map(s=>`
@@ -1659,7 +1688,7 @@ function _rSize(n){ const m=(n||'').match(/R\s?(\d{1,2}(?:[.,]\d)?)/i); return m
 function mapClient(c){ return {id:c.id,name:c.name||'',phone:c.phone||'',car:c.car||'',plate:c.plate||'',driver:c.driver||'',note:c.note||'',tire_size:c.tireSize||c.tire_size||'',created_at:c.date||c.created_at||new Date().toISOString(),updated_at:new Date().toISOString()}; }
 function mapOrder(o){ const paid=(o.paidAmount!=null)?o.paidAmount:(o.status==='paid'?(o.total||0):(o.paid_amount||0)); return {id:o.id,order_number:o.order_number||o.orderNumber||null,client_id:o.client_id||o.clientId||null,client_name:o.clientName||o.client_name||'',phone:o.phone||'',car:o.car||'',plate:o.plate||'',driver:o.driver||'',status:o.status||'new',total:o.total||0,paid_amount:paid,debt:Math.max(0,(o.total||0)-paid),payment_type:o.payment_type||o.paymentType||null,comment:o.notes||o.comment||'',created_at:o.date||o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()}; }
 function mapItems(o){ return (o.services||o.items||[]).map((s,i)=>({id:o.id+'_'+i,order_id:o.id,name:s.name||'',category:s.category||null,qty:s.qty||1,unit:s.unit||'шт',price:s.price||0,total:(s.price||0)*(s.qty||1),created_at:o.date||new Date().toISOString()})); }
-function mapServicesFromPrice(){ if(typeof PRICE_LIST==='undefined')return []; let cat='';const out=[]; PRICE_LIST.forEach(it=>{ if(it&&it.cat!=null){ cat=(typeof CAT_META!=='undefined'&&CAT_META[it.cat])?CAT_META[it.cat].name:String(it.cat); return; } if(it&&it.id!=null&&it.name){ out.push({id:'svc_'+it.id,name:it.name,category:cat,type:null,size:_rSize(it.name),unit:'шт',price:it.price||0,is_active:true,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}); } }); return out; }
+function mapServicesFromPrice(){ const out=[]; let cat=''; if(typeof PRICE_LIST!=='undefined'){ PRICE_LIST.forEach(it=>{ if(it&&it.cat!=null){ cat=(typeof CAT_META!=='undefined'&&CAT_META[it.cat])?CAT_META[it.cat].name:String(it.cat); return; } if(it&&it.id!=null&&it.name){ out.push({id:'svc_'+it.id,name:it.name,category:cat,type:null,size:_rSize(it.name),unit:'шт',price:effPrice(it),is_active:true,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}); } }); } (customServices||[]).forEach(c=>{ out.push({id:'svc_'+c.id,name:c.name,category:'Власні',type:null,size:'',unit:'шт',price:effPrice(c),is_active:true,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}); }); return out; }
 function mapProducts(){ const out=[]; (typeof warehouse!=='undefined'?warehouse:[]).forEach(w=>out.push({id:w.id,name:w.name||'',category:'Матеріали',sku:w.sku||null,qty:w.qty||0,min_qty:w.min_qty||0,buy_price:w.buy_price||0,sell_price:w.price||w.sell_price||0,image:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})); (typeof tires!=='undefined'?tires:[]).forEach(t=>out.push({id:t.id,name:((t.brand||'Шина')+' '+(t.size||'')).trim(),category:'Шини',sku:null,qty:t.qty||0,min_qty:0,buy_price:0,sell_price:t.price||0,image:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})); return out; }
 function mapCash(){ return (typeof cashbook!=='undefined'?cashbook:[]).map(c=>({id:c.id,type:c.type||'income',amount:c.amount||0,method:c.method||null,order_id:c.orderId||null,comment:c.desc||c.comment||'',created_at:c.date||new Date().toISOString()})); }
 async function _upsert(table,rows,conflict){ const s=getSupa(); if(!s||!navigator.onLine){ enqueue(table,rows); return {queued:true}; } try{ const {error}=await s.from(table).upsert(rows,{onConflict:conflict||'id'}); if(error){ enqueue(table,rows); return {error}; } return {ok:true}; }catch(e){ enqueue(table,rows); return {error:e}; } }
@@ -1673,7 +1702,7 @@ async function syncToSupabase(){ const s=getSupa(); if(!s){alert('Спочатк
 async function loadFromSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!_session){alert('Спочатку увійдіть у систему');return;} if(!confirm("Завантажити дані з Supabase і обʼєднати з локальними? Локальні записи НЕ видаляються."))return; const mergeById=(local,cloud)=>{const m={};(local||[]).forEach(x=>m[x.id]=x);cloud.forEach(x=>m[x.id]={...m[x.id],...x});return Object.values(m);}; try{ const cl=((await s.from('v4_clients').select('*')).data)||[]; const or=((await s.from('v4_orders').select('*')).data)||[]; const oi=((await s.from('v4_order_items').select('*')).data)||[]; clients=mergeById(clients,cl.map(c=>({id:c.id,name:c.name,phone:c.phone,car:c.car,plate:c.plate,driver:c.driver,note:c.note,tireSize:c.tire_size,date:c.created_at}))); save('clients',clients); const ibo={}; oi.forEach(i=>{(ibo[i.order_id]=ibo[i.order_id]||[]).push({id:i.id,name:i.name,price:+i.price,qty:+i.qty,unit:i.unit});}); const cloudOrders=or.map(o=>({id:o.id,date:o.created_at,clientName:o.client_name,phone:o.phone,car:o.car,plate:o.plate,driver:o.driver,total:+o.total,notes:o.comment,status:o.status,services:ibo[o.id]||[]})); orders=mergeById(orders,cloudOrders); save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderClients==='function')renderClients(); updateSyncStatus(); alert('Завантажено: клієнтів '+cl.length+', заказів '+or.length+', позицій '+oi.length); }catch(e){ alert('Помилка завантаження: '+e.message); } }
 let _sig={};
 function _collSig(n,a){ return n+':'+(a?a.length:0)+':'+(a?JSON.stringify(a).length:0); }
-async function gtAutoSync(){ if(!getSupa()||!navigator.onLine||!_session){updateSyncStatus();return;} await flushQueue(); const colls={'v4_clients':(clients||[]).map(mapClient),'v4_orders':(orders||[]).map(mapOrder),'v4_order_items':[].concat(...(orders||[]).map(mapItems)),'v4_cash_operations':mapCash()}; const s=getSupa(); for(const t in colls){ const sig=_collSig(t,colls[t]); if(sig!==_sig[t]&&colls[t].length){ try{ const {error}=await s.from(t).upsert(colls[t],{onConflict:'id'}); if(!error)_sig[t]=sig; }catch(e){} } else _sig[t]=sig; } updateSyncStatus(); }
+async function gtAutoSync(){ if(!getSupa()||!navigator.onLine||!_session){updateSyncStatus();return;} await flushQueue(); await assignServerNumbers(); const colls={'v4_clients':(clients||[]).map(mapClient),'v4_orders':(orders||[]).map(mapOrder),'v4_order_items':[].concat(...(orders||[]).map(mapItems)),'v4_cash_operations':mapCash()}; const s=getSupa(); for(const t in colls){ const sig=_collSig(t,colls[t]); if(sig!==_sig[t]&&colls[t].length){ try{ const {error}=await s.from(t).upsert(colls[t],{onConflict:'id'}); if(!error)_sig[t]=sig; }catch(e){} } else _sig[t]=sig; } updateSyncStatus(); }
 function updateSyncStatus(){ const el=document.getElementById('supaStatus'); if(!el)return; const cfg=!!(SUPA_CFG.url()&&SUPA_CFG.key()); el.textContent=(navigator.onLine?'🟢 Online':'🔴 Offline')+' · '+(cfg?'налаштовано':'НЕ налаштовано')+' · у черзі: '+_q().length; }
 function saveSupaCfg(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); localStorage.setItem('gt_supa_url',(u?u.value:'').trim()); localStorage.setItem('gt_supa_key',(k?k.value:'').trim()); _supaClient=null; getSupa(); updateSyncStatus(); flushQueue(); alert('Підключення збережено.'); }
 window.addEventListener('online',()=>{flushQueue();updateSyncStatus();});
