@@ -2714,8 +2714,8 @@ async function taiAiEvaluate(){
     const k=(typeof SUPA_CFG!=='undefined'&&SUPA_CFG.key)?SUPA_CFG.key():''; // публічний anon-ключ (безпечно)
     if(k){ headers['Authorization']='Bearer '+k; headers['apikey']=k; }
     const res=await fetch(ep,{method:'POST',headers,body:JSON.stringify({text})});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data=await res.json();
+    let data=null; try{ data=await res.json(); }catch(_){ }
+    if(!res.ok){ const dt=data?((data.error||'')+(data.detail?(' — '+(''+data.detail).slice(0,400)):'')):('HTTP '+res.status); throw new Error(dt||('HTTP '+res.status)); }
     taiAiRenderResult(data,text,false);
     if(st) st.textContent='';
     aiLogs.push({id:uid(),type:'ai-evaluate',input:text.slice(0,200),output:JSON.stringify(data).slice(0,300),createdAt:Date.now()}); save('aiLogs',aiLogs);
