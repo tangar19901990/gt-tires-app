@@ -1145,7 +1145,7 @@ function filterOrders(){
   document.getElementById('ordersList').innerHTML = html;
 }
 function nextOrderNumber(){ let n=parseInt(localStorage.getItem(LS_KEY+'orderSeq')||'0',10)||0; n++; try{localStorage.setItem(LS_KEY+'orderSeq',n);}catch(e){} return String(n).padStart(5,'0'); }
-function openNewOrder(){
+function openNewOrder(edit){
   openModal(`
     <div class="order-head"><h3 style="margin:0">🧾 Нове замовлення</h3><button class="btn btn-dark btn-sm" onclick="closeModal()">✕</button></div>
     <div class="order-layout">
@@ -1154,6 +1154,12 @@ function openNewOrder(){
         <div id="oRadius"></div>
         <div id="oQuick" style="margin-bottom:8px"></div>
         <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:10px">
+        <button type="button" class="btn btn-dark btn-sm" style="width:100%;margin-bottom:8px" onclick="toggleOrderNewSvc()">＋ Нова послуга (немає в прайсі)</button>
+        <div id="oNewSvcForm" style="display:none;flex-direction:column;gap:6px;margin-bottom:10px">
+          <input id="oNewSvcName" placeholder="Назва послуги">
+          <input id="oNewSvcPrice" type="number" inputmode="numeric" placeholder="Ціна ₴">
+          <button type="button" class="btn btn-red btn-sm" onclick="addOrderCustomSvc()">Додати в замовлення</button>
+        </div>
         <div id="oSvcPickList" class="osvc-grid"></div>
       </div>
       <aside class="order-cart">
@@ -1180,7 +1186,7 @@ function openNewOrder(){
         <div class="cart-total"><span>Разом</span><b id="oSvcTotal">0 ₴</b></div>
         <div class="cart-actions">
           <button class="btn btn-dark" onclick="closeModal()">Скасувати</button>
-          <button class="btn btn-red" onclick="saveNewOrder()">✅ Оформити</button>
+          <button class="btn btn-red" onclick="submitOrder()">✅ Оформити</button>
         </div>
       </aside>
     </div>
@@ -1197,6 +1203,17 @@ function openNewOrder(){
   renderSelectedSvcs();
   renderOrderMatPicker();
   renderOrderMats();
+  if(edit){
+    window._editOrderId=edit.id;
+    const set=(id,v)=>{const e=document.getElementById(id); if(e) e.value=(v==null?'':v);};
+    set('oClient',edit.clientName); set('oPhone',edit.phone); set('oCar',edit.car); set('oPlate',edit.plate);
+    set('oPayType',edit.paymentType||'cash'); set('oPaid',edit.paidAmount!=null?edit.paidAmount:''); set('oNotes',edit.notes);
+    window._orderSvcs=(edit.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
+    window._orderMats=(edit.materials||[]).map(m=>{ const cur=(window._stockIdx||{})[m.id]; return {id:m.id,name:m.name,qty:m.qty,src:m.src,max:(cur?cur.max:0)+(+m.qty||0)}; });
+    renderSelectedSvcs(); renderOrderMats(); renderOrderPickList();
+    const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='✏️ Редагувати #'+(edit.orderNumber||edit.id.slice(-6).toUpperCase());
+    const sb=document.querySelector('.cart-actions .btn-red'); if(sb) sb.textContent='💾 Зберегти зміни';
+  } else { window._editOrderId=null; }
 }
 function renderOrderCatBtns(){
   const el = document.getElementById('oSvcCatBtns');
@@ -1389,6 +1406,7 @@ function showOrderPrint(o){
     </div>
     <div class="gap-btns mt no-print">
       <button class="btn btn-red" onclick="printOrderNariad()">🖨️ Роздрукувати</button>
+      <button class="btn btn-dark" onclick="openEditOrder('${o.id}')">✏️ Редагувати</button>
       <button class="btn btn-dark" onclick="closeModal()">Закрити</button>
     </div>
   `);
@@ -1578,6 +1596,7 @@ function viewOrder(oid){
     </div>
     <div class="gap-btns mt no-print" style="flex-wrap:wrap">
       <button class="btn btn-red btn-sm" onclick="printOrderNariad()">🖨️ Друк</button>
+      <button class="btn btn-dark btn-sm" onclick="openEditOrder('${o.id}')">✏️ Редагувати</button>
       <label style="font-size:0.78rem;margin-top:6px">Статус</label>
       <select id="oStatus" style="flex:1">
         <option value="new" ${o.status==='new'?'selected':''}>Нове</option>
@@ -2166,44 +2185,113 @@ function taiMakeAd(){
 // ---- СКЛАД Б/У ----
 let taiStockFilter='all', taiStockQuery='';
 function taiStatusBadge(s){ const k=(s||'')[0]; return `<span class="tai-badge tai-b-${k}">${s||'—'}</span>`; }
+let taiStockView='cards';
+const TAI_DEAL=['куплено','реалізація','зберігання'];
+const TAI_PAY=['','оплачено','не оплачено','виплачено власнику','частково'];
+
+function taiClientName(id){ const c=(clients||[]).find(x=>x.id===id); return c?(c.name||c.phone||'клієнт'):''; }
+function taiClientOptions(sel){
+  return '<option value="">— не вказано —</option>'+(clients||[]).slice()
+    .sort((a,b)=>(''+(a.name||'')).localeCompare(''+(b.name||'')))
+    .map(c=>`<option value="${c.id}"${sel===c.id?' selected':''}>${(c.name||'Без імені')}${c.phone?' · '+c.phone:''}</option>`).join('');
+}
+function taiDealShort(dt){ return dt==='реалізація'?'реаліз.':(dt==='зберігання'?'зберіг.':'куплено'); }
+// прибуток без мутації (для відображення)
+function taiProfitOf(t){
+  const dt=t.dealType||'куплено';
+  const sale=+t.actualSalePrice||0, buy=+t.purchasePrice||0, payout=+t.payoutToClient||0, storage=+t.storagePrice||0;
+  if(dt==='реалізація') return sale>0?(sale-payout):0;
+  if(dt==='зберігання') return storage;
+  return sale>0?(sale-buy):0;
+}
+// розрахунок + запис у запис (при збереженні)
+function taiComputeProfit(t){
+  const dt=t.dealType||'куплено';
+  const sale=+t.actualSalePrice||0, payout=+t.payoutToClient||0;
+  if(dt==='реалізація'){ t.commissionAmount = sale>0?(sale-payout):0; t.profit=t.commissionAmount; }
+  else if(dt==='зберігання'){ t.commissionAmount=0; t.profit=+t.storagePrice||0; }
+  else { t.commissionAmount=0; t.profit = sale>0?(sale-(+t.purchasePrice||0)):0; }
+  return t.profit;
+}
+function taiPayBadge(t){
+  const p=t.paymentStatus||''; if(!p) return '';
+  const ic={'оплачено':'💵','не оплачено':'⏳','виплачено власнику':'👤','частково':'½'}[p]||'';
+  return `<span style="font-size:.72rem;color:var(--text-dim)">${ic} ${p}</span>`;
+}
+
 function renderTaiStock(){
   const b=document.getElementById('taiBody');
   const FILTERS=[['all','Всі'],['в наявності','В наявності'],['продано','Продано'],['резерв','Резерв'],['брак','Брак']];
   let list=usedTires.slice();
   if(taiStockFilter!=='all') list=list.filter(t=>t.status===taiStockFilter);
   const q=taiStockQuery.trim().toLowerCase();
-  if(q) list=list.filter(t=>[t.size,t.brand,t.model,t.dotYear,t.status,(''+t.treadPercent),(''+t.purchasePrice),(''+t.recommendedSalePrice)].join(' ').toLowerCase().includes(q));
+  if(q) list=list.filter(t=>[t.size,t.brand,t.model,t.dotYear,t.status,t.dealType,taiClientName(t.buyerClientId),(''+t.treadPercent),(''+t.purchasePrice),(''+t.actualSalePrice)].join(' ').toLowerCase().includes(q));
   list.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   const cnt=usedTires.length, inStock=usedTires.filter(t=>t.status==='в наявності').length;
-  const invVal=usedTires.filter(t=>t.status==='в наявності').reduce((s,t)=>s+(+t.purchasePrice||0),0);
+  const invVal=usedTires.filter(t=>t.status==='в наявності'&&(t.dealType||'куплено')==='куплено').reduce((s,t)=>s+(+t.purchasePrice||0),0);
+  const soldProfit=usedTires.filter(t=>t.status==='продано').reduce((s,t)=>s+taiProfitOf(t),0);
   let html=`
   <div class="stats-grid" style="margin-bottom:12px">
     ${_statCard(cnt,'Всього шин')}
     ${_statCard(inStock,'В наявності')}
-    ${_statCard(fmtMoney(invVal),'Вкладено (в наявн.)')}
+    ${_statCard(fmtMoney(invVal),'Вкладено')}
+    ${_statCard(fmtMoney(soldProfit),'Прибуток (продано)')}
   </div>
   <div class="flex-between mb">
-    <input id="taiSearch" placeholder="🔎 розмір, бренд, протектор, ціна…" value="${taiStockQuery.replace(/"/g,'&quot;')}" oninput="taiStockQuery=this.value;renderTaiStock();setTimeout(()=>{const e=document.getElementById('taiSearch');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}},0)">
+    <input id="taiSearch" placeholder="🔎 розмір, бренд, ціна, покупець…" value="${taiStockQuery.replace(/"/g,'&quot;')}" oninput="taiStockQuery=this.value;renderTaiStock();setTimeout(()=>{const e=document.getElementById('taiSearch');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}},0)">
     <button class="btn btn-red" onclick="taiNewUsedTire()" style="flex:0 0 auto;margin-left:8px">＋ Додати</button>
   </div>
-  <div id="taiTabs2" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px">
+  <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px">
     ${FILTERS.map(f=>`<button class="tai-tab${taiStockFilter===f[0]?' active':''}" onclick="taiStockFilter='${f[0]}';renderTaiStock()">${f[1]}</button>`).join('')}
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button class="tai-tab${taiStockView==='cards'?' active':''}" onclick="taiStockView='cards';renderTaiStock()">🗂 Картки</button>
+    <button class="tai-tab${taiStockView==='table'?' active':''}" onclick="taiStockView='table';renderTaiStock()">📊 Таблиця</button>
   </div>`;
-  if(!list.length){ html+=`<div class="tai-soon">Порожньо. Додайте шину з калькулятора або кнопкою «Додати».</div>`; }
-  else html+=list.map(t=>{
-    const profit=(t.actualSalePrice? (t.actualSalePrice-(+t.purchasePrice||0)) : null);
+  if(!list.length){ b.innerHTML=html+`<div class="tai-soon">Порожньо. Додайте шину з калькулятора або кнопкою «Додати».</div>`; return; }
+
+  if(taiStockView==='table'){
+    html+=`<div class="tbl-wrap"><table><thead><tr><th>Шина</th><th>Купівля</th><th>Продаж</th><th>Прибуток</th><th>Статус</th><th></th></tr></thead><tbody>`;
+    html+=list.map(t=>{
+      const dt=t.dealType||'куплено';
+      const buyCol = dt==='куплено' ? fmtMoney(t.purchasePrice||0) : (dt==='реалізація'?'реаліз.':'зберіг.');
+      const sale = t.actualSalePrice ? fmtMoney(t.actualSalePrice) : '—';
+      const pr = taiProfitOf(t);
+      const prCol = (t.status==='продано'||pr) ? `<b style="color:${pr>=0?'var(--green)':'var(--accent)'}">${fmtMoney(pr)}</b>` : '—';
+      return `<tr onclick="taiEditUsedTire('${t.id}')" style="cursor:pointer">
+        <td>${[t.brand,t.model].filter(Boolean).join(' ')||'—'}<br><small style="color:var(--text-dim)">${t.size||''} · ${taiDealShort(dt)}</small></td>
+        <td>${buyCol}</td><td>${sale}</td><td>${prCol}</td>
+        <td>${taiStatusBadge(t.status)}${t.paymentStatus?'<br>'+taiPayBadge(t):''}</td>
+        <td style="white-space:nowrap"><button class="btn btn-dark btn-sm" onclick="event.stopPropagation();taiSetStatus('${t.id}')">📌</button> <button class="btn btn-dark btn-sm" onclick="event.stopPropagation();taiDelUsedTire('${t.id}')">🗑</button></td>
+      </tr>`;
+    }).join('');
+    html+=`</tbody></table></div>`;
+    b.innerHTML=html; return;
+  }
+
+  // cards
+  html+=list.map(t=>{
+    const dt=t.dealType||'куплено';
+    const pr=taiProfitOf(t);
+    const fin=[];
+    if(dt==='куплено') fin.push('Купівля: <b>'+fmtMoney(t.purchasePrice||0)+'</b>');
+    if(dt==='реалізація'){ if(t.ownerExpected) fin.push('Власник хоче: '+fmtMoney(t.ownerExpected)); if(t.payoutToClient) fin.push('Виплата: '+fmtMoney(t.payoutToClient)); }
+    if(dt==='зберігання'&&t.storagePrice) fin.push('Зберігання: '+fmtMoney(t.storagePrice));
+    fin.push('Реком: '+fmtMoney(t.recommendedSalePrice||0));
+    if(t.actualSalePrice) fin.push('Продаж: <b>'+fmtMoney(t.actualSalePrice)+'</b>');
+    if(t.status==='продано'||pr) fin.push((dt==='реалізація'?'Комісія: ':'Прибуток: ')+'<b style="color:'+(pr>=0?'var(--green)':'var(--accent)')+'">'+fmtMoney(pr)+'</b>');
     return `<div class="tai-card">
       <div class="row">
         ${t.photo?`<img class="tai-thumb" src="${t.photo}">`:''}
         <div style="flex:1;min-width:0">
           <div style="font-weight:700">${[t.brand,t.model].filter(Boolean).join(' ')||'Без назви'} · ${t.size||''}</div>
-          <div style="font-size:.78rem;color:var(--text-dim)">DOT ${t.dotYear||'—'} · протектор ${t.treadPercent||0}% · боковина ${t.sidewallCond||'—'}</div>
-          <div style="font-size:.82rem;margin-top:3px">Куплено: <b>${fmtMoney(t.purchasePrice||0)}</b> · Реком: ${fmtMoney(t.recommendedSalePrice||0)}${t.actualSalePrice?` · Продано: <b>${fmtMoney(t.actualSalePrice)}</b>`:''}${profit!=null?` · Прибуток: <b style="color:${profit>=0?'var(--green)':'var(--accent)'}">${fmtMoney(profit)}</b>`:''}</div>
-          <div style="margin-top:5px">${taiStatusBadge(t.status)}</div>
+          <div style="font-size:.76rem;color:var(--text-dim)">${taiDealShort(dt)} · DOT ${t.dotYear||'—'} · протектор ${t.treadPercent||0}%${t.buyerClientId?' · покупець '+taiClientName(t.buyerClientId):''}</div>
+          <div style="font-size:.82rem;margin-top:3px">${fin.join(' · ')}</div>
+          <div style="margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${taiStatusBadge(t.status)} ${taiPayBadge(t)}</div>
         </div>
       </div>
       <div class="gap-btns mt" style="margin-top:8px">
-        <button class="btn btn-dark btn-sm" onclick="taiSetStatus('${t.id}')">📌 Статус</button>
+        <button class="btn btn-dark btn-sm" onclick="taiSetStatus('${t.id}')">📌 Угода/статус</button>
         <button class="btn btn-dark btn-sm" onclick="taiEditUsedTire('${t.id}')">✏️</button>
         <button class="btn btn-dark btn-sm" onclick="taiDelUsedTire('${t.id}')">🗑</button>
       </div>
@@ -2215,81 +2303,128 @@ function taiAddToStock(){
   if(!_taiLast){ alert('Спочатку зробіть розрахунок'); return; }
   const {d,r}=_taiLast;
   taiUsedTireModal(null,{
+    dealType:'куплено',
     size:d.size,brand:d.brand,model:d.model,dotYear:d.dotYear,treadMm:d.curTreadMm,treadPercent:r.treadPercent,
     sidewallCond:d.sidewallCond,sidewallRepair:d.sidewallRepair,patches:d.patches,plugs:d.plugs,bigRepairs:d.bigRepairs,
     purchasePrice:r.maxBuy,recommendedSalePrice:r.saleRec,photo:d.photo,status:'в наявності'
   });
 }
-function taiNewUsedTire(){ taiUsedTireModal(null,{status:'в наявності',treadPercent:0}); }
+function taiNewUsedTire(){ taiUsedTireModal(null,{dealType:'куплено',status:'в наявності',treadPercent:0}); }
 function taiEditUsedTire(id){ const t=usedTires.find(x=>x.id===id); if(t) taiUsedTireModal(id,t); }
 function taiUsedTireModal(id,t){
   t=t||{}; window._taiModalPhoto=t.photo||'';
+  const dt=t.dealType||'куплено';
+  const esc=v=>(''+(v==null?'':v)).replace(/"/g,'&quot;');
   openModal(`<h3>${id?'Редагувати':'Шина в склад'} (попередній перегляд)</h3>
-    <div class="tai-grid">
-      <div class="full"><label>Розмір *</label><input id="uSize" value="${(t.size||'').replace(/"/g,'&quot;')}"></div>
-      <div><label>Бренд</label><input id="uBrand" value="${(t.brand||'').replace(/"/g,'&quot;')}"></div>
-      <div><label>Модель</label><input id="uModel" value="${(t.model||'').replace(/"/g,'&quot;')}"></div>
-      <div><label>DOT / рік</label><input id="uDot" value="${(t.dotYear||'').toString().replace(/"/g,'&quot;')}"></div>
+    <label>Тип угоди</label>
+    <select id="uDeal" onchange="taiDealToggle()">${TAI_DEAL.map(s=>`<option value="${s}"${dt===s?' selected':''}>${s}</option>`).join('')}</select>
+    <div class="tai-grid" style="margin-top:8px">
+      <div class="full"><label>Розмір *</label><input id="uSize" value="${esc(t.size)}"></div>
+      <div><label>Бренд</label><input id="uBrand" value="${esc(t.brand)}"></div>
+      <div><label>Модель</label><input id="uModel" value="${esc(t.model)}"></div>
+      <div><label>DOT / рік</label><input id="uDot" value="${esc(t.dotYear)}"></div>
       <div><label>Протектор, %</label><input id="uTreadP" type="number" value="${t.treadPercent||0}"></div>
       <div><label>Глибина, мм</label><input id="uTreadMm" type="number" value="${t.treadMm||''}"></div>
       <div><label>Боковина</label><select id="uSide">${TAI_SIDE.map(s=>`<option value="${s}"${t.sidewallCond===s?' selected':''}>${s}</option>`).join('')}</select></div>
-      <div><label>Закупівля, ₴ *</label><input id="uBuy" type="number" value="${t.purchasePrice||''}"></div>
+      <div id="uBuyWrap"><label>Закупівля, ₴</label><input id="uBuy" type="number" value="${t.purchasePrice||''}"></div>
       <div><label>Реком. продаж, ₴</label><input id="uSale" type="number" value="${t.recommendedSalePrice||''}"></div>
+      <div id="uOwnerWrap"><label>Власник хоче, ₴</label><input id="uOwner" type="number" value="${t.ownerExpected||''}"></div>
+      <div id="uPayoutWrap"><label>Виплата власнику, ₴</label><input id="uPayout" type="number" value="${t.payoutToClient||''}"></div>
+      <div id="uStorageWrap"><label>Плата за зберігання, ₴</label><input id="uStorage" type="number" value="${t.storagePrice||''}"></div>
       <div><label>Статус</label><select id="uStatus">${TAI_STATUS.map(s=>`<option value="${s}"${t.status===s?' selected':''}>${s}</option>`).join('')}</select></div>
-      <div class="full"><label>Джерело покупки</label><input id="uSource" value="${(t.source||'').replace(/"/g,'&quot;')}" placeholder="OLX / клієнт / обмін…"></div>
-      <div class="full"><label>Примітки</label><input id="uNotes" value="${(t.notes||'').replace(/"/g,'&quot;')}"></div>
+      <div class="full"><label>Джерело покупки</label><input id="uSource" value="${esc(t.source)}" placeholder="OLX / клієнт / обмін…"></div>
+      <div class="full"><label>Примітки</label><input id="uNotes" value="${esc(t.notes)}"></div>
       <div class="full"><label>Фото</label><input type="file" id="uPhoto" accept="image/*" onchange="taiModalPhoto(this)"><span id="uPhotoNote" style="font-size:.75rem;color:var(--text-dim)">${t.photo?'✅ фото є':''}</span></div>
     </div>
     <div class="gap-btns mt">
       <button class="btn btn-red" onclick="taiSaveUsedTire(${id?`'${id}'`:'null'})">💾 Зберегти</button>
       <button class="btn btn-dark" onclick="closeModal()">Скасувати</button>
     </div>`);
+  taiDealToggle();
+}
+function taiDealToggle(){
+  const dt=_taiGet('uDeal')||'куплено';
+  const show=(id,on)=>{const e=document.getElementById(id);if(e)e.style.display=on?'block':'none';};
+  show('uBuyWrap', dt==='куплено');
+  show('uOwnerWrap', dt==='реалізація');
+  show('uPayoutWrap', dt==='реалізація');
+  show('uStorageWrap', dt==='зберігання');
 }
 function taiModalPhoto(input){
   const note=document.getElementById('uPhotoNote'); if(note) note.textContent='стискаю…';
   taiCompressPhoto(input,dataUrl=>{ window._taiModalPhoto=dataUrl; if(note) note.textContent=dataUrl?'✅ фото додано':''; });
 }
 function taiSaveUsedTire(id){
-  const size=_taiGet('uSize'), buy=_taiNum('uBuy');
+  const dealType=_taiGet('uDeal')||'куплено';
+  const size=_taiGet('uSize');
   if(!size){ alert('Вкажіть розмір'); return; }
+  if(dealType==='куплено' && !_taiNum('uBuy')){ alert('Для угоди «куплено» вкажіть ціну закупівлі'); return; }
   const rec={
-    size, brand:_taiGet('uBrand'), model:_taiGet('uModel'), dotYear:_taiGet('uDot'),
+    dealType, size, brand:_taiGet('uBrand'), model:_taiGet('uModel'), dotYear:_taiGet('uDot'),
     treadPercent:_taiNum('uTreadP'), treadMm:_taiNum('uTreadMm'), sidewallCond:_taiGet('uSide'),
-    purchasePrice:buy, recommendedSalePrice:_taiNum('uSale'), status:_taiGet('uStatus'),
-    source:_taiGet('uSource'), notes:_taiGet('uNotes'), photo:window._taiModalPhoto||''
+    purchasePrice:_taiNum('uBuy'), recommendedSalePrice:_taiNum('uSale'),
+    ownerExpected:_taiNum('uOwner'), payoutToClient:_taiNum('uPayout'), storagePrice:_taiNum('uStorage'),
+    status:_taiGet('uStatus'), source:_taiGet('uSource'), notes:_taiGet('uNotes'), photo:window._taiModalPhoto||''
   };
-  if(id){ const t=usedTires.find(x=>x.id===id); if(t){ Object.assign(t,rec); t.updatedAt=Date.now(); } }
-  else { usedTires.push(Object.assign({id:uid(),createdAt:Date.now(),actualSalePrice:0,profit:0},rec)); }
+  let target;
+  if(id){ target=usedTires.find(x=>x.id===id); if(target){ Object.assign(target,rec); target.updatedAt=Date.now(); } }
+  else { target=Object.assign({id:uid(),createdAt:Date.now(),actualSalePrice:0,profit:0,commissionAmount:0,buyerClientId:'',saleDate:'',paymentStatus:''},rec); usedTires.push(target); }
+  if(target) taiComputeProfit(target);
   save('usedTires',usedTires);
   window._taiModalPhoto=''; closeModal(); taiSub='stock'; renderTireAI();
 }
 function taiSetStatus(id){
   const t=usedTires.find(x=>x.id===id); if(!t) return;
-  openModal(`<h3>📌 Статус — ${[t.brand,t.size].filter(Boolean).join(' ')}</h3>
+  const dt=t.dealType||'куплено';
+  const today=new Date().toLocaleDateString('uk-UA');
+  openModal(`<h3>📌 Угода — ${[t.brand,t.size].filter(Boolean).join(' ')} <span style="font-size:.7rem;color:var(--text-dim)">(${dt})</span></h3>
     <label>Статус</label>
-    <select id="stStatus" onchange="document.getElementById('stSaleWrap').style.display=this.value==='продано'?'block':'none'">
+    <select id="stStatus" onchange="taiStatusToggle()">
       ${TAI_STATUS.map(s=>`<option value="${s}"${t.status===s?' selected':''}>${s}</option>`).join('')}
     </select>
     <div id="stSaleWrap" style="display:${t.status==='продано'?'block':'none'};margin-top:8px">
-      <label>Фактична ціна продажу, ₴</label><input id="stSale" type="number" value="${t.actualSalePrice||t.recommendedSalePrice||''}">
+      <label>Фактична ціна продажу, ₴</label><input id="stSale" type="number" value="${t.actualSalePrice||t.recommendedSalePrice||''}" oninput="taiStatusToggle()">
+      ${dt==='реалізація'?`<label>Виплата власнику, ₴</label><input id="stPayout" type="number" value="${t.payoutToClient||t.ownerExpected||''}" oninput="taiStatusToggle()">`:''}
+      <label>Дата продажу</label><input id="stDate" value="${t.saleDate||today}">
+      <label>Покупець (клієнт)</label><select id="stBuyer">${taiClientOptions(t.buyerClientId)}</select>
+      <label>Статус оплати</label><select id="stPay">${TAI_PAY.map(p=>`<option value="${p}"${(t.paymentStatus||'')===p?' selected':''}>${p||'—'}</option>`).join('')}</select>
+      <div id="stCalc" style="margin-top:8px;font-size:.85rem;color:var(--text-dim)"></div>
     </div>
     <div class="gap-btns mt">
       <button class="btn btn-red" onclick="taiSaveStatus('${id}')">💾 Зберегти</button>
       <button class="btn btn-dark" onclick="closeModal()">Скасувати</button>
     </div>`);
+  taiStatusToggle();
+}
+function taiStatusToggle(){
+  const wrap=document.getElementById('stSaleWrap'); if(!wrap) return;
+  const sold=_taiGet('stStatus')==='продано';
+  wrap.style.display=sold?'block':'none';
+  const calc=document.getElementById('stCalc'); if(!calc) return;
+  const sale=_taiNum('stSale');
+  const hasPayout=document.getElementById('stPayout')!==null;
+  if(hasPayout){ const payout=_taiNum('stPayout'); const com=sale-payout; calc.innerHTML=`Комісія = продаж − виплата = <b>${fmtMoney(com)}</b> (це і є прибуток)`; }
+  else { calc.innerHTML=''; }
 }
 function taiSaveStatus(id){
   const t=usedTires.find(x=>x.id===id); if(!t) return;
   t.status=_taiGet('stStatus');
-  if(t.status==='продано'){ t.actualSalePrice=_taiNum('stSale'); t.profit=(t.actualSalePrice||0)-(+t.purchasePrice||0); }
-  else { t.actualSalePrice=0; t.profit=0; }
+  if(t.status==='продано'){
+    t.actualSalePrice=_taiNum('stSale');
+    t.saleDate=_taiGet('stDate')||new Date().toLocaleDateString('uk-UA');
+    t.buyerClientId=_taiGet('stBuyer');
+    t.paymentStatus=_taiGet('stPay');
+    if((t.dealType||'куплено')==='реалізація') t.payoutToClient=_taiNum('stPayout');
+  } else {
+    t.actualSalePrice=0; t.saleDate=''; t.buyerClientId=''; t.paymentStatus='';
+  }
+  taiComputeProfit(t);
   t.updatedAt=Date.now(); save('usedTires',usedTires); closeModal(); renderTaiStock();
 }
 function taiDelUsedTire(id){
   if(!confirm('Видалити цю шину зі складу Б/У?')) return;
   usedTires=usedTires.filter(x=>x.id!==id); save('usedTires',usedTires); renderTaiStock();
 }
-
 // ---- стиснення фото (≤700px, jpeg q0.55) для економії localStorage ----
 function taiCompressPhoto(input,cb){
   const f=input.files&&input.files[0]; if(!f){ cb(''); return; }
@@ -2459,6 +2594,83 @@ function taiPullMarketToCalc(){
   if(note) note.innerHTML='🔎 Ринкова ціна нової: реком. '+fmtMoney(mk.recPrice||0)+' · середня '+fmtMoney(mk.avgPrice||0)+' (перевірено '+(mk.checkedAt||'—')+')';
 }
 
+
+// ==================== РЕДАГУВАННЯ ЗАКАЗУ + НОВА ПОСЛУГА В ЗАКАЗІ ====================
+function submitOrder(){ if(window._editOrderId) saveEditedOrder(window._editOrderId); else saveNewOrder(); }
+function openEditOrder(oid){ const o=orders.find(x=>x.id===oid); if(!o) return; openNewOrder(o); }
+
+// створити послугу, якої немає в прайсі, прямо в заказі (і зберегти для повторного використання)
+function toggleOrderNewSvc(){
+  const f=document.getElementById('oNewSvcForm'); if(!f) return;
+  const show=f.style.display==='none'||!f.style.display;
+  f.style.display=show?'flex':'none';
+  if(show){ const n=document.getElementById('oNewSvcName'); if(n) n.focus(); }
+}
+function addOrderCustomSvc(){
+  const name=(document.getElementById('oNewSvcName')||{}).value;
+  const nm=(name||'').trim();
+  const price=parseFloat((document.getElementById('oNewSvcPrice')||{}).value)||0;
+  if(!nm){ alert('Вкажіть назву послуги'); return; }
+  const maxId=(customServices||[]).reduce((m,x)=>Math.max(m,x.id),9000);
+  const id=maxId+1;
+  customServices.push({id,name:nm,price}); save('customSvc',customServices);
+  addOrderSvc(id);
+  const ne=document.getElementById('oNewSvcName'); if(ne) ne.value='';
+  const pe=document.getElementById('oNewSvcPrice'); if(pe) pe.value='';
+  const f=document.getElementById('oNewSvcForm'); if(f) f.style.display='none';
+  if(typeof renderPrice==='function') renderPrice();
+}
+
+// зберегти зміни існуючого заказу (із синхронізацією каси і складу)
+function saveEditedOrder(oid){
+  const o=orders.find(x=>x.id===oid);
+  if(!o){ window._editOrderId=null; return saveNewOrder(); }
+  const services=window._orderSvcs||[];
+  if(!services.length){ alert('Оберіть хоча б одну послугу'); return; }
+  let total=0; services.forEach(s=>{ total+=s.price*s.qty; });
+  const g=id=>{ const e=document.getElementById(id); return e?e.value:''; };
+
+  // 1) повертаємо НА СКЛАД старі списані матеріали
+  (o.materials||[]).forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=(+it.qty||0)+(+mt.qty||0); } });
+
+  // 2) оновлюємо поля заказу (id / номер / дату не чіпаємо)
+  o.clientName=g('oClient').trim();
+  o.phone=g('oPhone').trim();
+  o.car=g('oCar').trim();
+  o.plate=g('oPlate').trim();
+  o.paymentType=g('oPayType')||'cash';
+  o.notes=g('oNotes').trim();
+  o.services=services;
+  o.total=total;
+  o.materials=(window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src}));
+  { const pe=document.getElementById('oPaid'); let p=(pe&&pe.value!=='')?(parseFloat(pe.value)||0):(total||0); if(p<0)p=0; if(p>total)p=total; o.paidAmount=p; o.debt=Math.max(0,total-p); }
+  o.updatedAt=new Date().toISOString();
+
+  // 3) списуємо НОВІ матеріали
+  (o.materials||[]).forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=Math.max(0,(+it.qty||0)-(+mt.qty||0)); } });
+  save('tires',tires); save('warehouse',warehouse);
+  if(typeof renderTires==='function') renderTires();
+  if(typeof renderWarehouse==='function') renderWarehouse();
+
+  // 4) синхронізуємо касу: прибрати старі записи цього заказу, додати один актуальний
+  cashbook=cashbook.filter(c=>c.orderId!==o.id);
+  if(o.paidAmount>0){ cashbook.push({id:uid(),date:o.date,type:'income',amount:o.paidAmount,method:o.paymentType||'cash',desc:'Замовлення #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+o.clientName,orderId:o.id}); }
+  save('cash',cashbook);
+  if(typeof renderCash==='function') renderCash();
+
+  // 5) клієнт (як у створенні)
+  if((o.clientName||'').trim() || o.phone){
+    let ex=o.phone?findClientByPhone(o.phone):null;
+    if(!ex && o.clientName) ex=findClientByName(o.clientName);
+    if(ex){ if(o.clientName) ex.name=o.clientName; if(o.phone) ex.phone=o.phone; if(o.car) ex.car=o.car; if(o.plate) ex.plate=o.plate; ex.lastVisit=o.date; }
+    else { clients.push({id:uid(),name:o.clientName||'',phone:o.phone||'',car:o.car||'',plate:o.plate||'',date:o.date,lastVisit:o.date}); }
+    save('clients',clients);
+  }
+
+  save('orders',orders); renderOrders(); renderClients();
+  window._editOrderId=null;
+  closeModal(); viewOrder(o.id);
+}
 
 function init(){
   if(topSecret){ document.body.classList.add('ts-active'); document.getElementById('tsToggle').textContent='🔒 Деактивувати'; document.getElementById('tsToggle').classList.add('btn-green'); document.getElementById('tsToggle').classList.remove('btn-red'); }
