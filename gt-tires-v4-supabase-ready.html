@@ -2057,10 +2057,11 @@ function taiGo(sub){ taiSub=sub; renderTireAI(); }
 function renderTireAI(){
   const tabsEl=document.getElementById('taiTabs'), bodyEl=document.getElementById('taiBody');
   if(!tabsEl||!bodyEl) return;
-  const TABS=[['calc','🧮 Калькулятор Б/У'],['stock','📦 Склад Б/У'],['market','🔎 Перевірити ринок'],['new','🆕 Нові шини'],['photo','📷 Фото'],['voice','🎤 Голос']];
+  const TABS=[['calc','🧮 Калькулятор Б/У'],['stock','📦 Склад Б/У'],['ai','🤖 AI оцінка'],['market','🔎 Перевірити ринок'],['new','🆕 Нові шини'],['photo','📷 Фото'],['voice','🎤 Голос']];
   tabsEl.innerHTML=TABS.map(t=>`<button class="tai-tab${taiSub===t[0]?' active':''}" onclick="taiGo('${t[0]}')">${t[1]}</button>`).join('');
   if(taiSub==='calc') renderTaiCalc();
   else if(taiSub==='stock') renderTaiStock();
+  else if(taiSub==='ai') renderTaiAI();
   else if(taiSub==='market'||taiSub==='new') renderTaiMarket();
   else bodyEl.innerHTML = taiSoon(taiSub);
 }
@@ -2671,6 +2672,134 @@ function saveEditedOrder(oid){
   window._editOrderId=null;
   closeModal(); viewOrder(o.id);
 }
+
+// ==================== ШИНИ AI — AI ОЦІНКА ШИНИ (по тексту, через бекенд) ====================
+// Ключ OpenAI НЕ зберігається у фронті. Фронт лише шле текст на endpoint (Edge Function).
+// AI нічого не пише сам: «Додати в склад» відкриває форму підтвердження.
+function taiAiEndpoint(){
+  const saved=loadVal('aiEndpoint'); if(saved) return saved;
+  const u=(typeof SUPA_CFG!=='undefined'&&SUPA_CFG.url)?SUPA_CFG.url():''; 
+  if(u) return u.replace(/\/+$/,'')+'/functions/v1/ai-evaluate-tire';
+  return '';
+}
+function taiAiSaveEndpoint(){ const e=document.getElementById('aiEndpoint'); saveVal('aiEndpoint', e?e.value.trim():''); renderTaiAI(); }
+function renderTaiAI(){
+  const b=document.getElementById('taiBody'); if(!b) return;
+  const ep=taiAiEndpoint(); const saved=loadVal('aiEndpoint')||'';
+  b.innerHTML=`
+  <div class="card">
+    <h3 style="margin-bottom:10px">🤖 AI оцінка шини (по тексту)</h3>
+    <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:8px">Опиши шину одним рядком — AI поверне структуровану оцінку. Ключ OpenAI лише на бекенді (Edge Function), не в застосунку. AI нічого не записує сам — спершу підтвердження.</div>
+    <textarea id="aiText" rows="3" placeholder="Michelin 385/65 R22.5 2021 рік 11 мм 2 ремонти, боковина ціла"></textarea>
+    <div class="gap-btns mt">
+      <button class="btn btn-red" onclick="taiAiEvaluate()">🤖 Оцінити (AI)</button>
+      <button class="btn btn-dark" onclick="taiAiLocalParse()">📝 Розібрати локально</button>
+    </div>
+    <div id="aiStatus" style="font-size:.8rem;color:var(--accent);min-height:18px;margin-top:6px"></div>
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-size:.8rem;color:var(--text-dim)">⚙️ Endpoint (бекенд)</summary>
+      <label style="margin-top:6px;display:block">URL вашої Edge Function</label>
+      <input id="aiEndpoint" value="${saved.replace(/"/g,'&quot;')}" placeholder="${ep||'https://&lt;проєкт&gt;.supabase.co/functions/v1/ai-evaluate-tire'}">
+      <button class="btn btn-dark btn-sm mt" onclick="taiAiSaveEndpoint()">💾 Зберегти endpoint</button>
+      <div style="font-size:.74rem;color:var(--text-dim);margin-top:6px">${ep?('Поточний: '+ep):'Не налаштовано — розгорни Edge Function (файл ai-evaluate-tire.ts).'}</div>
+    </details>
+  </div>
+  <div id="aiResult"></div>`;
+}
+async function taiAiEvaluate(){
+  const ta=document.getElementById('aiText'); const text=ta?ta.value.trim():'';
+  if(!text){ alert('Введіть опис шини'); return; }
+  const ep=taiAiEndpoint(); const st=document.getElementById('aiStatus');
+  if(!ep){ if(st) st.innerHTML='⚠️ Endpoint не налаштовано. Розгорни Edge Function або натисни «Розібрати локально».'; return; }
+  if(st) st.textContent='⏳ AI оцінює…';
+  try{
+    const headers={'Content-Type':'application/json'};
+    const k=(typeof SUPA_CFG!=='undefined'&&SUPA_CFG.key)?SUPA_CFG.key():''; // публічний anon-ключ (безпечно)
+    if(k){ headers['Authorization']='Bearer '+k; headers['apikey']=k; }
+    const res=await fetch(ep,{method:'POST',headers,body:JSON.stringify({text})});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    taiAiRenderResult(data,text,false);
+    if(st) st.textContent='';
+    aiLogs.push({id:uid(),type:'ai-evaluate',input:text.slice(0,200),output:JSON.stringify(data).slice(0,300),createdAt:Date.now()}); save('aiLogs',aiLogs);
+  }catch(e){ if(st) st.innerHTML='❌ '+e.message+'. Перевір endpoint або скористайся локальним розбором.'; }
+}
+// локальний розбір без AI (regex) — щоб працювало одразу, поки бекенд не готовий
+function taiAiLocalParse(){
+  const ta=document.getElementById('aiText'); const text=ta?ta.value.trim():'';
+  if(!text){ alert('Введіть опис шини'); return; }
+  const size=((text.match(/\d{3}\/\d{2}\s?R?\s?\d{2}(?:\.\d)?/i)||[''])[0]||'').replace(/\s+/g,'');
+  const year=parseInt((text.match(/\b(19|20)\d{2}\b/)||[''])[0])||0;
+  const tread=parseFloat(((text.match(/(\d{1,2}(?:[.,]\d)?)\s?мм/i)||[,0])[1]+'').replace(',','.'))||0;
+  const brand=((text.match(/\b(Michelin|Bridgestone|Goodyear|Continental|Hankook|Nokian|Pirelli|Dunlop|Yokohama|Toyo|Kumho|Barum|Rosava|Matador|Agate|Triangle|Aeolus|Sailun|Doublecoin)\b/i)||[''])[0])||((text.match(/^([A-ZА-ЯІЇЄ][\wа-яіїє]{2,})/)||[,''])[1]||'');
+  const rm=(text.match(/(\d+)\s*ремонт/i)||[,''])[1];
+  const side=/боковина\s*(ціла|добр)/i.test(text)?'добра':(/(погана|пошкодж|тріщин)/i.test(text)?'погана':'');
+  taiAiRenderResult({
+    brand:brand||'',size:size||'',year:year||0,tread_mm:tread||0,
+    repairs:rm?(rm+' ремонт(и)'):'',condition_score:0,risk:'',
+    max_buy_price:0,recommended_sell_price_min:0,recommended_sell_price_max:0,
+    decision:'',comment:'Локальний розбір (без AI). Перевірте дані, ціну можна порахувати в калькуляторі.',_sidewall:side
+  },text,false);
+}
+function taiAiRenderResult(d,text,edit){
+  window._taiAiResult={d,text};
+  const el=document.getElementById('aiResult'); if(!el) return;
+  const dec=(d.decision||''); const decCls=/не\s*купув/i.test(dec)?'red':(/торг/i.test(dec)?'yellow':(/купув/i.test(dec)?'green':'yellow'));
+  if(edit){
+    const num=['year','tread_mm','condition_score','max_buy_price','recommended_sell_price_min','recommended_sell_price_max'];
+    const F=(label,key)=>{ const isN=num.indexOf(key)>-1; return `<div><label>${label}</label><input ${isN?'type="number"':''} value="${(''+(d[key]==null?'':d[key])).replace(/"/g,'&quot;')}" oninput="window._taiAiResult.d['${key}']=this.${isN?'value===\'\'?0:(+this.value||0)':'value'}"></div>`; };
+    el.innerHTML=`<div class="card mt"><h3 style="margin-bottom:8px">✏️ Редагування оцінки</h3>
+      <div class="tai-grid">
+        ${F('Бренд','brand')}${F('Розмір','size')}${F('Рік','year')}${F('Протектор, мм','tread_mm')}
+        ${F('Ремонти','repairs')}${F('Оцінка стану','condition_score')}${F('Ризик','risk')}${F('Рішення','decision')}
+        ${F('Макс. покупка, ₴','max_buy_price')}${F('Продаж від, ₴','recommended_sell_price_min')}${F('Продаж до, ₴','recommended_sell_price_max')}
+        <div class="full"><label>Коментар</label><input value="${(''+(d.comment||'')).replace(/"/g,'&quot;')}" oninput="window._taiAiResult.d['comment']=this.value"></div>
+      </div>
+      <div class="gap-btns mt">
+        <button class="btn btn-green" onclick="taiAiRenderResult(window._taiAiResult.d,window._taiAiResult.text,false)">✅ Готово</button>
+        <button class="btn btn-dark" onclick="taiAiAddToStock()">＋ Додати в склад</button>
+      </div></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="card mt">
+    <div class="tai-decision tai-dec-${decCls}">${dec||'Оцінка готова'}</div>
+    <div style="font-weight:700;margin-top:8px">${[d.brand,d.size].filter(Boolean).join(' ')||'—'} ${d.year?('· '+d.year):''}</div>
+    <div class="tai-res mt">
+      <div class="tai-metric"><div class="v">${d.tread_mm||0} мм</div><div class="l">Протектор</div></div>
+      <div class="tai-metric"><div class="v">${d.condition_score||0}</div><div class="l">Оцінка стану</div></div>
+      <div class="tai-metric"><div class="v">${fmtMoney(d.max_buy_price||0)}</div><div class="l">Макс. покупка</div></div>
+      <div class="tai-metric"><div class="v">${fmtMoney(d.recommended_sell_price_min||0)}–${fmtMoney(d.recommended_sell_price_max||0)}</div><div class="l">Реком. продаж</div></div>
+    </div>
+    <div class="tai-metric full mt" style="margin-top:10px">
+      ${d.risk?`<div style="font-size:.84rem">⚠️ Ризик: ${d.risk}</div>`:''}
+      ${d.repairs?`<div style="font-size:.84rem">🔧 Ремонти: ${d.repairs}</div>`:''}
+      ${d.comment?`<div style="font-size:.82rem;color:var(--text-dim);margin-top:4px">${d.comment}</div>`:''}
+    </div>
+    <div class="gap-btns mt" style="margin-top:12px">
+      <button class="btn btn-green" onclick="taiAiAddToStock()">＋ Додати в склад</button>
+      <button class="btn btn-dark" onclick="taiAiRenderResult(window._taiAiResult.d,window._taiAiResult.text,true)">✏️ Редагувати</button>
+      <button class="btn btn-dark" onclick="taiAiCancel()">Скасувати</button>
+    </div>
+  </div>`;
+}
+function taiAiCancel(){ window._taiAiResult=null; const el=document.getElementById('aiResult'); if(el) el.innerHTML=''; }
+function taiAiMapToTire(d){
+  const notes=[
+    'AI'+(d.decision?': '+d.decision:''),
+    d.risk?('ризик: '+d.risk):'',
+    d.condition_score?('стан: '+d.condition_score):'',
+    d.repairs?('ремонти: '+d.repairs):'',
+    (d.recommended_sell_price_min||d.recommended_sell_price_max)?('продаж '+(d.recommended_sell_price_min||0)+'–'+(d.recommended_sell_price_max||0)):'',
+    d.comment||''
+  ].filter(Boolean).join(' · ');
+  return {
+    dealType:'куплено', size:d.size||'', brand:d.brand||'', model:'', dotYear:d.year?(''+d.year):'',
+    treadMm:d.tread_mm||0, treadPercent:0, sidewallCond:d._sidewall||'',
+    purchasePrice:d.max_buy_price||0, recommendedSalePrice:d.recommended_sell_price_min||d.recommended_sell_price_max||0,
+    status:'в наявності', source:'AI оцінка', notes:notes, photo:''
+  };
+}
+// «Додати в склад» = відкрити форму ПІДТВЕРДЖЕННЯ (AI сам не пише в базу)
+function taiAiAddToStock(){ if(!window._taiAiResult) return; taiUsedTireModal(null, taiAiMapToTire(window._taiAiResult.d)); }
 
 function init(){
   if(topSecret){ document.body.classList.add('ts-active'); document.getElementById('tsToggle').textContent='🔒 Деактивувати'; document.getElementById('tsToggle').classList.add('btn-green'); document.getElementById('tsToggle').classList.remove('btn-red'); }
