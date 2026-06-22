@@ -2678,9 +2678,7 @@ function saveEditedOrder(oid){
 // AI нічого не пише сам: «Додати в склад» відкриває форму підтвердження.
 function taiAiEndpoint(){
   const saved=loadVal('aiEndpoint'); if(saved) return saved;
-  const u=(typeof SUPA_CFG!=='undefined'&&SUPA_CFG.url)?SUPA_CFG.url():''; 
-  if(u) return u.replace(/\/+$/,'')+'/functions/v1/ai-evaluate-tire';
-  return '';
+  return 'https://lxeswqlkereptdtwytbp.supabase.co/functions/v1/ai-evaluate-tire';
 }
 function taiAiSaveEndpoint(){ const e=document.getElementById('aiEndpoint'); saveVal('aiEndpoint', e?e.value.trim():''); renderTaiAI(); }
 function renderTaiAI(){

@@ -1,25 +1,15 @@
-// ============================================================================
-// GT Tires — Supabase Edge Function: ai-evaluate-tire
-// ============================================================================
-// Приймає {text} → викликає OpenAI → повертає СТРУКТУРОВАНИЙ JSON оцінки шини.
-// Ключ OpenAI зберігається ТІЛЬКИ тут (серверний секрет), НІКОЛИ у фронті.
+// GT Tires — Supabase Edge Function: ai-evaluate-tire (OpenAI)
+// РОЗГОРНУТО у проєкт gt-tires (lxeswqlkereptdtwytbp), version 1, ACTIVE.
+// Ключ OpenAI зберігається ТІЛЬКИ як Supabase Secret (OPENAI_API_KEY), НЕ у фронті.
 //
-// ── РОЗГОРТАННЯ (один раз) ──────────────────────────────────────────────────
-// 1. Встанови Supabase CLI:  npm i -g supabase
-// 2. Логін:                  supabase login
-// 3. Привʼяжи проєкт:        supabase link --project-ref <PROJECT_REF>
-// 4. Створи функцію:         supabase functions new ai-evaluate-tire
-//    і встав цей код у supabase/functions/ai-evaluate-tire/index.ts
-// 5. Додай секрет (ключ OpenAI на сервері, НЕ у фронт):
-//    supabase secrets set OPENAI_API_KEY=sk-....
-// 6. Розгорни:               supabase functions deploy ai-evaluate-tire --no-verify-jwt
-//    (--no-verify-jwt — якщо хочеш без перевірки токена; інакше фронт шле anon-ключ,
-//     що вже робить застосунок автоматично через заголовок Authorization)
-// 7. У застосунку: Шини AI → 🤖 AI оцінка → ⚙️ Endpoint → встав URL:
-//    https://<PROJECT_REF>.supabase.co/functions/v1/ai-evaluate-tire
-// ============================================================================
-
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+// Залишилось ОДНЕ (робиш ти, значення ключа я не бачу і не зберігаю):
+//   Dashboard → Project Settings → Edge Functions → Secrets → Add new secret
+//     Name:  OPENAI_API_KEY
+//     Value: <твій ключ sk-...>
+//   (або CLI:  supabase secrets set OPENAI_API_KEY=sk-...  --project-ref lxeswqlkereptdtwytbp)
+//
+// Endpoint (вже вшитий у сайт):
+//   https://lxeswqlkereptdtwytbp.supabase.co/functions/v1/ai-evaluate-tire
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -28,19 +18,24 @@ const cors = {
 };
 
 const SCHEMA = {
-  brand: "", size: "", year: 0, tread_mm: 0, repairs: "",
+  brand: "", model: "", size: "", year: 0, tread_mm: 0, repairs: "",
   condition_score: 0, risk: "", max_buy_price: 0,
   recommended_sell_price_min: 0, recommended_sell_price_max: 0,
   decision: "", comment: "",
 };
 
-serve(async (req) => {
+function json(obj: unknown, status = 200): Response {
+  return new Response(JSON.stringify(obj), {
+    status, headers: { ...cors, "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method !== "POST")
-    return json({ error: "POST only" }, 405);
+  if (req.method !== "POST") return json({ error: "POST only" }, 405);
 
   let text = "";
-  try { text = (await req.json()).text || ""; } catch { /* ignore */ }
+  try { text = ((await req.json()) as { text?: string }).text || ""; } catch { /* ignore */ }
   if (!text.trim()) return json({ error: "no text" }, 400);
 
   const key = Deno.env.get("OPENAI_API_KEY");
@@ -55,7 +50,8 @@ serve(async (req) => {
     "decision — одне з: 'Купувати' / 'Торгуватися' / 'Не купувати'; " +
     "max_buy_price — рекомендована максимальна ціна закупівлі (грн, ціле); " +
     "recommended_sell_price_min/max — діапазон продажу (грн, цілі); " +
-    "comment — короткий висновок українською. Якщо чогось не видно з тексту — постав 0 або \"\", не вигадуй.";
+    "model — модель шини якщо є; comment — короткий висновок українською. " +
+    "Якщо чогось не видно з тексту — постав 0 або \"\", не вигадуй.";
 
   try {
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -76,7 +72,6 @@ serve(async (req) => {
     const content = data?.choices?.[0]?.message?.content || "{}";
     let parsed: Record<string, unknown>;
     try { parsed = JSON.parse(content); } catch { parsed = {}; }
-    // нормалізуємо до схеми (гарантуємо всі поля)
     const out: Record<string, unknown> = { ...SCHEMA };
     for (const k of Object.keys(SCHEMA)) if (k in parsed) out[k] = parsed[k];
     return json(out, 200);
@@ -84,10 +79,3 @@ serve(async (req) => {
     return json({ error: String(e) }, 500);
   }
 });
-
-function json(obj: unknown, status = 200) {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { ...cors, "Content-Type": "application/json" },
-  });
-}
