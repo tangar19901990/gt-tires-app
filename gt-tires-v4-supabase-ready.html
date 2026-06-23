@@ -2713,6 +2713,7 @@ async function taiAiEvaluate(){
   if(st) st.textContent='⏳ AI оцінює…';
   try{
     const headers={'Content-Type':'application/json'};
+    headers['x-app-key']=aiAppKey();
     const k=(typeof SUPA_CFG!=='undefined'&&SUPA_CFG.key)?SUPA_CFG.key():''; // публічний anon-ключ (безпечно)
     if(k){ headers['Authorization']='Bearer '+k; headers['apikey']=k; }
     const res=await fetch(ep,{method:'POST',headers,body:JSON.stringify({text})});
@@ -2874,7 +2875,7 @@ function aiToolsOpen(key){
   if(key==='analytics'){ renderAiToolsAnalytics(); return; }
   if(key==='search'){ renderAiToolsSearch(); return; }
   if(key==='voice'){ renderAiToolsVoice(); return; }
-  if(key==='scan'){ openModal('<div style="text-align:center"><div style="font-size:2.4rem">📷</div><h3 style="margin:8px 0 4px">AI Сканер шини</h3><p style="font-size:.85rem;color:var(--text-dim)">Аналіз фото (марка, DOT, протектор, стан) через OpenAI Vision.</p><div style="margin-top:12px;font-size:.8rem;background:rgba(240,169,43,.12);border:1px solid rgba(240,169,43,.35);border-radius:12px;padding:10px;color:#f0a92b">Потребує окрему Vision-функцію на бекенді (як AI-оцінка). Підключу одразу після того, як підтвердимо, що OpenAI-бекенд віддає 200 (зараз там 502 — треба дотиснути ключ/білінг).</div><div class="gap-btns mt" style="justify-content:center"><button class="btn btn-dark" onclick="closeModal()">Зрозуміло</button></div></div>'); return; }
+  if(key==='scan'){ renderAiToolsScan(); return; }
   openModal(`<div style="text-align:center">
     <div style="font-size:2.4rem">${m.ic}</div>
     <h3 style="margin:8px 0 4px">${m.title}</h3>
@@ -3218,6 +3219,94 @@ function aiToolsVoiceToOrder(){
   if(o.paymentType){ const pt=document.getElementById('oPayType'); if(pt) pt.value=o.paymentType; }
   set('oPaid',o.sum||''); set('oNotes',o.notes||'');
 }
+
+// ==================== 🧠 AI TOOLS — 📷 Сканер шини (Vision, через бекенд) ====================
+function aiToolsScanEndpoint(){
+  const saved=loadVal('scanEndpoint'); if(saved) return saved;
+  return 'https://lxeswqlkereptdtwytbp.supabase.co/functions/v1/ai-scan-tire';
+}
+const AI_SCAN_SLOTS=[['s0','Протектор'],['s1','Боковина'],['s2','DOT'],['s3','Внутрішня']];
+function renderAiToolsScan(){
+  const b=document.getElementById('aiToolsBody'); if(!b) return;
+  window._aiScanImgs=window._aiScanImgs||{};
+  b.innerHTML=`<div class="ai-tools-wrap">
+    <div class="ai-tools-hero" style="background:linear-gradient(135deg,rgba(0,150,136,.2),rgba(20,20,24,.6))">
+      <button class="btn btn-dark btn-sm" onclick="renderAiTools()" style="margin-bottom:8px">← AI Tools</button>
+      <h2>📷 AI Сканер шини</h2>
+      <p>Завантаж 1–4 фото — AI визначить марку, DOT, протектор, стан і дасть оцінку. Запуск тільки по кнопці.</p>
+    </div>
+    <div class="ai-tools-card" style="cursor:default">
+      <div class="ai-tools-grid">
+        ${AI_SCAN_SLOTS.map(s=>`
+          <label style="cursor:pointer;text-align:center">
+            <div id="thumb_${s[0]}" style="height:90px;border-radius:12px;border:1px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;font-size:.78rem;color:var(--text-dim)">＋ ${s[1]}</div>
+            <input type="file" accept="image/*" style="display:none" onchange="aiToolsScanPhoto(this,'${s[0]}','${s[1]}')">
+          </label>`).join('')}
+      </div>
+      <button class="ai-tools-run" style="margin-top:14px" onclick="aiToolsScanRun()">▶ Сканувати</button>
+      <div id="aiScanStatus" style="font-size:.8rem;color:var(--accent);min-height:18px;margin-top:6px"></div>
+    </div>
+    <div id="aiScanResult"></div>
+  </div>`;
+  // restore thumbs
+  Object.keys(window._aiScanImgs).forEach(k=>{ const t=document.getElementById('thumb_'+k); if(t&&window._aiScanImgs[k]){ t.style.backgroundImage='url('+window._aiScanImgs[k]+')'; t.textContent=''; } });
+}
+function aiToolsScanPhoto(input,slot,label){
+  const t=document.getElementById('thumb_'+slot); if(t) t.textContent='…';
+  taiCompressPhoto(input,dataUrl=>{
+    window._aiScanImgs=window._aiScanImgs||{};
+    if(dataUrl){ window._aiScanImgs[slot]=dataUrl; if(t){ t.style.backgroundImage='url('+dataUrl+')'; t.textContent=''; } }
+    else if(t){ t.textContent='＋ '+label; }
+  });
+}
+async function aiToolsScanRun(){
+  const imgs=Object.values(window._aiScanImgs||{}).filter(Boolean);
+  if(!imgs.length){ alert('Додай хоча б одне фото шини'); return; }
+  const st=document.getElementById('aiScanStatus');
+  if(st) st.textContent='⏳ AI аналізує фото…';
+  try{
+    const headers={'Content-Type':'application/json'};
+    headers['x-app-key']=aiAppKey();
+    const k=(typeof SUPA_CFG!=='undefined'&&SUPA_CFG.key)?SUPA_CFG.key():''; if(k){ headers['Authorization']='Bearer '+k; headers['apikey']=k; }
+    const res=await fetch(aiToolsScanEndpoint(),{method:'POST',headers,body:JSON.stringify({images:imgs})});
+    let data=null; try{ data=await res.json(); }catch(_){ }
+    if(!res.ok){ const dt=data?((data.error||'')+(data.detail?(' — '+(''+data.detail).slice(0,300)):'')):('HTTP '+res.status); throw new Error(dt||('HTTP '+res.status)); }
+    window._aiScanResult=data; aiToolsScanRender(data);
+    if(st) st.textContent='';
+    if(typeof aiLogs!=='undefined'){ aiLogs.push({id:uid(),type:'ai-scan',input:imgs.length+' фото',output:JSON.stringify(data).slice(0,300),createdAt:Date.now()}); save('aiLogs',aiLogs); }
+  }catch(e){ if(st) st.innerHTML='❌ '+e.message; }
+}
+function aiToolsScanRender(d){
+  const el=document.getElementById('aiScanResult'); if(!el) return;
+  const dec=(d.decision||''); const dcls=/не\s*реком|не\s*купув/i.test(dec)?'red':(/торг/i.test(dec)?'yellow':(/купув/i.test(dec)?'green':'yellow'));
+  const row=(k,v)=>v?`<div style="display:flex;justify-content:space-between;font-size:.85rem;padding:2px 0"><span style="color:var(--text-dim)">${k}</span><b style="text-align:right">${v}</b></div>`:'';
+  el.innerHTML=`<div class="ai-tools-card" style="cursor:default;margin-top:12px">
+    <div class="tai-decision tai-dec-${dcls}">${dec||'Оцінка'} ${d.score?('· '+d.score+'/10'):''}</div>
+    <div style="margin-top:10px">
+      ${row('Марка',d.brand)}${row('Розмір',d.size)}${row('DOT',d.dot)}${row('Тип',d.type)}
+      ${row('Протектор',d.tread_mm?(d.tread_mm+' мм'):'')}${row('Ремонти',d.repairs)}${row('Пошкодження',d.damage)}${row('Стан',d.condition)}
+    </div>
+    ${d.comment?`<div style="font-size:.82rem;color:var(--text-dim);margin-top:8px">${d.comment}</div>`:''}
+    <div class="gap-btns mt" style="margin-top:12px">
+      <button class="btn btn-green" onclick="aiToolsScanAddStock()">＋ Додати в склад</button>
+      <button class="btn btn-dark" onclick="renderAiToolsScan()">Очистити</button>
+    </div>
+    <div style="font-size:.74rem;color:var(--text-dim);margin-top:8px">⚠️ AI може помилятись — перевір дані перед збереженням.</div>
+  </div>`;
+}
+function aiToolsScanAddStock(){
+  const d=window._aiScanResult; if(!d || typeof taiUsedTireModal!=='function') return;
+  const firstPhoto=Object.values(window._aiScanImgs||{}).filter(Boolean)[0]||'';
+  const notes=['AI скан'+(d.decision?': '+d.decision:''),d.score?('оцінка '+d.score+'/10'):'',d.repairs?('ремонти: '+d.repairs):'',d.damage?('пошкодж.: '+d.damage):'',d.comment||''].filter(Boolean).join(' · ');
+  taiUsedTireModal(null,{
+    dealType:'куплено', size:d.size||'', brand:d.brand||'', model:'', dotYear:d.dot||'',
+    treadMm:d.tread_mm||0, treadPercent:0, sidewallCond:'',
+    purchasePrice:0, recommendedSalePrice:0,
+    status:'в наявності', source:'AI скан', notes, photo:firstPhoto
+  });
+}
+
+function aiAppKey(){ return loadVal('appKey') || 'gt_4845ad8fee157d3c0257d16a3049fb26'; }
 
 function init(){
   if(topSecret){ document.body.classList.add('ts-active'); document.getElementById('tsToggle').textContent='🔒 Деактивувати'; document.getElementById('tsToggle').classList.add('btn-green'); document.getElementById('tsToggle').classList.remove('btn-red'); }
