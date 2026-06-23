@@ -2515,6 +2515,7 @@ function renderTaiMarket(){
       <button class="btn btn-dark" onclick="taiMarketUse(null)">🧮 Використати в калькуляторі</button>
     </div>
   </div>
+  ${oraiPanelHTML()}
   <div class="card mt">
     <h3 style="margin-bottom:8px">Збережені ринкові ціни (${marketPrices.length})</h3>
     ${saved.length?saved.map(r=>`
@@ -3307,6 +3308,129 @@ function aiToolsScanAddStock(){
 }
 
 function aiAppKey(){ return loadVal('appKey') || 'gt_4845ad8fee157d3c0257d16a3049fb26'; }
+
+// ==================== 🤖 OpenRouter — пряма AI-оцінка в CRM ====================
+// Налаштування API (ключ НЕ жорстко в коді — лише з localStorage браузера).
+const OPENROUTER_URL   = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_MODEL_DEFAULT = 'openai/gpt-4o-mini';   // дешева стабільна модель
+function oraiKey(){   return loadVal('orKey')   || ''; }                 // ключ користувача
+function oraiModel(){ return loadVal('orModel') || OPENROUTER_MODEL_DEFAULT; }
+
+function oraiPanelHTML(){
+  const k=oraiKey(), masked=k?(k.slice(0,7)+'••••'+k.slice(-4)):'';
+  return `
+  <div class="card mt" id="oraiPanel">
+    <h3 style="margin-bottom:8px">🤖 Пряма AI-оцінка (OpenRouter)</h3>
+    <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:10px">GPT відповідає прямо тут, без переходу в ChatGPT. Бере дані з полів вище (розмір/бренд/модель) + стан/протектор/опис. Старий «📋 Скопіювати запит» лишається як резерв.</div>
+    <label>🔑 OpenRouter API Key ${k?('<span style=\"color:var(--green);font-size:.75rem\">(збережено: '+masked+')</span>'):''}</label>
+    <input id="oraiKeyInp" type="password" placeholder="sk-or-..." autocomplete="off">
+    <div class="tai-grid" style="margin-top:8px">
+      <div class="full"><label>Модель</label><input id="oraiModelInp" value="${oraiModel()}" placeholder="${OPENROUTER_MODEL_DEFAULT}"></div>
+    </div>
+    <div class="gap-btns mt">
+      <button class="btn btn-green" onclick="oraiSaveKey()">💾 Зберегти API ключ</button>
+      <button class="btn btn-dark" onclick="oraiTest()">🧪 Перевірити API</button>
+      <button class="btn btn-dark" onclick="oraiClearKey()">🗑 Очистити API ключ</button>
+    </div>
+    <div class="tai-grid" style="margin-top:10px">
+      <div><label>Стан</label><input id="oraiCond" placeholder="добрий / є латки"></div>
+      <div><label>Протектор</label><input id="oraiTread" placeholder="11 мм або 70%"></div>
+      <div class="full"><label>Додатковий опис (необовʼязково)</label><input id="oraiDesc" placeholder="2 ремонти, боковина ціла…"></div>
+    </div>
+    <div class="gap-btns mt" style="margin-top:10px">
+      <button class="btn btn-red" onclick="oraiGet()">🤖 Отримати оцінку</button>
+    </div>
+    <div id="oraiStatus" style="font-size:.82rem;color:var(--accent);min-height:18px;margin-top:6px"></div>
+    <label style="margin-top:6px;display:block">Відповідь AI</label>
+    <textarea id="oraiAnswer" rows="8" readonly placeholder="Тут зʼявиться структурована оцінка від AI…" style="font-size:.82rem"></textarea>
+    <div class="gap-btns mt">
+      <button class="btn btn-green" onclick="oraiSave()">💾 Зберегти оцінку</button>
+    </div>
+  </div>`;
+}
+function oraiSaveKey(){
+  const k=(document.getElementById('oraiKeyInp')||{}).value||'';
+  const m=((document.getElementById('oraiModelInp')||{}).value||'').trim()||OPENROUTER_MODEL_DEFAULT;
+  const st=document.getElementById('oraiStatus');
+  if(!k.trim()){ if(st) st.innerHTML='🔑 Введіть ключ перед збереженням.'; return; }
+  saveVal('orKey',k.trim()); saveVal('orModel',m);
+  if(st) st.textContent='✅ Ключ і модель збережено (тільки у цьому браузері).';
+  renderTaiMarket();
+}
+function oraiClearKey(){
+  if(!confirm('Очистити збережений OpenRouter API ключ?')) return;
+  saveVal('orKey',''); 
+  const st=document.getElementById('oraiStatus'); if(st) st.textContent='🗑 Ключ очищено.';
+  renderTaiMarket();
+}
+function oraiBuildPrompt(){
+  const b=_taiGet('mqBrand'), m=_taiGet('mqModel'), s=_taiGet('mqSize');
+  const cond=_taiGet('oraiCond'), tread=_taiGet('oraiTread'), desc=_taiGet('oraiDesc');
+  return 'Шина: '+[b,m,s].filter(Boolean).join(' ')+
+    '. Стан: '+(cond||'—')+'. Протектор: '+(tread||'—')+'.'+(desc?(' Опис: '+desc+'.'):'');
+}
+const ORAI_SYS='Ти — експерт ринку шин в Україні (ціни у гривнях). Оціни шину коротко і СТРОГО у такому форматі (звичайний текст, кожне поле з нового рядка, без markdown):\n'+
+  'Мінімальна ціна нової:\nСередня ціна нової:\nДжерела/орієнтир:\nРекомендована ціна Б/В:\nРекомендований торг:\nКоментар:';
+function oraiHttpMsg(status,data){
+  const det=(data&&data.error&&data.error.message)?(': '+data.error.message):'';
+  if(status===401||status===403) return 'Невірний або відхилений API-ключ. Перевірте і збережіть знову.';
+  if(status===402) return 'Недостатньо коштів на балансі OpenRouter.';
+  if(status===429) return 'Перевищено ліміт запитів OpenRouter. Зачекайте трохи і спробуйте ще.';
+  return 'OpenRouter помилка '+status+det;
+}
+async function oraiGet(){
+  const st=document.getElementById('oraiStatus');
+  if(!_taiGet('mqSize')&&!_taiGet('mqBrand')){ alert('Вкажіть хоча б розмір або бренд (поля вище)'); return; }
+  const key=oraiKey();
+  if(!key){ if(st) st.innerHTML='🔑 Спочатку введіть і збережіть OpenRouter API ключ.'; return; }
+  if(st) st.textContent='🤖 AI думає…';
+  let res;
+  try{
+    res=await fetch(OPENROUTER_URL,{method:'POST',headers:{
+      'Authorization':'Bearer '+key,'Content-Type':'application/json',
+      'HTTP-Referer':(location&&location.origin)||'https://gt-tires','X-Title':'GT Tires CRM'
+    },body:JSON.stringify({model:oraiModel(),temperature:0.3,messages:[{role:'system',content:ORAI_SYS},{role:'user',content:oraiBuildPrompt()}]})});
+  }catch(netErr){ if(st) st.innerHTML='❌ Немає інтернету або сервіс недоступний. Перевірте звʼязок.'; return; }
+  let data=null; try{ data=await res.json(); }catch(_){ }
+  if(!res.ok){ if(st) st.innerHTML='❌ '+oraiHttpMsg(res.status,data); return; }
+  const ans=(data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
+  if(!ans.trim()){ if(st) st.innerHTML='❌ AI повернув порожню відповідь. Спробуйте ще раз.'; return; }
+  const ta=document.getElementById('oraiAnswer'); if(ta) ta.value=ans.trim();
+  window._oraiLast={ans:ans.trim()};
+  if(st) st.textContent='✅ Готово. Перевірте і за потреби збережіть.';
+}
+async function oraiTest(){
+  const st=document.getElementById('oraiStatus');
+  const typed=(document.getElementById('oraiKeyInp')||{}).value||''; const key=typed.trim()||oraiKey();
+  if(!key){ if(st) st.innerHTML='🔑 Введіть ключ для перевірки.'; return; }
+  if(st) st.textContent='🧪 Перевіряю ключ…';
+  let res;
+  try{
+    res=await fetch(OPENROUTER_URL,{method:'POST',headers:{
+      'Authorization':'Bearer '+key,'Content-Type':'application/json',
+      'HTTP-Referer':(location&&location.origin)||'https://gt-tires','X-Title':'GT Tires CRM'
+    },body:JSON.stringify({model:oraiModel(),max_tokens:5,messages:[{role:'user',content:'ping'}]})});
+  }catch(netErr){ if(st) st.innerHTML='❌ Немає інтернету або сервіс недоступний.'; return; }
+  let data=null; try{ data=await res.json(); }catch(_){ }
+  if(res.ok){ if(st) st.innerHTML='✅ Ключ робочий. Модель: '+oraiModel(); }
+  else { if(st) st.innerHTML='❌ '+oraiHttpMsg(res.status,data); }
+}
+function oraiSave(){
+  const ans=(document.getElementById('oraiAnswer')||{}).value||'';
+  if(!ans.trim()){ alert('Спочатку натисніть «🤖 Отримати оцінку»'); return; }
+  if(!_taiGet('mqSize')){ alert('Вкажіть розмір шини (поле вище)'); return; }
+  const set=(id,v)=>{const e=document.getElementById(id); if(e&&v) e.value=v;};
+  set('mqMin', _taiPickNum(ans,'мінім')||'');
+  set('mqAvg', _taiPickNum(ans,'середн')||'');
+  set('mqRec', _taiNum('mqAvg')||'');                 // recPrice = середня нова (для калькулятора)
+  const src=_taiPickSources(ans); if(src) set('mqSources',src);
+  const bv=_taiPickNum(ans,'б/в')||_taiPickNum(ans,'рекомендована ціна б');
+  const torg=(/торг[^:\n]*:?\s*([^\n]+)/i.exec(ans)||[])[1]||'';
+  set('mqComment', ('AI Б/В: '+(bv||'?')+'₴'+(torg?('; торг: '+torg.trim()):'')).slice(0,200));
+  aiLogs.push({id:uid(),type:'openrouter-eval',input:[_taiGet('mqBrand'),_taiGet('mqModel'),_taiGet('mqSize')].filter(Boolean).join(' '),output:ans.slice(0,500),createdAt:Date.now()});
+  save('aiLogs',aiLogs);
+  taiMarketSave();   // зберігає у marketPrices (існуюча база) + перерендер
+}
 
 function init(){
   if(topSecret){ document.body.classList.add('ts-active'); document.getElementById('tsToggle').textContent='🔒 Деактивувати'; document.getElementById('tsToggle').classList.add('btn-green'); document.getElementById('tsToggle').classList.remove('btn-red'); }
