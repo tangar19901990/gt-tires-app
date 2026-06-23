@@ -807,7 +807,7 @@ let cashbook = load('cash');
 let usedTires = load('usedTires');
 let marketPrices = load('marketPrices');
 let aiLogs = load('aiLogs');
-let taiSub = 'calc';
+let taiSub = 'market';
 let priceOverrides = (()=>{try{return JSON.parse(localStorage.getItem(LS_KEY+'priceOverrides'))||{};}catch(e){return {};}})();
 let priceEditOn = localStorage.getItem(LS_KEY+'priceEditOn')==='1';
 let customServices = load('customSvc');
@@ -2059,7 +2059,7 @@ function taiGo(sub){ taiSub=sub; renderTireAI(); }
 function renderTireAI(){
   const tabsEl=document.getElementById('taiTabs'), bodyEl=document.getElementById('taiBody');
   if(!tabsEl||!bodyEl) return;
-  const TABS=[['calc','🧮 Калькулятор Б/У'],['stock','📦 Склад Б/У'],['ai','🤖 AI оцінка'],['market','🔎 Перевірити ринок'],['new','🆕 Нові шини'],['photo','📷 Фото'],['voice','🎤 Голос']];
+  const TABS=[['market','🛞 AI оцінка шин'],['stock','📦 Б/У склад'],['calc','🧮 Калькулятор']];
   tabsEl.innerHTML=TABS.map(t=>`<button class="tai-tab${taiSub===t[0]?' active':''}" onclick="taiGo('${t[0]}')">${t[1]}</button>`).join('');
   if(taiSub==='calc') renderTaiCalc();
   else if(taiSub==='stock') renderTaiStock();
@@ -2083,13 +2083,14 @@ function taiSoon(k){
 // ---- КАЛЬКУЛЯТОР Б/У ----
 function renderTaiCalc(){
   const b=document.getElementById('taiBody');
+  gtEnsureDatalists();
   b.innerHTML=`
   <div class="card">
     <h3 style="margin-bottom:10px">🧮 Оцінка вживаної шини</h3>
     <div class="tai-grid">
-      <div class="full"><label>Розмір *</label><input id="cSize" placeholder="385/65 R22.5"></div>
-      <div><label>Бренд</label><input id="cBrand" placeholder="Michelin"></div>
-      <div><label>Модель</label><input id="cModel" placeholder="X Line"></div>
+      <div class="full"><label>Розмір *</label>${gtSizeWidget('cSz','cSize','')}</div>
+      <div><label>Бренд</label><input id="cBrand" list="gtBrands" placeholder="Michelin" oninput="gtSetModels(this.value)"></div>
+      <div><label>Модель</label><input id="cModel" list="gtModels" placeholder="X Line"></div>
       <div><label>Ціна нової, ₴ *</label><input id="cNewPrice" type="number" inputmode="numeric" placeholder="18000"></div>
       <div><label>&nbsp;</label><button type="button" class="btn btn-dark" style="width:100%" onclick="taiPullMarketToCalc()">🔎 Ринкова ціна</button></div>
       <div><label>DOT / рік</label><input id="cDot" placeholder="2021 або 3521"></div>
@@ -2117,7 +2118,7 @@ function taiCalcPhoto(input){
 }
 function taiCalcClear(){
   _taiPhoto=''; _taiLast=null;
-  ['cSize','cBrand','cModel','cNewPrice','cDot','cNewTread','cCurTread','cPatches','cPlugs','cBig'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=(['cPatches','cPlugs','cBig'].includes(id))?'0':'';});
+  ['cSize','cSzW','cSzP','cSzD','cBrand','cModel','cNewPrice','cDot','cNewTread','cCurTread','cPatches','cPlugs','cBig'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=(['cPatches','cPlugs','cBig'].includes(id))?'0':'';});
   const sr=document.getElementById('cSideRep'); if(sr) sr.checked=false;
   const r=document.getElementById('taiCalcResult'); if(r) r.innerHTML='';
   const n=document.getElementById('cPhotoNote'); if(n) n.textContent='';
@@ -2315,19 +2316,21 @@ function taiAddToStock(){
 function taiNewUsedTire(){ taiUsedTireModal(null,{dealType:'куплено',status:'в наявності',treadPercent:0}); }
 function taiEditUsedTire(id){ const t=usedTires.find(x=>x.id===id); if(t) taiUsedTireModal(id,t); }
 function taiUsedTireModal(id,t){
-  t=t||{}; window._taiModalPhoto=t.photo||'';
+  t=t||{}; window._taiModalPhoto=t.photo||''; gtEnsureDatalists();
   const dt=t.dealType||'куплено';
   const esc=v=>(''+(v==null?'':v)).replace(/"/g,'&quot;');
   openModal(`<h3>${id?'Редагувати':'Шина в склад'} (попередній перегляд)</h3>
     <label>Тип угоди</label>
     <select id="uDeal" onchange="taiDealToggle()">${TAI_DEAL.map(s=>`<option value="${s}"${dt===s?' selected':''}>${s}</option>`).join('')}</select>
     <div class="tai-grid" style="margin-top:8px">
-      <div class="full"><label>Розмір *</label><input id="uSize" value="${esc(t.size)}"></div>
-      <div><label>Бренд</label><input id="uBrand" value="${esc(t.brand)}"></div>
-      <div><label>Модель</label><input id="uModel" value="${esc(t.model)}"></div>
+      <div class="full"><label>Розмір *</label>${gtSizeWidget('uSz','uSize',t.size)}</div>
+      <div><label>Бренд</label><input id="uBrand" list="gtBrands" value="${esc(t.brand)}" oninput="gtSetModels(this.value)"></div>
+      <div><label>Модель</label><input id="uModel" list="gtModels" value="${esc(t.model)}"></div>
+      <div><label>Вісь</label>${gtAxisSelect('uAxis',t.axis)}</div>
       <div><label>DOT / рік</label><input id="uDot" value="${esc(t.dotYear)}"></div>
-      <div><label>Протектор, %</label><input id="uTreadP" type="number" value="${t.treadPercent||0}"></div>
+      <div class="full"><label>Протектор, %</label>${gtTreadBtns('uTreadP')}<input id="uTreadP" type="number" value="${t.treadPercent||0}"></div>
       <div><label>Глибина, мм</label><input id="uTreadMm" type="number" value="${t.treadMm||''}"></div>
+      <div><label>Стан</label>${gtCondSelect('uCond',t.condition)}</div>
       <div><label>Боковина</label><select id="uSide">${TAI_SIDE.map(s=>`<option value="${s}"${t.sidewallCond===s?' selected':''}>${s}</option>`).join('')}</select></div>
       <div id="uBuyWrap"><label>Закупівля, ₴</label><input id="uBuy" type="number" value="${t.purchasePrice||''}"></div>
       <div><label>Реком. продаж, ₴</label><input id="uSale" type="number" value="${t.recommendedSalePrice||''}"></div>
@@ -2344,6 +2347,7 @@ function taiUsedTireModal(id,t){
       <button class="btn btn-dark" onclick="closeModal()">Скасувати</button>
     </div>`);
   taiDealToggle();
+  gtSetModels(t.brand||'');
 }
 function taiDealToggle(){
   const dt=_taiGet('uDeal')||'куплено';
@@ -2367,7 +2371,7 @@ function taiSaveUsedTire(id){
     treadPercent:_taiNum('uTreadP'), treadMm:_taiNum('uTreadMm'), sidewallCond:_taiGet('uSide'),
     purchasePrice:_taiNum('uBuy'), recommendedSalePrice:_taiNum('uSale'),
     ownerExpected:_taiNum('uOwner'), payoutToClient:_taiNum('uPayout'), storagePrice:_taiNum('uStorage'),
-    status:_taiGet('uStatus'), source:_taiGet('uSource'), notes:_taiGet('uNotes'), photo:window._taiModalPhoto||''
+    axis:_taiGet('uAxis'), condition:_taiGet('uCond'), status:_taiGet('uStatus'), source:_taiGet('uSource'), notes:_taiGet('uNotes'), photo:window._taiModalPhoto||''
   };
   let target;
   if(id){ target=usedTires.find(x=>x.id===id); if(target){ Object.assign(target,rec); target.updatedAt=Date.now(); } }
@@ -2446,11 +2450,11 @@ function taiCompressPhoto(input,cb){
 // ==================== ШИНИ AI — РИНКОВА ЦІНА НОВОЇ ШИНИ (ручний GPT-режим, без API) ====================
 function _taiNorm(s){ return (s||'').toString().toLowerCase().replace(/\s+/g,' ').trim(); }
 function taiFindMarket(brand,model,size){
-  const b=_taiNorm(brand), m=_taiNorm(model), s=_taiNorm(size);
+  const b=_taiNorm(brand), m=_taiNorm(model), s=gtNormSize(size);
   if(!s && !b) return null;
-  let list=marketPrices.filter(x=>_taiNorm(x.size)===s && _taiNorm(x.brand)===b && _taiNorm(x.model)===m);
-  if(!list.length) list=marketPrices.filter(x=>_taiNorm(x.size)===s && _taiNorm(x.brand)===b);
-  if(!list.length) list=marketPrices.filter(x=>_taiNorm(x.size)===s);
+  let list=marketPrices.filter(x=>gtNormSize(x.size)===s && _taiNorm(x.brand)===b && _taiNorm(x.model)===m);
+  if(!list.length) list=marketPrices.filter(x=>gtNormSize(x.size)===s && _taiNorm(x.brand)===b);
+  if(!list.length) list=marketPrices.filter(x=>gtNormSize(x.size)===s);
   if(!list.length) return null;
   list.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   return list[0];
@@ -2472,6 +2476,7 @@ function taiBuildQuery(){
 }
 function renderTaiMarket(){
   const b=document.getElementById('taiBody'); if(!b) return;
+  gtEnsureDatalists();
   const seen={}, opts=[];
   usedTires.forEach(t=>{ const k=[t.brand,t.model,t.size].join('|'); if(!seen[k]&&(t.size||t.brand)){ seen[k]=1; opts.push(t); } });
   window._taiMarketOpts=opts;
@@ -2481,26 +2486,54 @@ function renderTaiMarket(){
   const saved=marketPrices.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   b.innerHTML=`
   <div class="card">
-    <h3 style="margin-bottom:10px">🔎 Ринкова ціна нової шини</h3>
-    <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:10px">Ручний режим без API: програма готує запит, ти питаєш ChatGPT вручну, вставляєш відповідь — ціни зберігаються і підтягуються в калькулятор Б/У.</div>
-    <label>Вибрати шину зі складу Б/У</label>${sel}
-    <div class="tai-grid" style="margin-top:8px">
-      <div class="full"><label>Розмір *</label><input id="mqSize" placeholder="385/65 R22.5"></div>
-      <div><label>Бренд</label><input id="mqBrand" placeholder="Michelin"></div>
-      <div><label>Модель</label><input id="mqModel" placeholder="X Line"></div>
+    <h3 style="margin-bottom:8px">🛞 AI оцінка шин</h3>
+    <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:10px">ℹ️ AI дає ринковий орієнтир (не відкриває сайти напряму). Введи дані й натисни «Перевірити ціну».</div>
+    <label>Вибрати шину зі складу Б/У (необовʼязково)</label>${sel}
+    <label style="margin-top:10px;display:block">Тип шини</label>
+    <div style="display:flex;gap:16px;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="radio" name="oraiMode" id="oraiModeNew" checked onchange="oraiSetMode()" style="width:auto;margin:0"> 🆕 Нова</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="radio" name="oraiMode" id="oraiModeUsed" onchange="oraiSetMode()" style="width:auto;margin:0"> 🛞 Б/У</label>
     </div>
+    <div class="tai-grid" style="margin-top:10px">
+      <div class="full"><label>Розмір *</label>${gtSizeWidget('mqSz','mqSize','')}</div>
+      <div><label>Бренд</label><input id="mqBrand" list="gtBrands" placeholder="Michelin" oninput="gtSetModels(this.value)"></div>
+      <div><label>Модель</label><input id="mqModel" list="gtModels" placeholder="X Line"></div>
+    </div>
+    <div id="oraiUsedFields" style="display:none">
+      <div class="tai-grid" style="margin-top:8px">
+        <div><label>Стан</label>${gtCondSelect('oraiCond','')}</div>
+        <div><label>Протектор</label><input id="oraiTread" placeholder="11 мм або 70%"></div>
+        <div class="full"><label>Опис</label><input id="oraiDesc" placeholder="2 ремонти, боковина ціла…"></div>
+      </div>
+    </div>
+    <label style="margin-top:10px;display:block">Джерела перевірки</label>
+    <div id="oraiSources">${oraiSourcesHTML('new')}</div>
+    <div class="gap-btns mt" style="margin-top:12px"><button class="btn btn-red" style="flex:1;font-size:1rem;padding:13px" onclick="oraiGet()">🔎 Перевірити ціну</button></div>
+    <div class="gap-btns mt"><button class="btn btn-dark btn-sm" onclick="oraiLinks()">🔗 Сформувати пошукові посилання</button></div>
+    <div id="oraiLinksBox"></div>
+    <div id="oraiStatus" style="font-size:.82rem;color:var(--accent);min-height:18px;margin-top:6px"></div>
+    <label style="margin-top:6px;display:block">Відповідь AI</label>
+    <textarea id="oraiAnswer" rows="8" readonly placeholder="Тут зʼявиться AI-оцінка за вибраними джерелами…" style="font-size:.82rem"></textarea>
     <div class="gap-btns mt">
-      <button class="btn btn-red" onclick="taiMarketAsk()">🤖 Спитати GPT</button>
+      <button class="btn btn-green" onclick="oraiSave()">💾 Зберегти результат</button>
+      <button class="btn btn-dark" onclick="oraiToCalc()">🧮 У калькулятор</button>
+      <button class="btn btn-dark" onclick="oraiToStock()">📦 У Б/У склад</button>
+    </div>
+  </div>
+  <details class="card mt"><summary style="cursor:pointer;font-weight:700">⚙️ Резервний ручний режим (ChatGPT вручну)</summary>
+    <div style="font-size:.76rem;color:var(--text-dim);margin:8px 0">Якщо немає API-ключа: підготуй запит, спитай ChatGPT вручну, встав відповідь.</div>
+    <div class="gap-btns mt">
+      <button class="btn btn-dark" onclick="taiMarketAsk()">🤖 Спитати GPT</button>
       <button class="btn btn-dark" onclick="taiMarketCopy()">📋 Скопіювати запит</button>
     </div>
-    <label style="margin-top:10px;display:block">Запит для ChatGPT</label>
-    <textarea id="mqQuery" rows="6" readonly style="font-size:.82rem"></textarea>
+    <label style="margin-top:8px;display:block">Запит для ChatGPT</label>
+    <textarea id="mqQuery" rows="5" readonly style="font-size:.82rem"></textarea>
     <div id="mqStatus" style="font-size:.8rem;color:var(--accent);min-height:18px;margin-top:4px"></div>
     <label style="margin-top:6px;display:block">Відповідь GPT (вставити сюди)</label>
-    <textarea id="mqAnswer" rows="6" placeholder="Встав сюди відповідь ChatGPT…" style="font-size:.82rem"></textarea>
+    <textarea id="mqAnswer" rows="5" placeholder="Встав сюди відповідь ChatGPT…" style="font-size:.82rem"></textarea>
     <div class="gap-btns mt">
       <button class="btn btn-dark" onclick="taiMarketPaste()">📥 Вставити відповідь</button>
-      <button class="btn btn-dark" onclick="taiMarketExtract()">✨ Витягнути ціни з відповіді</button>
+      <button class="btn btn-dark" onclick="taiMarketExtract()">✨ Витягнути ціни</button>
     </div>
     <div class="tai-grid" style="margin-top:10px">
       <div><label>Мінімальна, ₴</label><input id="mqMin" type="number" inputmode="numeric"></div>
@@ -2512,10 +2545,12 @@ function renderTaiMarket(){
     </div>
     <div class="gap-btns mt">
       <button class="btn btn-green" onclick="taiMarketSave()">💾 Зберегти ціну</button>
-      <button class="btn btn-dark" onclick="taiMarketUse(null)">🧮 Використати в калькуляторі</button>
+      <button class="btn btn-dark" onclick="taiMarketUse(null)">🧮 У калькулятор</button>
     </div>
-  </div>
-  ${oraiPanelHTML()}
+  </details>
+  <details class="card mt"><summary style="cursor:pointer;font-weight:700">🔑 Налаштування AI API</summary>
+    <div style="margin-top:8px">${oraiPanelHTML()}</div>
+  </details>
   <div class="card mt">
     <h3 style="margin-bottom:8px">Збережені ринкові ціни (${marketPrices.length})</h3>
     ${saved.length?saved.map(r=>`
@@ -2533,7 +2568,8 @@ function renderTaiMarket(){
 function taiMarketSelect(i){
   const t=(window._taiMarketOpts||[])[+i]; if(!t) return;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'';};
-  set('mqSize',t.size); set('mqBrand',t.brand); set('mqModel',t.model);
+  set('mqBrand',t.brand); set('mqModel',t.model); gtSetModels(t.brand||'');
+  const sp=gtParseSize(t.size||''); set('mqSzW',sp.w); set('mqSzP',sp.p); set('mqSzD',sp.d); gtSizeSync('mqSz','mqSize');
 }
 function taiMarketAsk(){
   if(!_taiGet('mqSize')&&!_taiGet('mqBrand')){ alert('Вкажіть хоча б розмір або бренд'); return; }
@@ -2850,6 +2886,7 @@ const AI_TOOLS_MODULES=[
 
 function renderAiTools(){
   const b=document.getElementById('aiToolsBody'); if(!b) return;
+  gtEnsureDatalists();
   b.innerHTML=`
   <div class="ai-tools-wrap">
     <div class="ai-tools-hero">
@@ -2933,7 +2970,7 @@ function renderAiToolsEval(){
     </div>
     <div class="ai-tools-card" style="cursor:default">
       <div class="tai-grid">
-        <div class="full"><label>Виробник</label><input id="aeBrand" placeholder="Michelin"></div>
+        <div class="full"><label>Виробник</label><input id="aeBrand" list="gtBrands" placeholder="Michelin"></div>
         <div><label>Розмір *</label><input id="aeSize" placeholder="385/65 R22.5"></div>
         <div><label>DOT / рік</label><input id="aeDot" placeholder="2021 або 3521"></div>
         <div><label>Залишок протектора, % *</label><input id="aeTread" type="number" inputmode="numeric" placeholder="70"></div>
@@ -3117,7 +3154,7 @@ function renderAiToolsSearch(){
     </div>
     <div class="ai-tools-card" style="cursor:default">
       <div class="tai-grid">
-        <div><label>Бренд</label><input id="asBrand" placeholder="Michelin"></div>
+        <div><label>Бренд</label><input id="asBrand" list="gtBrands" placeholder="Michelin"></div>
         <div><label>Розмір *</label><input id="asSize" placeholder="385/65 R22.5"></div>
       </div>
       <button class="ai-tools-run" style="margin-top:14px" onclick="aiToolsSearchGo()">▶ Знайти</button>
@@ -3312,46 +3349,57 @@ function aiAppKey(){ return loadVal('appKey') || 'gt_4845ad8fee157d3c0257d16a304
 // ==================== 🤖 OpenRouter — пряма AI-оцінка в CRM ====================
 // Налаштування API (ключ НЕ жорстко в коді — лише з localStorage браузера).
 const OPENROUTER_URL   = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_MODEL_DEFAULT = 'openai/gpt-4o-mini';   // дешева стабільна модель
-function oraiKey(){   return loadVal('orKey')   || ''; }                 // ключ користувача
+const OPENROUTER_MODEL_DEFAULT = 'openai/gpt-4o-mini';
+function oraiKey(){   return loadVal('orKey')   || ''; }
 function oraiModel(){ return loadVal('orModel') || OPENROUTER_MODEL_DEFAULT; }
 
+const ORAI_SRC_NEW=[['rozetka','Rozetka'],['prom','Prom.ua'],['olx','OLX'],['hotline','Hotline'],['google','Google'],['suppliers','Постачальники / склади'],['manual','Вручну додати джерело']];
+const ORAI_SRC_USED=[['olx','OLX'],['prom','Prom.ua'],['fb','Facebook Marketplace'],['google','Google'],['ownstock','Власний склад Б/У'],['suppliers','Постачальники / склади'],['manual','Вручну додати джерело']];
+const ORAI_DEFAULT_CHECKED={ rozetka:1, prom:1, olx:1, google:1, hotline:1, fb:1 };
+function oraiMode(){ const u=document.getElementById('oraiModeUsed'); return (u&&u.checked)?'used':'new'; }
+function oraiSourcesHTML(mode){
+  const set = mode==='used'?ORAI_SRC_USED:ORAI_SRC_NEW;
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px">'+
+    set.map(([k,label])=>`<label style="display:flex;align-items:center;gap:7px;font-size:.85rem;cursor:pointer">
+      <input type="checkbox" id="orsrc_${k}" ${ORAI_DEFAULT_CHECKED[k]?'checked':''} style="width:auto;margin:0"> ${label}</label>`).join('')+
+    '</div><input id="oraiManualSrc" placeholder="Інше джерело (вручну, через кому)" style="margin-top:8px">';
+}
+function oraiSetMode(){
+  const box=document.getElementById('oraiSources'); if(box) box.innerHTML=oraiSourcesHTML(oraiMode());
+  const uf=document.getElementById('oraiUsedFields'); if(uf) uf.style.display=(oraiMode()==='used')?'block':'none';
+}
+function oraiSelectedSources(){
+  const set = oraiMode()==='used'?ORAI_SRC_USED:ORAI_SRC_NEW; const out=[];
+  set.forEach(([k,label])=>{ const c=document.getElementById('orsrc_'+k);
+    if(c&&c.checked){ if(k==='manual'){ const mv=(document.getElementById('oraiManualSrc')||{}).value||''; if(mv.trim()) out.push(mv.trim()); } else out.push(label); } });
+  return out;
+}
+function oraiLinks(){
+  const term=[_taiGet('mqBrand'),_taiGet('mqModel'),_taiGet('mqSize')].filter(Boolean).join(' ').trim();
+  if(!term){ alert('Вкажіть бренд / модель / розмір'); return; }
+  const q=encodeURIComponent(term);
+  const links=[['OLX','https://www.olx.ua/uk/list/q-'+q+'/'],['Prom.ua','https://prom.ua/ua/search?search_term='+q],['Rozetka','https://rozetka.com.ua/ua/search/?text='+q],['Google','https://www.google.com/search?q='+q+'+%D1%88%D0%B8%D0%BD%D0%B0+%D1%86%D1%96%D0%BD%D0%B0']];
+  const el=document.getElementById('oraiLinksBox');
+  if(el) el.innerHTML='<div style="font-size:.8rem;color:var(--text-dim);margin:8px 0 6px">🔎 Пошук «'+term+'» (нова вкладка):</div>'+
+    links.map(l=>'<a href="'+l[1]+'" target="_blank" rel="noopener" class="btn btn-dark" style="display:block;text-align:left;margin-bottom:6px;text-decoration:none">'+l[0]+' ↗</a>').join('');
+}
+// Блок налаштувань API (ховається у згорнутому <details>)
 function oraiPanelHTML(){
   const k=oraiKey(), masked=k?(k.slice(0,7)+'••••'+k.slice(-4)):'';
-  return `
-  <div class="card mt" id="oraiPanel">
-    <h3 style="margin-bottom:8px">🤖 Пряма AI-оцінка (OpenRouter)</h3>
-    <div style="font-size:.78rem;color:var(--text-dim);margin-bottom:10px">GPT відповідає прямо тут, без переходу в ChatGPT. Бере дані з полів вище (розмір/бренд/модель) + стан/протектор/опис. Старий «📋 Скопіювати запит» лишається як резерв.</div>
-    <label>🔑 OpenRouter API Key ${k?('<span style=\"color:var(--green);font-size:.75rem\">(збережено: '+masked+')</span>'):''}</label>
-    <input id="oraiKeyInp" type="password" placeholder="sk-or-..." autocomplete="off">
-    <div class="tai-grid" style="margin-top:8px">
-      <div class="full"><label>Модель</label><input id="oraiModelInp" value="${oraiModel()}" placeholder="${OPENROUTER_MODEL_DEFAULT}"></div>
-    </div>
+  return `<label>🔑 OpenRouter API Key ${k?('<span style=\"color:var(--green);font-size:.75rem\">(збережено: '+masked+')</span>'):''}</label>
+    <input id="oraiKeyInp" type="password" placeholder="ключ OpenRouter" autocomplete="off">
+    <div class="tai-grid" style="margin-top:8px"><div class="full"><label>Модель</label><input id="oraiModelInp" value="${oraiModel()}" placeholder="${OPENROUTER_MODEL_DEFAULT}"></div></div>
     <div class="gap-btns mt">
-      <button class="btn btn-green" onclick="oraiSaveKey()">💾 Зберегти API ключ</button>
+      <button class="btn btn-green" onclick="oraiSaveKey()">💾 Зберегти ключ</button>
       <button class="btn btn-dark" onclick="oraiTest()">🧪 Перевірити API</button>
-      <button class="btn btn-dark" onclick="oraiClearKey()">🗑 Очистити API ключ</button>
+      <button class="btn btn-dark" onclick="oraiClearKey()">🗑 Очистити ключ</button>
     </div>
-    <div class="tai-grid" style="margin-top:10px">
-      <div><label>Стан</label><input id="oraiCond" placeholder="добрий / є латки"></div>
-      <div><label>Протектор</label><input id="oraiTread" placeholder="11 мм або 70%"></div>
-      <div class="full"><label>Додатковий опис (необовʼязково)</label><input id="oraiDesc" placeholder="2 ремонти, боковина ціла…"></div>
-    </div>
-    <div class="gap-btns mt" style="margin-top:10px">
-      <button class="btn btn-red" onclick="oraiGet()">🤖 Отримати оцінку</button>
-    </div>
-    <div id="oraiStatus" style="font-size:.82rem;color:var(--accent);min-height:18px;margin-top:6px"></div>
-    <label style="margin-top:6px;display:block">Відповідь AI</label>
-    <textarea id="oraiAnswer" rows="8" readonly placeholder="Тут зʼявиться структурована оцінка від AI…" style="font-size:.82rem"></textarea>
-    <div class="gap-btns mt">
-      <button class="btn btn-green" onclick="oraiSave()">💾 Зберегти оцінку</button>
-    </div>
-  </div>`;
+    <div id="oraiApiStatus" style="font-size:.82rem;color:var(--accent);min-height:18px;margin-top:6px"></div>`;
 }
 function oraiSaveKey(){
   const k=(document.getElementById('oraiKeyInp')||{}).value||'';
   const m=((document.getElementById('oraiModelInp')||{}).value||'').trim()||OPENROUTER_MODEL_DEFAULT;
-  const st=document.getElementById('oraiStatus');
+  const st=document.getElementById('oraiApiStatus');
   if(!k.trim()){ if(st) st.innerHTML='🔑 Введіть ключ перед збереженням.'; return; }
   saveVal('orKey',k.trim()); saveVal('orModel',m);
   if(st) st.textContent='✅ Ключ і модель збережено (тільки у цьому браузері).';
@@ -3359,18 +3407,24 @@ function oraiSaveKey(){
 }
 function oraiClearKey(){
   if(!confirm('Очистити збережений OpenRouter API ключ?')) return;
-  saveVal('orKey',''); 
-  const st=document.getElementById('oraiStatus'); if(st) st.textContent='🗑 Ключ очищено.';
+  saveVal('orKey','');
+  const st=document.getElementById('oraiApiStatus'); if(st) st.textContent='🗑 Ключ очищено.';
   renderTaiMarket();
 }
 function oraiBuildPrompt(){
-  const b=_taiGet('mqBrand'), m=_taiGet('mqModel'), s=_taiGet('mqSize');
-  const cond=_taiGet('oraiCond'), tread=_taiGet('oraiTread'), desc=_taiGet('oraiDesc');
-  return 'Шина: '+[b,m,s].filter(Boolean).join(' ')+
-    '. Стан: '+(cond||'—')+'. Протектор: '+(tread||'—')+'.'+(desc?(' Опис: '+desc+'.'):'');
+  const b=_taiGet('mqBrand'),m=_taiGet('mqModel'),s=_taiGet('mqSize');
+  const srcs=oraiSelectedSources(); const today=new Date().toLocaleDateString('uk-UA');
+  const tire=[b,m,s].filter(Boolean).join(' ');
+  const srcLine = srcs.length?('Джерела (орієнтир): '+srcs.join(', ')+'.'):'Джерела: загальний ринок.';
+  if(oraiMode()==='used'){
+    const cond=_taiGet('oraiCond'),tread=_taiGet('oraiTread'),desc=_taiGet('oraiDesc');
+    return 'Тип: Б/У шина. Шина: '+tire+'. Стан: '+(cond||'—')+'. Протектор: '+(tread||'—')+'.'+(desc?(' Опис: '+desc+'.'):'')+' '+srcLine+
+      '\nВідповідь СТРОГО у форматі (грн, простий текст, кожне поле з нового рядка):\nОрієнтир ціни нової:\nСтан:\nПротектор:\nРекомендована ціна Б/У:\nМінімальна ціна продажу:\nРекомендований торг:\nКоментар:';
+  }
+  return 'Тип: нова шина. Шина: '+tire+'. '+srcLine+
+    '\nВідповідь СТРОГО у форматі (грн, простий текст, кожне поле з нового рядка):\nМінімальна ціна нової:\nСередня ціна нової:\nРекомендована ціна продажу:\nДжерела:\nДата перевірки: '+today+'\nКоментар:';
 }
-const ORAI_SYS='Ти — експерт ринку шин в Україні (ціни у гривнях). Оціни шину коротко і СТРОГО у такому форматі (звичайний текст, кожне поле з нового рядка, без markdown):\n'+
-  'Мінімальна ціна нової:\nСередня ціна нової:\nДжерела/орієнтир:\nРекомендована ціна Б/В:\nРекомендований торг:\nКоментар:';
+const ORAI_SYS='Ти — експерт ринку шин в Україні (ціни у гривнях). Ти НЕ відкриваєш сайти напряму — даєш ринковий ОРІЄНТИР за типовими цінами. Відповідай простим текстом рівно за форматом із запиту користувача. Не пиши, що «перевірив сайт».';
 function oraiHttpMsg(status,data){
   const det=(data&&data.error&&data.error.message)?(': '+data.error.message):'';
   if(status===401||status===403) return 'Невірний або відхилений API-ключ. Перевірте і збережіть знову.';
@@ -3380,9 +3434,9 @@ function oraiHttpMsg(status,data){
 }
 async function oraiGet(){
   const st=document.getElementById('oraiStatus');
-  if(!_taiGet('mqSize')&&!_taiGet('mqBrand')){ alert('Вкажіть хоча б розмір або бренд (поля вище)'); return; }
+  if(!_taiGet('mqSize')&&!_taiGet('mqBrand')){ alert('Вкажіть хоча б розмір або бренд'); return; }
   const key=oraiKey();
-  if(!key){ if(st) st.innerHTML='🔑 Спочатку введіть і збережіть OpenRouter API ключ.'; return; }
+  if(!key){ if(st) st.innerHTML='🔑 Додайте OpenRouter API ключ у налаштуваннях AI (блок «🔑 Налаштування AI API» нижче).'; return; }
   if(st) st.textContent='🤖 AI думає…';
   let res;
   try{
@@ -3396,11 +3450,11 @@ async function oraiGet(){
   const ans=(data&&data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';
   if(!ans.trim()){ if(st) st.innerHTML='❌ AI повернув порожню відповідь. Спробуйте ще раз.'; return; }
   const ta=document.getElementById('oraiAnswer'); if(ta) ta.value=ans.trim();
-  window._oraiLast={ans:ans.trim()};
-  if(st) st.textContent='✅ Готово. Перевірте і за потреби збережіть.';
+  window._oraiLast={ans:ans.trim(),mode:oraiMode()};
+  if(st) st.textContent='✅ AI-оцінка за вибраними джерелами (орієнтир). Перевірте і збережіть.';
 }
 async function oraiTest(){
-  const st=document.getElementById('oraiStatus');
+  const st=document.getElementById('oraiApiStatus');
   const typed=(document.getElementById('oraiKeyInp')||{}).value||''; const key=typed.trim()||oraiKey();
   if(!key){ if(st) st.innerHTML='🔑 Введіть ключ для перевірки.'; return; }
   if(st) st.textContent='🧪 Перевіряю ключ…';
@@ -3417,20 +3471,104 @@ async function oraiTest(){
 }
 function oraiSave(){
   const ans=(document.getElementById('oraiAnswer')||{}).value||'';
-  if(!ans.trim()){ alert('Спочатку натисніть «🤖 Отримати оцінку»'); return; }
-  if(!_taiGet('mqSize')){ alert('Вкажіть розмір шини (поле вище)'); return; }
+  if(!ans.trim()){ alert('Спочатку натисніть «🔎 Перевірити ціну»'); return; }
+  if(!_taiGet('mqSize')){ alert('Вкажіть розмір шини'); return; }
   const set=(id,v)=>{const e=document.getElementById(id); if(e&&v) e.value=v;};
   set('mqMin', _taiPickNum(ans,'мінім')||'');
-  set('mqAvg', _taiPickNum(ans,'середн')||'');
-  set('mqRec', _taiNum('mqAvg')||'');                 // recPrice = середня нова (для калькулятора)
+  set('mqAvg', _taiPickNum(ans,'середн')||_taiPickNum(ans,'орієнтир ціни нової')||'');
+  set('mqRec', _taiPickNum(ans,'рекоменд')||_taiNum('mqAvg')||'');
   const src=_taiPickSources(ans); if(src) set('mqSources',src);
-  const bv=_taiPickNum(ans,'б/в')||_taiPickNum(ans,'рекомендована ціна б');
-  const torg=(/торг[^:\n]*:?\s*([^\n]+)/i.exec(ans)||[])[1]||'';
-  set('mqComment', ('AI Б/В: '+(bv||'?')+'₴'+(torg?('; торг: '+torg.trim()):'')).slice(0,200));
-  aiLogs.push({id:uid(),type:'openrouter-eval',input:[_taiGet('mqBrand'),_taiGet('mqModel'),_taiGet('mqSize')].filter(Boolean).join(' '),output:ans.slice(0,500),createdAt:Date.now()});
+  const cm=(/коментар[^:\n]*:?\s*([^\n]+)/i.exec(ans)||[])[1]||'';
+  set('mqComment', ((oraiMode()==='used'?'Б/У · ':'Нова · ')+(cm||'AI орієнтир')).slice(0,200));
+  aiLogs.push({id:uid(),type:'openrouter-eval',input:[_taiGet('mqBrand'),_taiGet('mqModel'),_taiGet('mqSize')].filter(Boolean).join(' ')+' ['+oraiMode()+']',output:ans.slice(0,500),createdAt:Date.now()});
   save('aiLogs',aiLogs);
-  taiMarketSave();   // зберігає у marketPrices (існуюча база) + перерендер
+  taiMarketSave();
 }
+// 🧮 Використати в калькуляторі
+function oraiToCalc(){
+  const ans=(document.getElementById('oraiAnswer')||{}).value||'';
+  const b=_taiGet('mqBrand'),m=_taiGet('mqModel'),s=_taiGet('mqSize');
+  const newPrice=_taiPickNum(ans,'середн')||_taiPickNum(ans,'орієнтир ціни нової')||_taiPickNum(ans,'рекоменд')||0;
+  taiSub='calc'; renderTireAI();
+  const set=(id,v)=>{const e=document.getElementById(id); if(e&&v) e.value=v;};
+  const sp=gtParseSize(s); set('cSzW',sp.w); set('cSzP',sp.p); set('cSzD',sp.d); gtSizeSync('cSz','cSize');
+  set('cBrand',b); gtSetModels(b); set('cModel',m);
+  if(newPrice) set('cNewPrice',newPrice);
+}
+// 📦 Додати в Б/У склад
+function oraiToStock(){
+  if(typeof taiUsedTireModal!=='function') return;
+  const ans=(document.getElementById('oraiAnswer')||{}).value||'';
+  const recBV=_taiPickNum(ans,'рекомендована ціна б')||0;
+  const recSell=_taiPickNum(ans,'рекоменд')||0;
+  taiUsedTireModal(null,{ dealType:'куплено', size:_taiGet('mqSize'), brand:_taiGet('mqBrand'), model:_taiGet('mqModel'),
+    recommendedSalePrice:recBV||recSell, status:'в наявності', source:'AI оцінка',
+    notes:('AI ('+oraiMode()+'): '+ans.replace(/\n/g,' ').slice(0,180)) });
+}
+
+// ==================== 🧩 Спрощене введення шин (спільні компоненти) ====================
+const GT_BRANDS=['Michelin','Bridgestone','Continental','Goodyear','Dunlop','Pirelli','Hankook','Yokohama','Toyo','Kumho'];
+const GT_BRAND_MODELS={
+  michelin:['X Line Energy','X Multi','X MultiWay','X Works','X Coach','X Force'],
+  bridgestone:['Ecopia','R-Steer','R-Drive','Duravis'],
+  continental:['Hybrid','Conti EcoPlus','Scandinavia'],
+  goodyear:['KMAX','FUELMAX'],
+  hankook:['SmartFlex','SmartWork'],
+  yokohama:['BluEarth','RY023'],
+  kumho:['KRS03','KRD02']
+};
+const GT_SIZE_W=['385','315','295','275','265','245','235','215','205','195'];
+const GT_SIZE_P=['65','70','75','80','60','55','50'];
+const GT_SIZE_D=['17.5','19.5','22.5','24.5','16','17','18','19','20','21','22'];
+const GT_AXIS=['','Рульова','Ведуча','Причіпна','Універсальна'];
+const GT_COND=['','Нова','Добра','Є латки','Косметичний ремонт','Після ремонту','Під відновлення'];
+const GT_TREAD_STEPS=[100,90,80,70,60,50,40,30];
+
+// нормалізація розміру до формату 385/65/22.5 (прибирає R/r/пробіли)
+function gtNormSize(s){
+  s=(s==null?'':''+s);
+  const nums=(s.replace(/,/g,'.').match(/\d+(?:\.\d+)?/g)||[]);
+  if(nums.length>=3) return nums[0]+'/'+nums[1]+'/'+nums[2];
+  if(nums.length) return nums.join('/');
+  return s.replace(/[Rr\s]/g,'');
+}
+function gtParseSize(s){ const n=gtNormSize(s).split('/'); return {w:n[0]||'',p:n[1]||'',d:n[2]||''}; }
+
+function gtEnsureDatalists(){
+  if(typeof document==='undefined'||!document.body) return;
+  if(document.getElementById('gtBrands')) return;
+  const mk=(id,arr)=>{ const d=document.createElement('datalist'); d.id=id; d.innerHTML=arr.map(v=>'<option value="'+v+'">').join(''); document.body.appendChild(d); };
+  mk('gtBrands',GT_BRANDS); mk('gtSizeW',GT_SIZE_W); mk('gtSizeP',GT_SIZE_P); mk('gtSizeD',GT_SIZE_D);
+  const dm=document.createElement('datalist'); dm.id='gtModels'; document.body.appendChild(dm);
+}
+function gtModelsFor(brand){ const b=(brand||'').toLowerCase(); for(const k in GT_BRAND_MODELS){ if(b.indexOf(k)>-1) return GT_BRAND_MODELS[k]; } return []; }
+function gtSetModels(brand){ const dm=document.getElementById('gtModels'); if(!dm) return; dm.innerHTML=gtModelsFor(brand).map(v=>'<option value="'+v+'">').join(''); }
+
+// 3-польний віджет розміру. hiddenId — існуюче поле, яке читає стара логіка (uSize/cSize/mqSize).
+function gtSizeWidget(prefix,hiddenId,sizeVal){
+  const p=gtParseSize(sizeVal||''); const norm=gtNormSize(sizeVal||'');
+  const cell=(sub,id,list,ph,val)=>`<div style="flex:1;min-width:0"><span style="font-size:.68rem;color:var(--text-dim)">${sub}</span><input id="${id}" list="${list}" inputmode="decimal" value="${val}" placeholder="${ph}" oninput="gtSizeSync('${prefix}','${hiddenId}')"></div>`;
+  return `<div style="display:flex;align-items:flex-end;gap:6px">
+    ${cell('Ширина',prefix+'W','gtSizeW','385',p.w)}<span style="padding-bottom:10px;font-weight:700">/</span>
+    ${cell('Профіль',prefix+'P','gtSizeP','65',p.p)}<span style="padding-bottom:10px;font-weight:700">/</span>
+    ${cell('Диск',prefix+'D','gtSizeD','22.5',p.d)}
+    <input type="hidden" id="${hiddenId}" value="${norm}">
+  </div>
+  <div id="${prefix}Prev" style="font-size:.78rem;color:var(--accent);margin-top:4px">${norm?('Розмір: '+norm):''}</div>`;
+}
+function gtSizeSync(prefix,hiddenId){
+  const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+  const cl=v=>v.replace(/[Rr\s]/g,'').replace(',','.');
+  const w=cl(g(prefix+'W')),p=cl(g(prefix+'P')),d=cl(g(prefix+'D'));
+  const combined=[w,p,d].filter(x=>x!=='').join('/');
+  const norm=gtNormSize(combined);
+  const h=document.getElementById(hiddenId); if(h) h.value=norm;
+  const prev=document.getElementById(prefix+'Prev'); if(prev) prev.textContent=norm?('Розмір: '+norm):'';
+}
+function gtAxisSelect(id,val){ val=val||''; return `<select id="${id}">${GT_AXIS.map(a=>`<option value="${a}"${a===val?' selected':''}>${a||'—'}</option>`).join('')}</select>`; }
+function gtCondSelect(id,val){ val=val||''; return `<select id="${id}">${GT_COND.map(a=>`<option value="${a}"${a===val?' selected':''}>${a||'—'}</option>`).join('')}</select>`; }
+function gtTreadBtns(targetId){ return `<div style="display:flex;flex-wrap:wrap;gap:5px;margin:4px 0">${GT_TREAD_STEPS.map(p=>`<button type="button" class="btn btn-dark btn-sm" style="padding:4px 9px" onclick="gtSetTread('${targetId}',${p})">${p}%</button>`).join('')}</div>`; }
+function gtSetTread(id,pct){ const e=document.getElementById(id); if(e) e.value=pct; }
 
 function init(){
   if(topSecret){ document.body.classList.add('ts-active'); document.getElementById('tsToggle').textContent='🔒 Деактивувати'; document.getElementById('tsToggle').classList.add('btn-green'); document.getElementById('tsToggle').classList.remove('btn-red'); }
