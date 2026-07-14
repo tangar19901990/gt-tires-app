@@ -218,7 +218,8 @@ document.querySelectorAll('.nav button').forEach(btn => {
     btn.classList.add('active');
     document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
     document.getElementById('sec-'+btn.dataset.tab).classList.add('active');
-    if(btn.dataset.tab==='debtors') renderDebtors(); if(btn.dataset.tab==='home') renderHome();
+    if(btn.dataset.tab==='debtors') renderDebtors(); if(btn.dataset.tab==='stats') renderHome();
+    if(btn.dataset.tab==='home') openNewOrder();
     if(btn.dataset.tab==='tiremarket'){ try{ renderTireMarketPanel(); }catch(e){} }
   });
 });
@@ -357,52 +358,10 @@ function filterOrders(){
 }
 function nextOrderNumber(){ let n=parseInt(localStorage.getItem(LS_KEY+'orderSeq')||'0',10)||0; n++; try{localStorage.setItem(LS_KEY+'orderSeq',n);}catch(e){} return String(n).padStart(5,'0'); }
 function openNewOrder(edit){
-  openModal(`
-    <div class="order-head"><h3 style="margin:0">🧾 Нове замовлення</h3><button class="btn btn-dark btn-sm" onclick="closeModal()">✕</button></div>
-    <div class="order-layout">
-      <div class="order-pick">
-        <div id="oSvcCatBtns" class="ocat-grid"></div>
-        <div id="oRadius"></div>
-        <div id="oQuick" style="margin-bottom:8px"></div>
-        <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:10px">
-        <button type="button" class="btn btn-dark btn-sm" style="width:100%;margin-bottom:8px" onclick="toggleOrderNewSvc()">＋ Нова послуга (немає в прайсі)</button>
-        <div id="oNewSvcForm" style="display:none;flex-direction:column;gap:6px;margin-bottom:10px">
-          <input id="oNewSvcName" placeholder="Назва послуги">
-          <input id="oNewSvcPrice" type="number" inputmode="numeric" placeholder="Ціна ₴">
-          <button type="button" class="btn btn-red btn-sm" onclick="addOrderCustomSvc()">Додати в замовлення</button>
-        </div>
-        <div id="oSvcPickList" class="osvc-grid"></div>
-      </div>
-      <aside class="order-cart">
-        <div class="cart-head">🧾 Поточне замовлення</div>
-        <div class="cart-fields">
-          <input id="oClient" placeholder="Ім'я клієнта">
-          <input id="oPhone" type="tel" placeholder="Телефон +380..." oninput="orderPhoneLookup()">
-          <input id="oCar" placeholder="Авто (марка, модель)">
-          <input id="oPlate" placeholder="Держномер">
-          <select id="oPayType"><option value="cash">💵 Готівка</option><option value="cashless">💳 Безготівка</option></select>
-          <input id="oPaid" type="number" placeholder="Оплачено ₴ (порожнє = повна)">
-          <textarea id="oNotes" rows="1" placeholder="Нотатки"></textarea>
-        </div>
-        <div id="oSelectedSvcs" class="cart-list"></div>
-        <div class="omat-box">
-          <div class="omat-title">📦 Зі складу (списати)</div>
-          <div class="omat-row">
-            <select id="oMatPick" class="omat-sel"></select>
-            <input id="oMatQty" type="number" min="1" value="1" class="omat-qty">
-            <button type="button" class="btn btn-dark btn-sm" onclick="addOrderMat()">＋</button>
-          </div>
-          <div id="oMatList"></div>
-        </div>
-        <div class="cart-total"><span>Разом</span><b id="oSvcTotal">0 ₴</b></div>
-        <div class="cart-actions">
-          <button class="btn btn-dark" onclick="closeModal()">Скасувати</button>
-          <button class="btn btn-red" onclick="submitOrder()">✅ Оформити</button>
-        </div>
-      </aside>
-    </div>
-  `);
-  document.getElementById('modalContent').classList.add('modal-wide');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  const navBtn=document.querySelector('.nav button[data-tab="home"]'); if(navBtn) navBtn.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  const sec=document.getElementById('sec-home'); if(sec) sec.classList.add('active');
   window._orderSvcs = [];
   window._orderMats = [];
   window._orderCatFilter = 0;
@@ -424,7 +383,13 @@ function openNewOrder(edit){
     renderSelectedSvcs(); renderOrderMats(); renderOrderPickList();
     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='✏️ Редагувати #'+(edit.orderNumber||edit.id.slice(-6).toUpperCase());
     const sb=document.querySelector('.cart-actions .btn-red'); if(sb) sb.textContent='💾 Зберегти зміни';
-  } else { window._editOrderId=null; }
+  } else {
+    window._editOrderId=null;
+    ['oClient','oPhone','oCar','oPlate','oPaid','oNotes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+    const pt=document.getElementById('oPayType'); if(pt) pt.value='cash';
+    const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='🧾 Нове замовлення';
+    const sb=document.querySelector('.cart-actions .btn-red'); if(sb) sb.textContent='✅ Оформити';
+  }
 }
 function renderOrderCatBtns(){
   const el = document.getElementById('oSvcCatBtns');
@@ -3240,4 +3205,4 @@ function toggleHomeWidget(k,onv){
   if(onv){ if(!homeWidgets.includes(k)) homeWidgets.push(k); } else { homeWidgets=homeWidgets.filter(x=>x!==k); }
   save('homeW',homeWidgets); renderHome();
 }
-(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); applyOrderBg(); (function(){var _pet=document.getElementById('priceEditToggle'); if(_pet)_pet.checked=priceEditOn;})(); initAuth(); setInterval(gtAutoSync,30000); })();
+(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); openNewOrder(); applyOrderBg(); (function(){var _pet=document.getElementById('priceEditToggle'); if(_pet)_pet.checked=priceEditOn;})(); initAuth(); setInterval(gtAutoSync,30000); })();
