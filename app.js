@@ -357,6 +357,17 @@ function filterOrders(){
   document.getElementById('ordersList').innerHTML = html;
 }
 function nextOrderNumber(){ let n=parseInt(localStorage.getItem(LS_KEY+'orderSeq')||'0',10)||0; n++; try{localStorage.setItem(LS_KEY+'orderSeq',n);}catch(e){} return String(n).padStart(5,'0'); }
+function renderOrderBell(){
+  const b=document.getElementById('oBellBadge'); if(!b) return;
+  const n=(orders||[]).filter(o=>(o.debt||0)>0).length;
+  if(n>0){ b.textContent=n; b.style.display='inline-block'; } else { b.style.display='none'; }
+}
+function setOrderPayType(v){
+  const sel=document.getElementById('oPayType'); if(sel) sel.value=v;
+  const cash=document.getElementById('payCashBtn'), card=document.getElementById('payCardBtn');
+  if(cash) cash.classList.toggle('active', v==='cash');
+  if(card) card.classList.toggle('active', v==='cashless');
+}
 function openNewOrder(edit){
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
   const navBtn=document.querySelector('.nav button[data-tab="home"]'); if(navBtn) navBtn.classList.add('active');
@@ -373,11 +384,12 @@ function openNewOrder(edit){
   renderSelectedSvcs();
   renderOrderMatPicker();
   renderOrderMats();
+  renderOrderBell();
   if(edit){
     window._editOrderId=edit.id;
     const set=(id,v)=>{const e=document.getElementById(id); if(e) e.value=(v==null?'':v);};
     set('oClient',edit.clientName); set('oPhone',edit.phone); set('oCar',edit.car); set('oPlate',edit.plate);
-    set('oPayType',edit.paymentType||'cash'); set('oPaid',edit.paidAmount!=null?edit.paidAmount:''); set('oNotes',edit.notes);
+    setOrderPayType(edit.paymentType||'cash'); set('oPaid',edit.paidAmount!=null?edit.paidAmount:''); set('oNotes',edit.notes);
     window._orderSvcs=(edit.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
     window._orderMats=(edit.materials||[]).map(m=>{ const cur=(window._stockIdx||{})[m.id]; return {id:m.id,name:m.name,qty:m.qty,src:m.src,max:(cur?cur.max:0)+(+m.qty||0)}; });
     renderSelectedSvcs(); renderOrderMats(); renderOrderPickList();
@@ -386,7 +398,7 @@ function openNewOrder(edit){
   } else {
     window._editOrderId=null;
     ['oClient','oPhone','oCar','oPlate','oPaid','oNotes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
-    const pt=document.getElementById('oPayType'); if(pt) pt.value='cash';
+    setOrderPayType('cash');
     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='🧾 Нове замовлення';
     const sb=document.querySelector('.cart-actions .btn-red'); if(sb) sb.textContent='✅ Оформити';
   }

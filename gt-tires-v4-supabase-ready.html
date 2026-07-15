@@ -99,13 +99,19 @@
 <div class="section" id="sec-aitools"><div id="aiToolsBody"></div></div>
 <div class="section" id="sec-tiremarket"><div class="flex-between mb"><h2 style="font-family:'Oswald';color:var(--red-light)">🛞 GT Tires Market Agent</h2></div><div id="tireMarketBody"></div></div>
 <div class="section active" id="sec-home">
-  <div class="order-head"><h3 style="margin:0">🧾 Нове замовлення</h3></div>
+  <div class="order-head">
+    <div class="order-head-title">
+      <h3 style="margin:0">🧾 Нове замовлення</h3>
+      <div class="order-head-sub" id="oHeadSub">Оберіть категорію та послуги зліва</div>
+    </div>
+    <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" class="order-search">
+    <div class="order-bell" id="oBell" title="Боржники">🔔<span class="order-bell-badge" id="oBellBadge" style="display:none">0</span></div>
+  </div>
   <div class="order-layout">
     <div class="order-pick">
       <div id="oSvcCatBtns" class="ocat-grid"></div>
       <div id="oRadius"></div>
       <div id="oQuick" style="margin-bottom:8px"></div>
-      <input type="text" id="oSvcSearch" placeholder="🔍 Пошук послуги..." oninput="filterOrderServices()" style="margin-bottom:10px">
       <button type="button" class="btn btn-dark btn-sm" style="width:100%;margin-bottom:8px" onclick="toggleOrderNewSvc()">＋ Нова послуга (немає в прайсі)</button>
       <div id="oNewSvcForm" style="display:none;flex-direction:column;gap:6px;margin-bottom:10px">
         <input id="oNewSvcName" placeholder="Назва послуги">
@@ -119,9 +125,15 @@
       <div class="cart-fields">
         <input id="oClient" placeholder="Ім'я клієнта">
         <input id="oPhone" type="tel" placeholder="Телефон +380..." oninput="orderPhoneLookup()">
-        <input id="oCar" placeholder="Авто (марка, модель)">
-        <input id="oPlate" placeholder="Держномер">
-        <select id="oPayType"><option value="cash">💵 Готівка</option><option value="cashless">💳 Безготівка</option></select>
+        <div class="cart-row-2">
+          <input id="oCar" placeholder="Авто (марка, модель)">
+          <input id="oPlate" placeholder="Держномер">
+        </div>
+        <select id="oPayType" style="display:none"><option value="cash">Готівка</option><option value="cashless">Безготівка</option></select>
+        <div class="pay-toggle">
+          <button type="button" class="pay-btn cash" id="payCashBtn" onclick="setOrderPayType('cash')">💵 Нал</button>
+          <button type="button" class="pay-btn card" id="payCardBtn" onclick="setOrderPayType('cashless')">💳 Безнал</button>
+        </div>
         <input id="oPaid" type="number" placeholder="Оплачено ₴ (порожнє = повна)">
         <textarea id="oNotes" rows="1" placeholder="Нотатки"></textarea>
       </div>
