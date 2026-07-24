@@ -64,8 +64,7 @@ function printOrderNariad(){
   const pay=o.paymentType==='cashless'?'БЕЗГОТІВКА':'ГОТІВКА';
   const paid=o.paidAmount!=null?o.paidAmount:(o.total||0);
   const debt=o.debt||0;
-  const num=o.orderNumber||(o.id?o.id.slice(-6).toUpperCase():'');
-  const masterRow=topSecret?`<div class="mrow">Майстер 35%: <b>${fmtMoney(Math.round((o.total||0)*0.35))}</b></div>`:'';
+  const num=o.orderNumber||(o.id?o.id.slice(-6).toUpperCase():'');const masterRow=''; // частка майстра не друкується на клієнтському документі
   const debtRows=debt>0?`<div class="prow"><span>Оплачено:</span><span>${fmtMoney(paid)}</span></div><div class="prow dbt"><span>Борг:</span><span>${fmtMoney(debt)}</span></div>`:'';
   const QR='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZgAAAGYAQMAAABF9WYWAAAABlBMVEUaGhr///8SYIb4AAAC0UlEQVR42u1cQW7EQAiz+v8/U+1mwCZRVW0P0IPTQzdK5oIFeIwziM8veM3gGlxX3V7/wWevG+ibX/j88pq/rSlALngTnYTlQFO/3q84brP4MPZBPAKVSe/skjcdtxV8qoydKgfWuUww47OLzyluWeISsYLI+Oz1n8KCzUigk+ZkfGbxYR799mf+toAPqXaiEJAad9W9oguvy3Ebrm9IbIKsGn3vI3sj4zNc33p7wUmYaHSh+ByMz0Z9Q3GCU9SUbieNOFA6bvP8WusXGqUmtcu0ctxm86czuShW0J7WJtX4LNS32qAeoiZPqO9kHXTchvHJtFFBR9BTpmf9YByflivJ33gLUU/D9W2DX2f16jJcUgRRsy+q4LhN84ND2CAtqBKrKdvW3xbyB7csCTLu/F3k2vufHX0nogsJOd9O4ELmqI7btH7dBVCZlpI/yCbWcdvoP0REgKqqVnYR47PQf3qxo3MnokkIJ9Mct/H9KRlCzYGKdIueAM8XVvgBagREfLKckSLkC47bsH6QjA1xF+Gk7TCjHLcF/0GbNDz0H+hkyHEb9+8oZavSJo+K31l/m8cH9FsXRBS1cweU6Bif6fomfUdNikyv24jVcZv3h+BOrZsYx+ZkfWeBv4nLLZphEXSWCrFz3Mb7D+kzaXRIdoWSBsdtvP/U1wmUEeqTBfpL7U9c2p9K9aKNKgSuZuRx3Mb7T9Ovo+k6Qf3A/oO1+lYINEJ3b0rm1yv4lKsKIRy7mUaC3cn4DNc3MjYOsUUy0GGq+dtK/2lpow6raN81nDvHbcO/IwaReIgLIHcwPsP5006qCJHbIG2JFh/jM54/7ENlU2xCnPrjzK/H9Z1QRwh+sMlLRjluS+eHtLRhbxKnvPnbGj7ysUKfMlCYO0KP47aTP4+dqHwdpGKp47ZyflXoMWLRRqrdpuC4rZwfArUhalmLWyty3FbOD/G5hv9wzTeIDDPu5g+wyAAAAABJRU5ErkJggg==';
   const html=`<!doctype html><html lang="uk"><head><meta charset="utf-8"><title>Заказ-наряд №${num}</title><style>
