@@ -1,0 +1,336 @@
+From 9f72d4d8ee030886ae38019f5be7de2178f06ce4 Mon Sep 17 00:00:00 2001
+From: genspark_dev <genspark_dev@genspark.ai>
+Date: Wed, 29 Jul 2026 17:44:37 +0000
+Subject: [PATCH] Polish order flow UX and payment summary
+
+---
+ app.js                          | 145 ++++++++++++++++++++++++++++++--
+ gt-tires-v4-supabase-ready.html |   5 +-
+ styles.css                      |  25 ++++--
+ 3 files changed, 157 insertions(+), 18 deletions(-)
+
+diff --git a/app.js b/app.js
+index 84a8665..744fff4 100644
+--- a/app.js
++++ b/app.js
+@@ -274,7 +274,49 @@ function normPhone(p){ const d=(p||'').replace(/\D/g,''); return d.length>9?d.sl
+ function findClientByPhone(p){ const n=normPhone(p); if(!n) return null; return clients.find(c=>c.phone&&normPhone(c.phone)===n)||null; }
+ function normName(n){ return (n||'').trim().replace(/\s+/g,' ').toLowerCase(); }
+ function findClientByName(n){ const k=normName(n); if(!k) return null; return clients.find(c=>normName(c.name)===k)||null; }
+-function orderPhoneLookup(){ const pe=document.getElementById('oPhone'); if(!pe) return; const c=findClientByPhone(pe.value); if(!c) return; const ce=document.getElementById('oClient'); const cae=document.getElementById('oCar'); const ple=document.getElementById('oPlate'); if(ce&&!ce.value.trim()) ce.value=c.name||''; if(cae&&!cae.value.trim()&&c.car) cae.value=c.car; if(ple&&!ple.value.trim()&&c.plate) ple.value=c.plate; }
++function formatUaPhone(v){
++  const digits=(v||'').replace(/\D/g,'');
++  if(!digits) return '';
++  let d=digits;
++  if(d.startsWith('380')) d=d.slice(0,12);
++  else if(d.startsWith('80')) d=('3'+d).slice(0,12);
++  else if(d.startsWith('0')) d=('38'+d).slice(0,12);
++  else if(d.length<=9) d=('380'+d).slice(0,12);
++  else d=d.slice(0,12);
++  const rest=d.slice(3);
++  const parts=[];
++  if(rest.slice(0,2)) parts.push(rest.slice(0,2));
++  if(rest.slice(2,5)) parts.push(rest.slice(2,5));
++  if(rest.slice(5,7)) parts.push(rest.slice(5,7));
++  if(rest.slice(7,9)) parts.push(rest.slice(7,9));
++  return '+380'+(parts.length?' '+parts.join(' '):'');
++}
++function renderClientHint(c){
++  const el=document.getElementById('oClientHint'); if(!el) return;
++  if(!c){ el.textContent='Новий клієнт'; el.className='client-hint'; return; }
++  const bits=['Знайдено клієнта'];
++  if(c.name) bits.push(c.name);
++  if(c.car) bits.push(c.car);
++  if(c.plate) bits.push(c.plate);
++  el.textContent=bits.join(' · ');
++  el.className='client-hint found';
++}
++function orderPhoneLookup(){
++  const pe=document.getElementById('oPhone'); if(!pe) return;
++  const cur=pe.value||'';
++  const fmt=formatUaPhone(cur);
++  if(fmt && fmt!==cur) pe.value=fmt;
++  const c=findClientByPhone(pe.value);
++  if(!c){ renderClientHint(null); clearOrderFeedback(); return; }
++  const ce=document.getElementById('oClient');
++  const cae=document.getElementById('oCar');
++  const ple=document.getElementById('oPlate');
++  if(ce&&!ce.value.trim()) ce.value=c.name||'';
++  if(cae&&!cae.value.trim()&&c.car) cae.value=c.car;
++  if(ple&&!ple.value.trim()&&c.plate) ple.value=c.plate;
++  renderClientHint(c);
++  clearOrderFeedback();
++}
+ async function fetchServerOrderNumber(){ const sp=getSupa(); if(!sp||!navigator.onLine||!_session) return null; try{ const {data,error}=await sp.rpc('next_v4_order_number'); if(error||data==null) return null; return String(data); }catch(e){ return null; } }
+ async function assignServerNumbers(){ let changed=false; for(const o of (orders||[])){ if(o.numSrc==='temp'){ const n=await fetchServerOrderNumber(); if(n){ o.orderNumber=n; o.numSrc='server'; changed=true; } else break; } } if(changed){ save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderDebtors==='function')renderDebtors(); } }
+ function priceRow(item,isCustom,cols){
+@@ -362,6 +404,67 @@ function renderOrderBell(){
+   const n=(orders||[]).filter(o=>(o.debt||0)>0).length;
+   if(n>0){ b.textContent=n; b.style.display='inline-block'; } else { b.style.display='none'; }
+ }
++function getOrderLiveState(){
++  const services=window._orderSvcs||[];
++  let total=0, itemCount=0;
++  services.forEach(s=>{
++    const qty=Math.max(1,+s.qty||1);
++    itemCount+=qty;
++    total+=(+s.price||0)*qty;
++  });
++  const pe=document.getElementById('oPaid');
++  const rawPresent=!!(pe&&pe.value!=='');
++  let entered=rawPresent?(parseFloat(pe.value)||0):total;
++  if(entered<0) entered=0;
++  const applied=Math.min(entered,total);
++  const debt=Math.max(0,total-applied);
++  const change=Math.max(0,entered-total);
++  return {servicesCount:services.length,itemCount,total,entered,applied,debt,change,rawPresent};
++}
++function setOrderFeedback(type,msg){
++  const el=document.getElementById('oOrderFeedback'); if(!el) return;
++  if(!msg){ el.style.display='none'; el.textContent=''; el.className='order-feedback'; return; }
++  el.style.display='block';
++  el.textContent=msg;
++  el.className='order-feedback '+type;
++}
++function clearOrderFeedback(){ setOrderFeedback('', ''); }
++function renderOrderPaySummary(){
++  const el=document.getElementById('oPaySummary');
++  const totalEl=document.getElementById('oSvcTotal');
++  const headSub=document.getElementById('oHeadSub');
++  const s=getOrderLiveState();
++  if(totalEl) totalEl.textContent=fmtMoney(s.total);
++  if(headSub) headSub.textContent=s.servicesCount?`Обрано ${s.servicesCount} посл. · ${s.itemCount} шт · ${fmtMoney(s.total)}`:'Оберіть категорію та послуги зліва';
++  if(!el) return;
++  if(!s.total){ el.className='pay-summary is-empty'; el.textContent='До сплати: 0₴'; return; }
++  if(!s.rawPresent){ el.className='pay-summary is-empty'; el.textContent=`До сплати: ${fmtMoney(s.total)} · порожнє поле = повна оплата`; return; }
++  if(s.change>0){ el.className='pay-summary is-warn'; el.textContent=`До зарахування: ${fmtMoney(s.total)} · решта: ${fmtMoney(s.change)}`; return; }
++  if(s.debt>0){ el.className='pay-summary is-warn'; el.textContent=`Сплачено: ${fmtMoney(s.applied)} · борг: ${fmtMoney(s.debt)}`; return; }
++  el.className='pay-summary is-ok';
++  el.textContent=`Оплачено повністю: ${fmtMoney(s.total)}`;
++}
++function updateOrderSubmitState(){
++  const btn=document.querySelector('[data-order-submit]'); if(!btn) return;
++  const s=getOrderLiveState();
++  btn.disabled=!s.servicesCount;
++  btn.title=s.servicesCount?'':'Спочатку додайте послугу';
++}
++function initOrderInteractions(){
++  ['oClient','oCar','oPlate','oPaid','oNotes','oSvcSearch'].forEach(id=>{
++    const el=document.getElementById(id);
++    if(!el || el.dataset.bound==='1') return;
++    el.addEventListener('input',()=>{
++      clearOrderFeedback();
++      if(id==='oPaid'){ renderOrderPaySummary(); }
++      if(id==='oClient' && !(document.getElementById('oPhone')||{}).value){ renderClientHint(null); }
++    });
++    el.dataset.bound='1';
++  });
++  renderOrderPaySummary();
++  updateOrderSubmitState();
++  renderClientHint(findClientByPhone((document.getElementById('oPhone')||{}).value)||null);
++}
+ function setOrderPayType(v){
+   const sel=document.getElementById('oPayType'); if(sel) sel.value=v;
+   const cash=document.getElementById('payCashBtn'), card=document.getElementById('payCardBtn');
+@@ -377,6 +480,8 @@ function openNewOrder(edit){
+   window._orderMats = [];
+   window._orderCatFilter = 0;
+   window._orderRadius = null;
++  const search=document.getElementById('oSvcSearch'); if(search) search.value='';
++  clearOrderFeedback();
+   renderOrderCatBtns();
+   renderOrderRadius();
+   renderOrderPickList();
+@@ -394,14 +499,17 @@ function openNewOrder(edit){
+     window._orderMats=(edit.materials||[]).map(m=>{ const cur=(window._stockIdx||{})[m.id]; return {id:m.id,name:m.name,qty:m.qty,src:m.src,max:(cur?cur.max:0)+(+m.qty||0)}; });
+     renderSelectedSvcs(); renderOrderMats(); renderOrderPickList();
+     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='✏️ Редагувати #'+(edit.orderNumber||edit.id.slice(-6).toUpperCase());
+-    const sb=document.querySelector('.cart-actions .btn-red'); if(sb) sb.textContent='💾 Зберегти зміни';
++    const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='💾 Зберегти зміни';
+   } else {
+     window._editOrderId=null;
+     ['oClient','oPhone','oCar','oPlate','oPaid','oNotes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+     setOrderPayType('cash');
+     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='🧾 Нове замовлення';
+-    const sb=document.querySelector('.cart-actions .btn-red'); if(sb) sb.textContent='✅ Оформити';
++    const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='✅ Оформити';
+   }
++  renderOrderPaySummary();
++  updateOrderSubmitState();
++  renderClientHint(findClientByPhone((document.getElementById('oPhone')||{}).value)||null);
+ }
+ function renderOrderCatBtns(){
+   const el = document.getElementById('oSvcCatBtns');
+@@ -460,24 +568,27 @@ function addOrderSvc(id){
+   else { window._orderSvcs.push({id:item.id,name:item.name,price:item.price,qty:1}); }
+   renderOrderPickList();
+   renderSelectedSvcs();
++  clearOrderFeedback();
+ }
+ function removeOrderSvc(id){
+   window._orderSvcs = window._orderSvcs.filter(s=>s.id!==id);
+   renderOrderPickList();
+   renderSelectedSvcs();
++  clearOrderFeedback();
+ }
+ function changeOrderSvcQty(id,delta){
+   const s = window._orderSvcs.find(x=>x.id===id);
+   if(!s) return;
+   s.qty = Math.max(1, s.qty+delta);
+   renderSelectedSvcs();
++  clearOrderFeedback();
+ }
+ function renderSelectedSvcs(){
+   const el = document.getElementById('oSelectedSvcs');
+   const tel = document.getElementById('oSvcTotal');
+   if(!el) return;
+   let total=0;
+-  if(!window._orderSvcs.length){ el.innerHTML='<div style="text-align:center;color:var(--text-dim);font-size:0.8rem;padding:14px">Оберіть послуги зліва</div>'; if(tel)tel.textContent=fmtMoney(0); return; }
++  if(!window._orderSvcs.length){ el.innerHTML='<div style="text-align:center;color:var(--text-dim);font-size:0.8rem;padding:14px">Оберіть послуги зліва</div>'; if(tel)tel.textContent=fmtMoney(0); renderOrderPaySummary(); updateOrderSubmitState(); return; }
+   let h = '';
+   window._orderSvcs.forEach(s=>{
+     const sub = s.price*s.qty; total+=sub;
+@@ -492,6 +603,8 @@ function renderSelectedSvcs(){
+   });
+   el.innerHTML = h;
+   if(tel) tel.textContent = fmtMoney(total);
++  renderOrderPaySummary();
++  updateOrderSubmitState();
+ }
+ function addServiceRow(){} // deprecated, kept for compat
+ function _stockList(){ const out=[]; (warehouse||[]).forEach(w=>out.push({id:w.id,name:w.name||'товар',max:+w.qty||0,src:'warehouse'})); (tires||[]).forEach(t=>out.push({id:t.id,name:((t.brand||'Шина')+' '+(t.size||'')).trim(),max:+t.qty||0,src:'tires'})); return out; }
+@@ -503,7 +616,8 @@ function saveNewOrder(){
+   const services = window._orderSvcs||[];
+   let total = 0;
+   services.forEach(s=>{ total+=s.price*s.qty; });
+-  if(!services.length){ alert('Оберіть хоча б одну послугу'); return; }
++  if(!services.length){ setOrderFeedback('error','Спочатку додайте хоча б одну послугу'); return; }
++  clearOrderFeedback();
+   const order = {
+     id: uid(),
+     date: new Date().toISOString(),
+@@ -518,7 +632,13 @@ function saveNewOrder(){
+     status: 'new',
+     materials: (window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src}))
+   };
+-  { const _pe=document.getElementById('oPaid'); let _p=(_pe&&_pe.value!=='')?(parseFloat(_pe.value)||0):(order.total||0); if(_p<0)_p=0; if(_p>(order.total||0))_p=order.total||0; order.paidAmount=_p; order.debt=Math.max(0,(order.total||0)-_p); }
++  {
++    const _live=getOrderLiveState();
++    order.paidAmount=_live.applied;
++    order.debt=_live.debt;
++    order.cashReceived=_live.entered;
++    order.changeAmount=_live.change;
++  }
+   if(order.paidAmount>0){ cashbook.push({id:uid(),date:order.date,type:'income',amount:order.paidAmount,method:order.paymentType||'cash',desc:'Замовлення #'+(order.orderNumber||order.id.slice(-5).toUpperCase())+' — '+order.clientName,orderId:order.id}); save('cash',cashbook); }
+   (order.materials||[]).forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=Math.max(0,(+it.qty||0)-(+mt.qty||0)); } }); if((order.materials||[]).length){ save('tires',tires); save('warehouse',warehouse); if(typeof renderTires==='function')renderTires(); if(typeof renderWarehouse==='function')renderWarehouse(); }
+   // auto-add client (or update existing)
+@@ -1657,7 +1777,8 @@ function saveEditedOrder(oid){
+   const o=orders.find(x=>x.id===oid);
+   if(!o){ window._editOrderId=null; return saveNewOrder(); }
+   const services=window._orderSvcs||[];
+-  if(!services.length){ alert('Оберіть хоча б одну послугу'); return; }
++  if(!services.length){ setOrderFeedback('error','Спочатку додайте хоча б одну послугу'); return; }
++  clearOrderFeedback();
+   let total=0; services.forEach(s=>{ total+=s.price*s.qty; });
+   const g=id=>{ const e=document.getElementById(id); return e?e.value:''; };
+ 
+@@ -1674,7 +1795,13 @@ function saveEditedOrder(oid){
+   o.services=services;
+   o.total=total;
+   o.materials=(window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src}));
+-  { const pe=document.getElementById('oPaid'); let p=(pe&&pe.value!=='')?(parseFloat(pe.value)||0):(total||0); if(p<0)p=0; if(p>total)p=total; o.paidAmount=p; o.debt=Math.max(0,total-p); }
++  {
++    const live=getOrderLiveState();
++    o.paidAmount=live.applied;
++    o.debt=live.debt;
++    o.cashReceived=live.entered;
++    o.changeAmount=live.change;
++  }
+   o.updatedAt=new Date().toISOString();
+ 
+   // 3) списуємо НОВІ матеріали
+@@ -3217,4 +3344,4 @@ function toggleHomeWidget(k,onv){
+   if(onv){ if(!homeWidgets.includes(k)) homeWidgets.push(k); } else { homeWidgets=homeWidgets.filter(x=>x!==k); }
+   save('homeW',homeWidgets); renderHome();
+ }
+-(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); openNewOrder(); applyOrderBg(); (function(){var _pet=document.getElementById('priceEditToggle'); if(_pet)_pet.checked=priceEditOn;})(); initAuth(); setInterval(gtAutoSync,30000); })();
++(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); openNewOrder(); initOrderInteractions(); applyOrderBg(); (function(){var _pet=document.getElementById('priceEditToggle'); if(_pet)_pet.checked=priceEditOn;})(); initAuth(); setInterval(gtAutoSync,30000); })();
+diff --git a/gt-tires-v4-supabase-ready.html b/gt-tires-v4-supabase-ready.html
+index 45f0ab7..e3fc48a 100644
+--- a/gt-tires-v4-supabase-ready.html
++++ b/gt-tires-v4-supabase-ready.html
+@@ -125,6 +125,7 @@
+       <div class="cart-fields">
+         <input id="oClient" placeholder="Ім'я клієнта">
+         <input id="oPhone" type="tel" placeholder="Телефон +380..." oninput="orderPhoneLookup()">
++        <div class="client-hint" id="oClientHint">Новий клієнт</div>
+         <div class="cart-row-2">
+           <input id="oCar" placeholder="Авто (марка, модель)">
+           <input id="oPlate" placeholder="Держномер">
+@@ -135,6 +136,7 @@
+           <button type="button" class="pay-btn card" id="payCardBtn" onclick="setOrderPayType('cashless')">💳 Безнал</button>
+         </div>
+         <input id="oPaid" type="number" placeholder="Оплачено ₴ (порожнє = повна)">
++        <div class="pay-summary is-empty" id="oPaySummary">До сплати: 0₴</div>
+         <textarea id="oNotes" rows="1" placeholder="Нотатки"></textarea>
+       </div>
+       <div id="oSelectedSvcs" class="cart-list"></div>
+@@ -148,9 +150,10 @@
+         <div id="oMatList"></div>
+       </div>
+       <div class="cart-total"><span>Разом</span><b id="oSvcTotal">0 ₴</b></div>
++      <div class="order-feedback" id="oOrderFeedback" style="display:none"></div>
+       <div class="cart-actions">
+         <button class="btn btn-dark" onclick="openNewOrder()">Скасувати</button>
+-        <button class="btn btn-red" onclick="submitOrder()">✅ Оформити</button>
++        <button class="btn btn-green" data-order-submit onclick="submitOrder()">✅ Оформити</button>
+       </div>
+     </aside>
+   </div>
+diff --git a/styles.css b/styles.css
+index 7be67ee..b8d6b24 100644
+--- a/styles.css
++++ b/styles.css
+@@ -473,22 +473,31 @@ body.hdr-collapsed{padding-top:54px}
+   box-shadow:0 18px 38px -18px rgba(0,0,0,.9),0 0 30px -12px rgba(74,155,255,.35),inset 0 1px 0 rgba(255,255,255,.05)}
+ .cart-head{font-family:'Oswald';color:#fff;font-size:1rem}
+ .cart-fields{display:flex;flex-direction:column;gap:6px}
+-.cart-fields input,.cart-fields select,.cart-fields textarea{width:100%;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--black-soft);color:var(--text);font-size:0.82rem}
++.cart-fields input,.cart-fields select,.cart-fields textarea{width:100%;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--black-soft);color:var(--text);font-size:0.82rem;transition:border-color .15s ease, box-shadow .15s ease, background .15s ease}
++.cart-fields input:focus,.cart-fields select:focus,.cart-fields textarea:focus{outline:none;border-color:rgba(74,155,255,.55);box-shadow:0 0 0 3px rgba(74,155,255,.16);background:#151821}
++.client-hint{font-size:0.74rem;color:var(--text-dim);margin-top:-2px;padding:0 2px 2px}
++.client-hint.found{color:#7bd88a}
+ .cart-row-2{display:grid;grid-template-columns:1.4fr 1fr;gap:6px}
+ .cart-row-2 input{width:100%}
+ .pay-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+-.pay-btn{background:var(--black-soft);border:1px solid var(--border);color:var(--text-2);border-radius:9px;padding:9px 0;text-align:center;font-size:0.82rem;font-weight:600;cursor:pointer;transition:filter .15s,background .15s,border-color .15s}
++.pay-btn{background:var(--black-soft);border:1px solid var(--border);color:var(--text-2);border-radius:9px;padding:9px 0;text-align:center;font-size:0.82rem;font-weight:600;cursor:pointer;transition:filter .15s,background .15s,border-color .15s,box-shadow .15s ease}
+ .pay-btn:hover{border-color:var(--border-soft);color:#fff}
+-.pay-btn.active{color:#fff;border-color:transparent}
++.pay-btn.active{color:#fff;border-color:transparent;box-shadow:0 10px 24px -14px rgba(0,0,0,.75)}
+ .pay-btn.cash.active{background:linear-gradient(135deg,var(--green),var(--green-dark))}
+ .pay-btn.card.active{background:linear-gradient(135deg,#2F6FD6,var(--blue-dark))}
+-.cart-list{max-height:230px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px 0}
+-.cart-total{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(160deg,#FF3B30,var(--red-dark));color:#fff;border-radius:14px;padding:16px 20px;font-family:'Oswald';
+-  animation:cartGlow 2.6s ease-in-out infinite;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+-.cart-total b{font-size:1.6rem}
+-@keyframes cartGlow{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 26px -8px rgba(224,31,38,.5)}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 12px 38px -4px rgba(224,31,38,.9)}}
++.pay-summary{border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:0.77rem;color:var(--text-2);background:rgba(255,255,255,.03)}
++.pay-summary.is-empty{color:var(--text-dim)}
++.pay-summary.is-ok{border-color:rgba(79,206,90,.38);background:rgba(79,206,90,.12);color:#8ef59f}
++.pay-summary.is-warn{border-color:rgba(240,194,74,.34);background:rgba(240,194,74,.1);color:#ffd76d}
++.cart-list{max-height:260px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px 0}
++.cart-total{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(160deg,#151821,#0e1015);color:#fff;border:1px solid rgba(79,206,90,.26);border-radius:14px;padding:16px 20px;font-family:'Oswald';box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 14px 34px -20px rgba(79,206,90,.55)}
++.cart-total b{font-size:1.6rem;color:#9af3a5}
++.order-feedback{border-radius:12px;padding:10px 12px;font-size:0.78rem;border:1px solid transparent}
++.order-feedback.success{background:rgba(79,206,90,.12);border-color:rgba(79,206,90,.3);color:#9af3a5}
++.order-feedback.error{background:rgba(224,31,38,.12);border-color:rgba(224,31,38,.34);color:#ff8d88}
+ .cart-actions{display:flex;gap:8px}
+ .cart-actions .btn{flex:1}
++.cart-actions .btn[disabled]{opacity:.55;cursor:not-allowed;filter:grayscale(.15);box-shadow:none;transform:none}
+ @media(max-width:820px){ .order-layout{grid-template-columns:1fr} .order-cart{position:static} }
+ @media(max-width:560px){ .ocat-grid{grid-template-columns:repeat(2,1fr)} }
+ .orad-label{font-size:0.74rem;color:var(--text-dim);margin:2px 0 6px;font-weight:700}
+-- 
+2.43.0
+

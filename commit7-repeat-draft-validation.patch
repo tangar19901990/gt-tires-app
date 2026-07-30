@@ -1,0 +1,359 @@
+From e08a10500ac4a28996e7093ec6250eab2ec34c81 Mon Sep 17 00:00:00 2001
+From: genspark_dev <genspark_dev@genspark.ai>
+Date: Thu, 30 Jul 2026 00:46:30 +0000
+Subject: [PATCH] Add repeat order flow, draft restore, and order form
+ validation
+
+---
+ app.js                          | 174 ++++++++++++++++++++++++++++++--
+ gt-tires-v4-supabase-ready.html |   2 +-
+ styles.css                      |   8 ++
+ 3 files changed, 177 insertions(+), 7 deletions(-)
+
+diff --git a/app.js b/app.js
+index bffe167..0bc45da 100644
+--- a/app.js
++++ b/app.js
+@@ -5,6 +5,7 @@ const load = k => { try { return JSON.parse(localStorage.getItem(LS_KEY+k)) || [
+ const save = (k,v) => localStorage.setItem(LS_KEY+k, JSON.stringify(v));
+ const loadVal = k => localStorage.getItem(LS_KEY+k);
+ const saveVal = (k,v) => localStorage.setItem(LS_KEY+k, v);
++const ORDER_DRAFT_KEY = LS_KEY+'orderDraft';
+ 
+ let orders = load('orders');
+ let clients = load('clients');
+@@ -262,11 +263,15 @@ function toggleQuick(id){ id=+id; if(quickServices.includes(id)) quickServices=q
+ function renderOrderQuick(){
+   const el=document.getElementById('oQuick'); if(!el) return;
+   const list = quickServices.map(id=>{ const x=findSvc(id); if(!x) return ''; return `<div onclick="addOrderSvc(${x.id})" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:0.82rem"><span>${x.name}</span><b style="color:var(--red-light)">${fmtMoney(x.price)}</b></div>`; }).join('');
++  const popular = getPopularOrderServices(6).filter(x=>!quickServices.includes(x.id));
++  const popularHtml = popular.length
++    ? `<div class="order-popular-box"><div class="order-popular-title">🔥 Популярні з історії</div><div class="order-popular-list">${popular.map(x=>`<button type="button" class="order-chip" onclick="addOrderSvc(${x.id})"><span>${x.name}</span><b>${fmtMoney(x.price)}</b></button>`).join('')}</div></div>`
++    : `<div class="order-popular-empty">Ще немає історії — хіти з'являться автоматично</div>`;
+   el.innerHTML = `<button type="button" class="btn btn-dark btn-sm" style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:0.8rem" onclick="toggleQuickPanel()"><span>⭐ Швидкі послуги (${quickServices.length})</span><span id="oQuickArrow">▾</span></button>
+     <div id="oQuickList" style="display:none;border:1px solid var(--border);border-radius:8px;margin-top:6px;overflow:hidden">
+       ${list || '<div style="padding:10px;font-size:0.78rem;color:var(--text-dim)">Поки порожньо. Створи нижче або постав ⭐ у Прайсі.</div>'}
+       <div style="padding:8px"><button type="button" class="btn btn-red btn-sm" style="width:100%;font-size:0.74rem" onclick="createQuickService()">＋ Створити швидку послугу</button></div>
+-    </div>`;
++    </div>${popularHtml}`;
+ }
+ function toggleQuickPanel(){ const l=document.getElementById('oQuickList'); const a=document.getElementById('oQuickArrow'); if(!l) return; const open=l.style.display==='none'; l.style.display=open?'block':'none'; if(a) a.textContent=open?'▴':'▾'; }
+ function createQuickService(){ const name=prompt('Назва швидкої послуги:'); if(!name) return; const price=parseFloat(prompt('Ціна, ₴:','0'))||0; const maxId=(customServices||[]).reduce((m,x)=>Math.max(m,x.id),9000); const id=maxId+1; customServices.push({id,name:name.trim(),price}); save('customSvc',customServices); if(!quickServices.includes(id)){ quickServices.push(id); save('quickSvc',quickServices); } renderOrderQuick(); const l=document.getElementById('oQuickList'); if(l) l.style.display='block'; if(typeof renderPrice==='function') renderPrice(); }
+@@ -334,10 +339,110 @@ function orderPhoneLookup(){
+   const cur=pe.value||'';
+   const fmt=formatUaPhone(cur);
+   if(fmt && fmt!==cur) pe.value=fmt;
++  setOrderFieldInvalid('oPhone',false);
++  syncOrderClientHint(true);
++  clearOrderFeedback();
++  saveOrderDraft();
++  updateOrderSubmitState();
++}
++function orderPlateLookup(){
++  setOrderFieldInvalid('oPlate',false);
+   syncOrderClientHint(true);
+   clearOrderFeedback();
++  saveOrderDraft();
++  updateOrderSubmitState();
++}
++function getPopularOrderServices(limit){
++  const map={};
++  (orders||[]).forEach(o=>{
++    (o.services||[]).forEach(s=>{
++      const id=+s.id;
++      if(!id) return;
++      if(!map[id]) map[id]={id,name:s.name||'Послуга',price:+s.price||0,uses:0};
++      map[id].uses+=Math.max(1,+s.qty||1);
++      if(+s.price>0) map[id].price=+s.price;
++    });
++  });
++  return Object.values(map)
++    .sort((a,b)=>b.uses-a.uses)
++    .slice(0,limit||6)
++    .map(x=>{
++      const current=findSvc(x.id);
++      return {
++        id:x.id,
++        name:(current&&current.name)||x.name,
++        price:(current&&current.price!=null)?current.price:x.price,
++        uses:x.uses
++      };
++    });
++}
++function clearOrderDraft(){ try{ localStorage.removeItem(ORDER_DRAFT_KEY); }catch(e){} }
++function loadOrderDraft(){ try{ return JSON.parse(localStorage.getItem(ORDER_DRAFT_KEY)||'null'); }catch(e){ return null; } }
++function saveOrderDraft(){
++  if(window._editOrderId) return;
++  const draft={
++    clientName:(document.getElementById('oClient')||{}).value||'',
++    phone:(document.getElementById('oPhone')||{}).value||'',
++    car:(document.getElementById('oCar')||{}).value||'',
++    plate:(document.getElementById('oPlate')||{}).value||'',
++    notes:(document.getElementById('oNotes')||{}).value||'',
++    paid:(document.getElementById('oPaid')||{}).value||'',
++    paymentType:(document.getElementById('oPayType')||{}).value||'cash',
++    services:(window._orderSvcs||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty})),
++    materials:(window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src})),
++    catFilter:window._orderCatFilter,
++    radius:window._orderRadius
++  };
++  const hasData = draft.services.length || draft.materials.length || [draft.clientName,draft.phone,draft.car,draft.plate,draft.notes,draft.paid].some(v=>(v||'').trim());
++  if(!hasData){ clearOrderDraft(); return; }
++  try{ localStorage.setItem(ORDER_DRAFT_KEY, JSON.stringify(draft)); }catch(e){}
++}
++function applyOrderDraft(draft){
++  if(!draft || window._editOrderId) return false;
++  const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
++  set('oClient',draft.clientName); set('oPhone',draft.phone); set('oCar',draft.car); set('oPlate',draft.plate);
++  set('oNotes',draft.notes); set('oPaid',draft.paid);
++  window._orderCatFilter=typeof draft.catFilter==='number'?draft.catFilter:0;
++  window._orderRadius=draft.radius||null;
++  window._orderSvcs=(draft.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
++  const stock=getOrderMaterialAvailability([]);
++  window._orderMats=(draft.materials||[]).map(m=>{
++    const meta=stock[m.id]||{max:0,name:m.name||'товар',src:m.src||'warehouse'};
++    return {id:m.id,name:m.name||meta.name,qty:+m.qty||1,src:m.src||meta.src,max:+meta.max||0};
++  });
++  setOrderPayType(draft.paymentType||'cash');
++  renderOrderCatBtns();
++  renderOrderRadius();
++  renderOrderPickList();
++  renderSelectedSvcs();
++  renderOrderMatPicker();
++  renderOrderMats();
++  renderOrderPaySummary();
++  updateOrderSubmitState();
++  syncOrderClientHint(false);
++  return true;
++}
++function repeatOrder(oid){
++  const o=orders.find(x=>x.id===oid); if(!o) return;
++  closeModal();
++  clearOrderDraft();
++  openNewOrder();
++  const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
++  set('oClient',o.clientName||''); set('oPhone',o.phone||''); set('oCar',o.car||''); set('oPlate',o.plate||'');
++  set('oNotes',o.notes||''); set('oPaid','');
++  setOrderPayType(o.paymentType||'cash');
++  window._orderSvcs=(o.services||[]).map(s=>{ const cur=findSvc(s.id); return {id:s.id,name:(cur&&cur.name)||s.name,price:(cur&&cur.price!=null)?cur.price:s.price,qty:s.qty}; });
++  const stock=getOrderMaterialAvailability([]);
++  window._orderMats=(o.materials||[]).map(m=>{ const meta=stock[m.id]||{max:0,name:m.name||'товар',src:m.src||'warehouse'}; return {id:m.id,name:m.name||meta.name,qty:+m.qty||1,src:m.src||meta.src,max:+meta.max||0}; });
++  renderOrderPickList();
++  renderSelectedSvcs();
++  renderOrderMatPicker();
++  renderOrderMats();
++  renderOrderPaySummary();
++  syncOrderClientHint(false);
++  saveOrderDraft();
++  setOrderFeedback('success','Повторне замовлення підготовлено — перевір оплату і склад');
+ }
+-function orderPlateLookup(){ syncOrderClientHint(true); clearOrderFeedback(); }
+ async function fetchServerOrderNumber(){ const sp=getSupa(); if(!sp||!navigator.onLine||!_session) return null; try{ const {data,error}=await sp.rpc('next_v4_order_number'); if(error||data==null) return null; return String(data); }catch(e){ return null; } }
+ async function assignServerNumbers(){ let changed=false; for(const o of (orders||[])){ if(o.numSrc==='temp'){ const n=await fetchServerOrderNumber(); if(n){ o.orderNumber=n; o.numSrc='server'; changed=true; } else break; } } if(changed){ save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderDebtors==='function')renderDebtors(); } }
+ function priceRow(item,isCustom,cols){
+@@ -561,6 +666,7 @@ function filterOrders(){
+       <div style="margin-top:6px;font-family:'Oswald';font-size:1.1rem">${fmtMoney(o.total||0)}${debt>0?' <span style="color:var(--accent);font-size:0.82rem">• борг '+fmtMoney(debt)+'</span>':''}${topSecret?' <span class="ts-price">(майстер: '+fmtMoney(Math.round((o.total||0)*0.35))+')</span>':''}</div>
+       <div style="margin-top:4px;color:var(--text-dim);font-size:0.77rem">${o.paymentType==='cashless'?'💳 Безготівка':'💵 Готівка'} · оплачено ${fmtMoney(paid)}${debt>0?' · залишок '+fmtMoney(debt):''}</div>
+       <div class="order-card-actions no-print" onclick="event.stopPropagation()">
++        <button class="order-action-btn" onclick="event.stopPropagation();repeatOrder('${o.id}')">🔁 Повтор</button>
+         <button class="order-action-btn ${st.key==='progress'?'is-active':''}" onclick="event.stopPropagation();startOrderWork('${o.id}')">🔄 В роботу</button>
+         <button class="order-action-btn success ${st.key==='done'?'is-active':''}" onclick="event.stopPropagation();finishOrderWork('${o.id}')">✅ Виконано</button>
+         <button class="order-action-btn danger ${st.key==='cancel'?'is-active':''}" onclick="event.stopPropagation();cancelOrderQuick('${o.id}')">✖ Скасувати</button>
+@@ -615,14 +721,55 @@ function renderOrderPaySummary(){
+   el.className='pay-summary is-ok';
+   el.textContent=`Оплачено повністю: ${fmtMoney(s.total)}`;
+ }
++function setOrderFieldInvalid(id,on){
++  const el=document.getElementById(id);
++  if(el) el.classList.toggle('is-invalid', !!on);
++}
++function getOrderFormIssues(markFields){
++  const mark=markFields!==false;
++  if(mark) ['oClient','oPhone','oCar','oPlate'].forEach(id=>setOrderFieldInvalid(id,false));
++  const issues=[];
++  const client=((document.getElementById('oClient')||{}).value||'').trim();
++  const phone=((document.getElementById('oPhone')||{}).value||'').trim();
++  const car=((document.getElementById('oCar')||{}).value||'').trim();
++  const plate=((document.getElementById('oPlate')||{}).value||'').trim();
++  if(!client && !phone && !plate){
++    issues.push('Вкажіть клієнта, телефон або держномер');
++    if(mark){ setOrderFieldInvalid('oClient',true); setOrderFieldInvalid('oPhone',true); setOrderFieldInvalid('oPlate',true); }
++  }
++  if(client && client.length<2){
++    issues.push("Ім'я клієнта закоротке");
++    if(mark) setOrderFieldInvalid('oClient',true);
++  }
++  if(phone){
++    const digits=phone.replace(/\D/g,'');
++    if(digits.length!==12 || !digits.startsWith('380')){
++      issues.push('Телефон має бути у форматі +380 XX XXX XX XX');
++      if(mark) setOrderFieldInvalid('oPhone',true);
++    }
++  }
++  if(car && car.length<2){
++    issues.push('Уточніть авто');
++    if(mark) setOrderFieldInvalid('oCar',true);
++  }
++  if(plate){
++    const norm=normPlate(plate);
++    if(norm.length<6 || norm.length>10){
++      issues.push('Перевірте держномер');
++      if(mark) setOrderFieldInvalid('oPlate',true);
++    }
++  }
++  return issues;
++}
+ function updateOrderSubmitState(){
+   const btn=document.querySelector('[data-order-submit]'); if(!btn) return;
+   const s=getOrderLiveState();
+   const busy=!!window._orderSubmitting;
+   const matIssues=getOrderMaterialIssues(window._orderMats||[], getOrderEditBaseMaterials());
+-  btn.disabled=busy || !s.servicesCount || !!matIssues.length;
++  const formIssues=getOrderFormIssues(false);
++  btn.disabled=busy || !s.servicesCount || !!matIssues.length || !!formIssues.length;
+   btn.textContent=busy ? (window._editOrderId?'⏳ Зберігаю...':'⏳ Оформлюю...') : (window._editOrderId?'💾 Зберегти зміни':'✅ Оформити');
+-  btn.title=busy?'Зачекайте, триває збереження':(matIssues.length?'На складі не вистачає матеріалів':(s.servicesCount?'':'Спочатку додайте послугу'));
++  btn.title=busy?'Зачекайте, триває збереження':(matIssues.length?'На складі не вистачає матеріалів':(formIssues[0]|| (s.servicesCount?'':'Спочатку додайте послугу')));
+ }
+ function initOrderInteractions(){
+   ['oClient','oCar','oPlate','oPaid','oNotes','oSvcSearch'].forEach(id=>{
+@@ -630,9 +777,12 @@ function initOrderInteractions(){
+     if(!el || el.dataset.bound==='1') return;
+     el.addEventListener('input',()=>{
+       clearOrderFeedback();
++      setOrderFieldInvalid(id,false);
+       if(id==='oPaid'){ renderOrderPaySummary(); }
+       if(id==='oClient' || id==='oPlate'){ syncOrderClientHint(id!=='oClient'); }
+       if(id==='oCar'){ renderOrderPaySummary(); }
++      saveOrderDraft();
++      updateOrderSubmitState();
+     });
+     el.dataset.bound='1';
+   });
+@@ -646,6 +796,9 @@ function setOrderPayType(v){
+   const cash=document.getElementById('payCashBtn'), card=document.getElementById('payCardBtn');
+   if(cash) cash.classList.toggle('active', v==='cash');
+   if(card) card.classList.toggle('active', v==='cashless');
++  renderOrderPaySummary();
++  updateOrderSubmitState();
++  saveOrderDraft();
+ }
+ function openNewOrder(edit){
+   window._orderSubmitting=false;
+@@ -683,6 +836,7 @@ function openNewOrder(edit){
+     setOrderPayType('cash');
+     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='🧾 Нове замовлення';
+     const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='✅ Оформити';
++    if(applyOrderDraft(loadOrderDraft())) setOrderFeedback('success','Чернетку відновлено');
+   }
+   renderOrderPaySummary();
+   updateOrderSubmitState();
+@@ -765,7 +919,7 @@ function renderSelectedSvcs(){
+   const tel = document.getElementById('oSvcTotal');
+   if(!el) return;
+   let total=0;
+-  if(!window._orderSvcs.length){ el.innerHTML='<div style="text-align:center;color:var(--text-dim);font-size:0.8rem;padding:14px">Оберіть послуги зліва</div>'; if(tel)tel.textContent=fmtMoney(0); renderOrderPaySummary(); updateOrderSubmitState(); return; }
++  if(!window._orderSvcs.length){ el.innerHTML='<div style="text-align:center;color:var(--text-dim);font-size:0.8rem;padding:14px">Оберіть послуги зліва або натисніть хіт нижче</div>'; if(tel)tel.textContent=fmtMoney(0); renderOrderPaySummary(); updateOrderSubmitState(); saveOrderDraft(); return; }
+   let h = '';
+   window._orderSvcs.forEach(s=>{
+     const sub = s.price*s.qty; total+=sub;
+@@ -782,6 +936,7 @@ function renderSelectedSvcs(){
+   if(tel) tel.textContent = fmtMoney(total);
+   renderOrderPaySummary();
+   updateOrderSubmitState();
++  saveOrderDraft();
+ }
+ function addServiceRow(){} // deprecated, kept for compat
+ function _stockList(){ const out=[]; (warehouse||[]).forEach(w=>out.push({id:w.id,name:w.name||'товар',max:+w.qty||0,src:'warehouse'})); (tires||[]).forEach(t=>out.push({id:t.id,name:((t.brand||'Шина')+' '+(t.size||'')).trim(),max:+t.qty||0,src:'tires'})); return out; }
+@@ -851,7 +1006,7 @@ function renderOrderMats(){
+   const el=document.getElementById('oMatList'); if(!el) return;
+   syncOrderMaterialCaps();
+   const ms=window._orderMats||[];
+-  if(!ms.length){ el.innerHTML=''; updateOrderSubmitState(); return; }
++  if(!ms.length){ el.innerHTML=''; updateOrderSubmitState(); saveOrderDraft(); return; }
+   const issues=getOrderMaterialIssues(ms, getOrderEditBaseMaterials());
+   const issueMap={}; issues.forEach(x=>issueMap[x.id]=x);
+   let html=ms.map((m,i)=>{
+@@ -863,12 +1018,15 @@ function renderOrderMats(){
+   }
+   el.innerHTML=html;
+   updateOrderSubmitState();
++  saveOrderDraft();
+ }
+ function saveNewOrder(){
+   const services = window._orderSvcs||[];
+   let total = 0;
+   services.forEach(s=>{ total+=s.price*s.qty; });
+   if(!services.length){ setOrderFeedback('error','Спочатку додайте хоча б одну послугу'); return; }
++  const formIssues=getOrderFormIssues(true);
++  if(formIssues.length){ setOrderFeedback('error',formIssues[0]); updateOrderSubmitState(); return; }
+   clearOrderFeedback();
+   const order = {
+     id: uid(),
+@@ -916,6 +1074,7 @@ function saveNewOrder(){
+     save('clients',clients);
+   }
+   orders.unshift(order);
++  clearOrderDraft();
+   save('orders',orders);
+   renderOrders();
+   renderClients();
+@@ -992,6 +1151,7 @@ function viewOrder(oid){
+     <div class="order-modal-actions no-print">
+       <button class="btn btn-red btn-sm" onclick="printOrderNariad()">🖨️ Друк</button>
+       <button class="btn btn-dark btn-sm" onclick="openEditOrder('${o.id}')">✏️ Редагувати</button>
++      <button class="btn btn-dark btn-sm" onclick="repeatOrder('${o.id}')">🔁 Повторити</button>
+       <button class="order-action-btn ${statusMeta.key==='progress'?'is-active':''}" onclick="startOrderWork('${o.id}')">🔄 В роботу</button>
+       <button class="order-action-btn success ${statusMeta.key==='done'?'is-active':''}" onclick="finishOrderWork('${o.id}')">✅ Виконано</button>
+       <button class="order-action-btn danger ${statusMeta.key==='cancel'?'is-active':''}" onclick="cancelOrderQuick('${o.id}')">✖ Скасувати</button>
+@@ -2106,6 +2266,8 @@ function saveEditedOrder(oid){
+   if(!o){ window._editOrderId=null; return saveNewOrder(); }
+   const services=window._orderSvcs||[];
+   if(!services.length){ setOrderFeedback('error','Спочатку додайте хоча б одну послугу'); return; }
++  const formIssues=getOrderFormIssues(true);
++  if(formIssues.length){ setOrderFeedback('error',formIssues[0]); updateOrderSubmitState(); return; }
+   clearOrderFeedback();
+   let total=0; services.forEach(s=>{ total+=s.price*s.qty; });
+   const g=id=>{ const e=document.getElementById(id); return e?e.value:''; };
+diff --git a/gt-tires-v4-supabase-ready.html b/gt-tires-v4-supabase-ready.html
+index 4191b89..fdaa144 100644
+--- a/gt-tires-v4-supabase-ready.html
++++ b/gt-tires-v4-supabase-ready.html
+@@ -152,7 +152,7 @@
+       <div class="cart-total"><span>Разом</span><b id="oSvcTotal">0 ₴</b></div>
+       <div class="order-feedback" id="oOrderFeedback" style="display:none"></div>
+       <div class="cart-actions">
+-        <button class="btn btn-dark" onclick="openNewOrder()">Скасувати</button>
++        <button class="btn btn-dark" onclick="clearOrderDraft();openNewOrder()">Скасувати</button>
+         <button class="btn btn-green" data-order-submit onclick="submitOrder()">✅ Оформити</button>
+       </div>
+     </aside>
+diff --git a/styles.css b/styles.css
+index c0740b2..8738d5d 100644
+--- a/styles.css
++++ b/styles.css
+@@ -505,6 +505,7 @@ body.hdr-collapsed{padding-top:54px}
+ .cart-fields{display:flex;flex-direction:column;gap:6px}
+ .cart-fields input,.cart-fields select,.cart-fields textarea{width:100%;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--black-soft);color:var(--text);font-size:0.82rem;transition:border-color .15s ease, box-shadow .15s ease, background .15s ease}
+ .cart-fields input:focus,.cart-fields select:focus,.cart-fields textarea:focus{outline:none;border-color:rgba(74,155,255,.55);box-shadow:0 0 0 3px rgba(74,155,255,.16);background:#151821}
++.cart-fields .is-invalid{border-color:rgba(224,31,38,.7)!important;box-shadow:0 0 0 3px rgba(224,31,38,.12)!important}
+ .client-hint{font-size:0.74rem;color:var(--text-dim);margin-top:-2px;padding:0 2px 2px}
+ .client-hint.found{color:#7bd88a}
+ .cart-row-2{display:grid;grid-template-columns:1.4fr 1fr;gap:6px}
+@@ -538,6 +539,13 @@ body.hdr-collapsed{padding-top:54px}
+ .osvc-btn{position:relative}
+ .osvc-edit{position:absolute;top:4px;right:7px;font-size:0.82rem;opacity:.85;cursor:pointer;line-height:1}
+ .osvc-edit:hover{opacity:1;transform:scale(1.15)}
++.order-popular-box{margin-top:8px;border:1px solid var(--border);border-radius:10px;padding:10px;background:rgba(255,255,255,.03)}
++.order-popular-title{font-size:0.76rem;color:var(--text-dim);margin-bottom:8px;font-weight:700}
++.order-popular-list{display:grid;grid-template-columns:1fr;gap:6px}
++.order-chip{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:9px;border:1px solid var(--border);background:var(--black);color:var(--text);cursor:pointer;text-align:left;font-size:0.78rem}
++.order-chip:hover{border-color:var(--red);background:#14101B}
++.order-chip b{color:var(--green);font-family:'Oswald'}
++.order-popular-empty{margin-top:8px;padding:10px;border:1px dashed var(--border);border-radius:10px;color:var(--text-dim);font-size:0.76rem}
+ .hperiod{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+ .hperiod-btn{padding:7px 15px;border-radius:10px;border:1px solid var(--border);background:var(--black);color:var(--text-dim);font-size:0.8rem;font-weight:600;cursor:pointer}
+ .hperiod-btn.active{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border-color:var(--red)}
+-- 
+2.43.0
+

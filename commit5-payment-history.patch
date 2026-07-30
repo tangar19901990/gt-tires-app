@@ -1,0 +1,251 @@
+From 90876aff43a10451e56dc351ee25dba1cb45b635 Mon Sep 17 00:00:00 2001
+From: genspark_dev <genspark_dev@genspark.ai>
+Date: Thu, 30 Jul 2026 00:30:59 +0000
+Subject: [PATCH] Track order payment history and debt top-ups
+
+---
+ app.js     | 132 +++++++++++++++++++++++++++++++++++++++++++++--------
+ styles.css |   7 +++
+ 2 files changed, 121 insertions(+), 18 deletions(-)
+
+diff --git a/app.js b/app.js
+index 73645c5..b50befd 100644
+--- a/app.js
++++ b/app.js
+@@ -376,12 +376,77 @@ function getPriceCat(item){
+ function filterPrice(){ activeCatFilter=-1; renderCatTiles(); renderPrice(); }
+ 
+ // ==================== ORDERS ====================
+-function getOrderPaidAmount(o){ return +(o&&o.paidAmount!=null?o.paidAmount:0)||0; }
++function getOrderCashEntries(orderId){
++  return (cashbook||[])
++    .filter(c=>c.type==='income' && c.orderId===orderId)
++    .sort((a,b)=>new Date(a.date)-new Date(b.date));
++}
++function getOrderPaidAmount(o){
++  if(o && o.id){
++    const entries=getOrderCashEntries(o.id);
++    if(entries.length) return entries.reduce((s,c)=>s+(+c.amount||0),0);
++  }
++  return +(o&&o.paidAmount!=null?o.paidAmount:0)||0;
++}
+ function getOrderDebtAmount(o){
+   if(!o || o.status==='cancel') return 0;
+-  if(o.debt!=null) return Math.max(0,+o.debt||0);
+   return Math.max(0,(+o.total||0)-getOrderPaidAmount(o));
+ }
++function syncOrderPaymentState(orderOrId){
++  const o=typeof orderOrId==='string' ? orders.find(x=>x.id===orderOrId) : orderOrId;
++  if(!o) return {paid:0,debt:0};
++  o.paidAmount=getOrderPaidAmount(o);
++  o.debt=Math.max(0,(+o.total||0)-(+o.paidAmount||0));
++  return {paid:o.paidAmount,debt:o.debt};
++}
++function paymentSourceLabel(src){
++  const map={order_base:'Стартова оплата',debt_settlement:'Доплата боргу',close_cash:'Закриття в касу',manual:'Ручний платіж'};
++  return map[src]||'Платіж';
++}
++function buildOrderPaymentDesc(o, source){
++  const num=o.orderNumber||o.id.slice(-5).toUpperCase();
++  const base='Замовлення #'+num+' — '+(o.clientName||'');
++  if(source==='debt_settlement') return 'Погашення боргу #'+num+' — '+(o.clientName||'');
++  if(source==='close_cash') return 'Закриття замовлення #'+num+' — '+(o.clientName||'');
++  return base;
++}
++function addOrderPaymentEntry(o, amount, method, source, date, desc){
++  const amt=+amount||0;
++  if(!o || amt<=0) return null;
++  cashbook.push({
++    id:uid(),
++    date:date||new Date().toISOString(),
++    type:'income',
++    amount:amt,
++    method:method||o.paymentType||'cash',
++    desc:desc||buildOrderPaymentDesc(o,source),
++    orderId:o.id,
++    paymentSource:source||'manual'
++  });
++  syncOrderPaymentState(o);
++  save('cash',cashbook);
++  return true;
++}
++function upsertOrderBasePayment(o, desiredPaid, date){
++  if(!o) return;
++  cashbook = cashbook.filter(c=>!(c.type==='income' && c.orderId===o.id && (c.paymentSource||'manual')==='order_base'));
++  const extraPaid=getOrderCashEntries(o.id).reduce((s,c)=>s+(+c.amount||0),0);
++  const baseAmount=Math.max(0,(+desiredPaid||0)-extraPaid);
++  if(baseAmount>0){
++    cashbook.push({
++      id:uid(),
++      date:date||o.date||new Date().toISOString(),
++      type:'income',
++      amount:baseAmount,
++      method:o.paymentType||'cash',
++      desc:buildOrderPaymentDesc(o,'order_base'),
++      orderId:o.id,
++      paymentSource:'order_base'
++    });
++  }
++  syncOrderPaymentState(o);
++  save('cash',cashbook);
++}
+ function getOrderPaymentMeta(o){
+   const total=+((o&&o.total)||0);
+   const paid=getOrderPaidAmount(o);
+@@ -750,7 +815,7 @@ function saveNewOrder(){
+     order.cashReceived=_live.entered;
+     order.changeAmount=_live.change;
+   }
+-  if(order.paidAmount>0){ cashbook.push({id:uid(),date:order.date,type:'income',amount:order.paidAmount,method:order.paymentType||'cash',desc:'Замовлення #'+(order.orderNumber||order.id.slice(-5).toUpperCase())+' — '+order.clientName,orderId:order.id}); save('cash',cashbook); }
++  upsertOrderBasePayment(order, order.paidAmount, order.date);
+   (order.materials||[]).forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=Math.max(0,(+it.qty||0)-(+mt.qty||0)); } }); if((order.materials||[]).length){ save('tires',tires); save('warehouse',warehouse); if(typeof renderTires==='function')renderTires(); if(typeof renderWarehouse==='function')renderWarehouse(); }
+   // auto-add client (or update existing)
+   if((order.clientName||'').trim() || order.phone){
+@@ -795,6 +860,11 @@ function viewOrder(oid){
+   const masterRow = topSecret ? `<div style="text-align:right;color:#b8860b;font-size:0.9rem;margin-top:4px">Майстер 35%: ${fmtMoney(Math.round((o.total||0)*0.35))}</div>` : '';
+   const statusMeta = getOrderStatusMeta(o);
+   const debtAmount = getOrderDebtAmount(o);
++  const paidAmount = getOrderPaidAmount(o);
++  const payments = getOrderCashEntries(o.id);
++  const paymentHistory = payments.length
++    ? `<div class="order-payments-box"><div class="order-payments-title">💰 Історія оплат</div>${payments.map(p=>`<div class="order-pay-row"><div><b>${fmtMoney(p.amount)}</b> · ${paymentSourceLabel(p.paymentSource||'manual')}</div><div style="color:var(--text-dim)">${fmtDate(p.date)} · ${(p.method||'cash')==='cashless'?'💳 Безготівка':'💵 Готівка'}</div></div>`).join('')}</div>`
++    : `<div class="order-payments-box is-empty"><div class="order-payments-title">💰 Історія оплат</div><div style="color:var(--text-dim);font-size:0.82rem">Ще не було жодної оплати</div></div>`;
+   openModal(`
+     <div id="orderPrintArea">
+       <div class="order-status-strip ${statusMeta.cls}">${statusMeta.icon} ${statusMeta.label}</div>
+@@ -810,7 +880,7 @@ function viewOrder(oid){
+         <div><b>Авто:</b> ${o.car||'—'}</div>
+         <div><b>Держномер:</b> ${o.plate||'—'}</div>
+         <div><b>Оплата:</b> ${o.paymentType==='cashless'?'Безготівка':o.paymentType==='cash'?'Готівка':'—'}</div>
+-        <div><b>Оплачено:</b> ${fmtMoney(o.paidAmount!=null?o.paidAmount:(o.total||0))}</div>
++        <div><b>Оплачено:</b> ${fmtMoney(paidAmount)}</div>
+         <div><b>Борг:</b> ${fmtMoney(debtAmount)}</div>
+         <div><b>Статус:</b> ${statusMeta.icon} ${statusMeta.label}</div>
+       </div>
+@@ -829,6 +899,7 @@ function viewOrder(oid){
+         ВСЬОГО: ${fmtMoney(o.total||0)}
+       </div>
+       ${masterRow}
++      ${paymentHistory}
+       ${o.notes?'<div style="margin-top:8px;font-size:0.8rem;color:var(--text-dim)">📝 '+o.notes+'</div>':''}
+       <div style="display:flex;gap:30px;margin-top:24px;font-size:0.75rem;color:#888">
+         <div style="flex:1;border-top:1px solid #555;padding-top:4px">Підпис клієнта</div>
+@@ -866,11 +937,18 @@ function updateOrderStatus(oid){
+ }
+ function completeAndCash(oid){
+   const o=orders.find(x=>x.id===oid); if(!o) return;
++  const _rem=getOrderDebtAmount(o);
+   o.status='done';
+   o.doneAt=o.doneAt||new Date().toISOString();
+-  const _rem=Math.max(0,(o.total||0)-(o.paidAmount||0));
+-  if(_rem>0){ cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:_rem,method:o.paymentType||'cash',desc:'Замовлення #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+o.clientName,orderId:o.id}); }
+-  o.paidAmount=o.total||0; o.debt=0;
++  if(_rem<=0){
++    syncOrderPaymentState(o);
++    closeModal();
++    refreshOrderCollections();
++    return;
++  }
++  addOrderPaymentEntry(o,_rem,o.paymentType||'cash','close_cash',new Date().toISOString(),buildOrderPaymentDesc(o,'close_cash'));
++  o.cashReceived=(+o.cashReceived||0)+_rem;
++  o.changeAmount=0;
+   save('orders',orders); save('cash',cashbook);
+   closeModal();
+   renderOrders();
+@@ -1000,23 +1078,40 @@ function renderDebtors(){
+   el.innerHTML=list.map(o=>`<div class="card" style="margin-bottom:10px">
+     <div class="flex-between"><div><b>#${o.orderNumber||o.id.slice(-5).toUpperCase()}</b> · ${o.clientName||'—'}${o.phone?' · '+o.phone:''}</div><span>${o.paymentType==='cashless'?'💳':'💵'}</span></div>
+     <div style="font-size:0.82rem;color:var(--text-dim);margin:4px 0">${o.car||''} ${o.plate?'· '+o.plate:''} · ${fmtDate(o.date)}</div>
+-    <div style="font-family:'Oswald';font-size:1.02rem">Сума ${fmtMoney(o.total||0)} · Оплач. ${fmtMoney(o.paidAmount||0)} · <span style="color:var(--accent)">Борг ${fmtMoney(getOrderDebtAmount(o))}</span></div>
+-    <div class="gap-btns mt no-print"><input type="number" id="pay_${o.id}" placeholder="${o.debt||0}" style="max-width:130px"><button class="btn btn-red btn-sm" onclick="settleDebt('${o.id}')">💵 Погасити</button></div>
++    <div style="font-family:'Oswald';font-size:1.02rem">Сума ${fmtMoney(o.total||0)} · Оплач. ${fmtMoney(getOrderPaidAmount(o))} · <span style="color:var(--accent)">Борг ${fmtMoney(getOrderDebtAmount(o))}</span></div>
++    <div class="gap-btns mt no-print"><input type="number" id="pay_${o.id}" placeholder="${getOrderDebtAmount(o)}" style="max-width:130px"><button class="btn btn-red btn-sm" onclick="settleDebt('${o.id}')">💵 Погасити</button></div>
+   </div>`).join('');
+ }
+ function settleDebt(oid){
+   const o=orders.find(x=>x.id===oid); if(!o) return;
+   const inp=document.getElementById('pay_'+oid);
+-  let amt=(inp&&inp.value!=='')?(parseFloat(inp.value)||0):(o.debt||0);
+-  if(amt<=0) return; if(amt>(o.debt||0)) amt=o.debt||0;
+-  cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:amt,method:o.paymentType||'cash',desc:'Погашення боргу #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+(o.clientName||''),orderId:o.id});
+-  o.paidAmount=(o.paidAmount||0)+amt; o.debt=Math.max(0,(o.total||0)-o.paidAmount);
++  const debt=getOrderDebtAmount(o);
++  let amt=(inp&&inp.value!=='')?(parseFloat(inp.value)||0):debt;
++  if(amt<=0) return; if(amt>debt) amt=debt;
++  addOrderPaymentEntry(o,amt,o.paymentType||'cash','debt_settlement',new Date().toISOString(),buildOrderPaymentDesc(o,'debt_settlement'));
+   save('orders',orders); save('cash',cashbook);
+   renderDebtors();
+   renderOrders();
+   if(typeof renderCash==='function') renderCash();
+   if(typeof renderHome==='function') renderHome();
+   renderOrderBell();
++  reopenOrderModalIfCurrent(oid);
++}
++function removeCashEntry(cid){
++  const entry=(cashbook||[]).find(x=>x.id===cid); if(!entry) return;
++  if(!confirm('Видалити запис з каси?')) return;
++  cashbook=cashbook.filter(x=>x.id!==cid);
++  save('cash',cashbook);
++  if(entry.orderId){
++    syncOrderPaymentState(entry.orderId);
++    save('orders',orders);
++    renderOrders();
++    if(typeof renderDebtors==='function') renderDebtors();
++    if(typeof renderHome==='function') renderHome();
++    renderOrderBell();
++    reopenOrderModalIfCurrent(entry.orderId);
++  }
++  renderCash();
+ }
+ function renderCash(){
+   const income=cashbook.filter(c=>c.type==='income').reduce((s,c)=>s+c.amount,0);
+@@ -1035,11 +1130,13 @@ function renderCash(){
+   let html='';
+   sorted.forEach(c=>{
+     const isIncome=c.type==='income';
++    const orderTag=c.orderId?`<span class="cash-order-tag">${paymentSourceLabel(c.paymentSource||'manual')}</span>`:'';
+     html+=`<div class="card"><div class="flex-between">
+       <span style="font-size:0.8rem;color:var(--text-dim)">${fmtDate(c.date)}</span>
+       <span style="font-family:'Oswald';font-size:1.1rem;color:${isIncome?'var(--green)':'var(--accent)'}">${isIncome?'+':'−'}${fmtMoney(c.amount)}</span>
+     </div><div style="font-size:0.82rem;margin-top:4px">${c.desc||'—'}</div>
+-    <button class="btn btn-dark btn-sm mt" onclick="if(confirm('Видалити?')){cashbook=cashbook.filter(x=>x.id!=='${c.id}');save('cash',cashbook);renderCash();}">🗑️</button>
++    <div class="cash-entry-meta">${(c.method||'cash')==='cashless'?'💳 Безготівка':'💵 Готівка'} ${orderTag}</div>
++    <button class="btn btn-dark btn-sm mt" onclick="removeCashEntry('${c.id}')">🗑️</button>
+     </div>`;
+   });
+   document.getElementById('cashList').innerHTML=html;
+@@ -1959,10 +2056,9 @@ function saveEditedOrder(oid){
+   if(typeof renderTires==='function') renderTires();
+   if(typeof renderWarehouse==='function') renderWarehouse();
+ 
+-  // 4) синхронізуємо касу: прибрати старі записи цього заказу, додати один актуальний
+-  cashbook=cashbook.filter(c=>c.orderId!==o.id);
+-  if(o.paidAmount>0){ cashbook.push({id:uid(),date:o.date,type:'income',amount:o.paidAmount,method:o.paymentType||'cash',desc:'Замовлення #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+o.clientName,orderId:o.id}); }
+-  save('cash',cashbook);
++  // 4) синхронізуємо базову оплату, не вбиваючи історію доплат
++  upsertOrderBasePayment(o, o.paidAmount, o.date);
++  syncOrderPaymentState(o);
+   if(typeof renderCash==='function') renderCash();
+ 
+   // 5) клієнт (як у створенні)
+diff --git a/styles.css b/styles.css
+index 05a3035..f9f5752 100644
+--- a/styles.css
++++ b/styles.css
+@@ -285,6 +285,13 @@ tr:hover td { background:rgba(224,31,38,0.07); }
+ .order-status-strip.badge-progress{background:rgba(240,194,74,.16);border-color:rgba(240,194,74,.28);color:#ffe082}
+ .order-status-strip.badge-done{background:rgba(74,155,255,.16);border-color:rgba(74,155,255,.26)}
+ .order-status-strip.badge-cancel{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12)}
++.order-payments-box{margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.03)}
++.order-payments-box.is-empty{opacity:.92}
++.order-payments-title{font-size:0.78rem;font-weight:800;margin-bottom:8px;color:var(--text-2)}
++.order-pay-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:0.8rem}
++.order-pay-row:last-child{border-bottom:none;padding-bottom:0}
++.cash-entry-meta{margin-top:6px;font-size:0.74rem;color:var(--text-dim);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
++.cash-order-tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;background:rgba(74,155,255,.12);border:1px solid rgba(74,155,255,.22);color:#9fc8ff;font-weight:700}
+ /* ===== CHART ===== */
+ .chart-container { background:linear-gradient(170deg, var(--card-bg), var(--card-bg-2)); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin:14px 0; }
+ .chart-bar-wrap { display:flex; align-items:center; gap:10px; margin:6px 0; }
+-- 
+2.43.0
+
