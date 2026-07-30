@@ -5,6 +5,7 @@ const load = k => { try { return JSON.parse(localStorage.getItem(LS_KEY+k)) || [
 const save = (k,v) => localStorage.setItem(LS_KEY+k, JSON.stringify(v));
 const loadVal = k => localStorage.getItem(LS_KEY+k);
 const saveVal = (k,v) => localStorage.setItem(LS_KEY+k, v);
+const ORDER_DRAFT_KEY = LS_KEY+'orderDraft';
 
 let orders = load('orders');
 let clients = load('clients');
@@ -262,11 +263,15 @@ function toggleQuick(id){ id=+id; if(quickServices.includes(id)) quickServices=q
 function renderOrderQuick(){
   const el=document.getElementById('oQuick'); if(!el) return;
   const list = quickServices.map(id=>{ const x=findSvc(id); if(!x) return ''; return `<div onclick="addOrderSvc(${x.id})" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:0.82rem"><span>${x.name}</span><b style="color:var(--red-light)">${fmtMoney(x.price)}</b></div>`; }).join('');
+  const popular = getPopularOrderServices(6).filter(x=>!quickServices.includes(x.id));
+  const popularHtml = popular.length
+    ? `<div class="order-popular-box"><div class="order-popular-title">🔥 Популярні з історії</div><div class="order-popular-list">${popular.map(x=>`<button type="button" class="order-chip" onclick="addOrderSvc(${x.id})"><span>${x.name}</span><b>${fmtMoney(x.price)}</b></button>`).join('')}</div></div>`
+    : `<div class="order-popular-empty">Ще немає історії — хіти з'являться автоматично</div>`;
   el.innerHTML = `<button type="button" class="btn btn-dark btn-sm" style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:0.8rem" onclick="toggleQuickPanel()"><span>⭐ Швидкі послуги (${quickServices.length})</span><span id="oQuickArrow">▾</span></button>
     <div id="oQuickList" style="display:none;border:1px solid var(--border);border-radius:8px;margin-top:6px;overflow:hidden">
       ${list || '<div style="padding:10px;font-size:0.78rem;color:var(--text-dim)">Поки порожньо. Створи нижче або постав ⭐ у Прайсі.</div>'}
       <div style="padding:8px"><button type="button" class="btn btn-red btn-sm" style="width:100%;font-size:0.74rem" onclick="createQuickService()">＋ Створити швидку послугу</button></div>
-    </div>`;
+    </div>${popularHtml}`;
 }
 function toggleQuickPanel(){ const l=document.getElementById('oQuickList'); const a=document.getElementById('oQuickArrow'); if(!l) return; const open=l.style.display==='none'; l.style.display=open?'block':'none'; if(a) a.textContent=open?'▴':'▾'; }
 function createQuickService(){ const name=prompt('Назва швидкої послуги:'); if(!name) return; const price=parseFloat(prompt('Ціна, ₴:','0'))||0; const maxId=(customServices||[]).reduce((m,x)=>Math.max(m,x.id),9000); const id=maxId+1; customServices.push({id,name:name.trim(),price}); save('customSvc',customServices); if(!quickServices.includes(id)){ quickServices.push(id); save('quickSvc',quickServices); } renderOrderQuick(); const l=document.getElementById('oQuickList'); if(l) l.style.display='block'; if(typeof renderPrice==='function') renderPrice(); }
@@ -274,7 +279,170 @@ function normPhone(p){ const d=(p||'').replace(/\D/g,''); return d.length>9?d.sl
 function findClientByPhone(p){ const n=normPhone(p); if(!n) return null; return clients.find(c=>c.phone&&normPhone(c.phone)===n)||null; }
 function normName(n){ return (n||'').trim().replace(/\s+/g,' ').toLowerCase(); }
 function findClientByName(n){ const k=normName(n); if(!k) return null; return clients.find(c=>normName(c.name)===k)||null; }
-function orderPhoneLookup(){ const pe=document.getElementById('oPhone'); if(!pe) return; const c=findClientByPhone(pe.value); if(!c) return; const ce=document.getElementById('oClient'); const cae=document.getElementById('oCar'); const ple=document.getElementById('oPlate'); if(ce&&!ce.value.trim()) ce.value=c.name||''; if(cae&&!cae.value.trim()&&c.car) cae.value=c.car; if(ple&&!ple.value.trim()&&c.plate) ple.value=c.plate; }
+function normPlate(v){ return (v||'').toUpperCase().replace(/[^A-ZА-ЯІЇЄ0-9]/g,''); }
+function findClientByPlate(v){ const k=normPlate(v); if(!k) return null; return clients.find(c=>c.plate&&normPlate(c.plate)===k)||null; }
+function formatUaPhone(v){
+  const digits=(v||'').replace(/\D/g,'');
+  if(!digits) return '';
+  let d=digits;
+  if(d.startsWith('380')) d=d.slice(0,12);
+  else if(d.startsWith('80')) d=('3'+d).slice(0,12);
+  else if(d.startsWith('0')) d=('38'+d).slice(0,12);
+  else if(d.length<=9) d=('380'+d).slice(0,12);
+  else d=d.slice(0,12);
+  const rest=d.slice(3);
+  const parts=[];
+  if(rest.slice(0,2)) parts.push(rest.slice(0,2));
+  if(rest.slice(2,5)) parts.push(rest.slice(2,5));
+  if(rest.slice(5,7)) parts.push(rest.slice(5,7));
+  if(rest.slice(7,9)) parts.push(rest.slice(7,9));
+  return '+380'+(parts.length?' '+parts.join(' '):'');
+}
+function applyOrderClientMatch(c){
+  if(!c) return;
+  const ce=document.getElementById('oClient');
+  const cae=document.getElementById('oCar');
+  const ple=document.getElementById('oPlate');
+  if(ce&&!ce.value.trim()) ce.value=c.name||'';
+  if(cae&&!cae.value.trim()&&c.car) cae.value=c.car;
+  if(ple&&!ple.value.trim()&&c.plate) ple.value=c.plate;
+}
+function renderClientHint(c,source){
+  const el=document.getElementById('oClientHint'); if(!el) return;
+  if(!c){ el.textContent='Новий клієнт'; el.className='client-hint'; return; }
+  const src = source==='plate' ? 'по номеру' : source==='name' ? 'по імені' : 'по телефону';
+  const bits=[`Знайдено ${src}`];
+  if(c.name) bits.push(c.name);
+  if(c.car) bits.push(c.car);
+  if(c.plate) bits.push(c.plate);
+  if(c.lastVisit) bits.push('візит '+new Date(c.lastVisit).toLocaleDateString('uk-UA'));
+  el.textContent=bits.join(' · ');
+  el.className='client-hint found';
+}
+function findOrderClientCandidate(){
+  const phone=(document.getElementById('oPhone')||{}).value||'';
+  const plate=(document.getElementById('oPlate')||{}).value||'';
+  const name=(document.getElementById('oClient')||{}).value||'';
+  const byPhone=findClientByPhone(phone); if(byPhone) return {client:byPhone,source:'phone'};
+  const byPlate=findClientByPlate(plate); if(byPlate) return {client:byPlate,source:'plate'};
+  const byName=findClientByName(name); if(byName) return {client:byName,source:'name'};
+  return {client:null,source:''};
+}
+function syncOrderClientHint(fill){
+  const hit=findOrderClientCandidate();
+  if(hit.client && fill) applyOrderClientMatch(hit.client);
+  renderClientHint(hit.client, hit.source);
+  return hit.client;
+}
+function orderPhoneLookup(){
+  const pe=document.getElementById('oPhone'); if(!pe) return;
+  const cur=pe.value||'';
+  const fmt=formatUaPhone(cur);
+  if(fmt && fmt!==cur) pe.value=fmt;
+  setOrderFieldInvalid('oPhone',false);
+  syncOrderClientHint(true);
+  clearOrderFeedback();
+  saveOrderDraft();
+  updateOrderSubmitState();
+}
+function orderPlateLookup(){
+  setOrderFieldInvalid('oPlate',false);
+  syncOrderClientHint(true);
+  clearOrderFeedback();
+  saveOrderDraft();
+  updateOrderSubmitState();
+}
+function getPopularOrderServices(limit){
+  const map={};
+  (orders||[]).forEach(o=>{
+    (o.services||[]).forEach(s=>{
+      const id=+s.id;
+      if(!id) return;
+      if(!map[id]) map[id]={id,name:s.name||'Послуга',price:+s.price||0,uses:0};
+      map[id].uses+=Math.max(1,+s.qty||1);
+      if(+s.price>0) map[id].price=+s.price;
+    });
+  });
+  return Object.values(map)
+    .sort((a,b)=>b.uses-a.uses)
+    .slice(0,limit||6)
+    .map(x=>{
+      const current=findSvc(x.id);
+      return {
+        id:x.id,
+        name:(current&&current.name)||x.name,
+        price:(current&&current.price!=null)?current.price:x.price,
+        uses:x.uses
+      };
+    });
+}
+function clearOrderDraft(){ try{ localStorage.removeItem(ORDER_DRAFT_KEY); }catch(e){} }
+function loadOrderDraft(){ try{ return JSON.parse(localStorage.getItem(ORDER_DRAFT_KEY)||'null'); }catch(e){ return null; } }
+function saveOrderDraft(){
+  if(window._editOrderId) return;
+  const draft={
+    clientName:(document.getElementById('oClient')||{}).value||'',
+    phone:(document.getElementById('oPhone')||{}).value||'',
+    car:(document.getElementById('oCar')||{}).value||'',
+    plate:(document.getElementById('oPlate')||{}).value||'',
+    notes:(document.getElementById('oNotes')||{}).value||'',
+    paid:(document.getElementById('oPaid')||{}).value||'',
+    paymentType:(document.getElementById('oPayType')||{}).value||'cash',
+    services:(window._orderSvcs||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty})),
+    materials:(window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src})),
+    catFilter:window._orderCatFilter,
+    radius:window._orderRadius
+  };
+  const hasData = draft.services.length || draft.materials.length || [draft.clientName,draft.phone,draft.car,draft.plate,draft.notes,draft.paid].some(v=>(v||'').trim());
+  if(!hasData){ clearOrderDraft(); return; }
+  try{ localStorage.setItem(ORDER_DRAFT_KEY, JSON.stringify(draft)); }catch(e){}
+}
+function applyOrderDraft(draft){
+  if(!draft || window._editOrderId) return false;
+  const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
+  set('oClient',draft.clientName); set('oPhone',draft.phone); set('oCar',draft.car); set('oPlate',draft.plate);
+  set('oNotes',draft.notes); set('oPaid',draft.paid);
+  window._orderCatFilter=typeof draft.catFilter==='number'?draft.catFilter:0;
+  window._orderRadius=draft.radius||null;
+  window._orderSvcs=(draft.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
+  const stock=getOrderMaterialAvailability([]);
+  window._orderMats=(draft.materials||[]).map(m=>{
+    const meta=stock[m.id]||{max:0,name:m.name||'товар',src:m.src||'warehouse'};
+    return {id:m.id,name:m.name||meta.name,qty:+m.qty||1,src:m.src||meta.src,max:+meta.max||0};
+  });
+  setOrderPayType(draft.paymentType||'cash');
+  renderOrderCatBtns();
+  renderOrderRadius();
+  renderOrderPickList();
+  renderSelectedSvcs();
+  renderOrderMatPicker();
+  renderOrderMats();
+  renderOrderPaySummary();
+  updateOrderSubmitState();
+  syncOrderClientHint(false);
+  return true;
+}
+function repeatOrder(oid){
+  const o=orders.find(x=>x.id===oid); if(!o) return;
+  closeModal();
+  clearOrderDraft();
+  openNewOrder();
+  const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
+  set('oClient',o.clientName||''); set('oPhone',o.phone||''); set('oCar',o.car||''); set('oPlate',o.plate||'');
+  set('oNotes',o.notes||''); set('oPaid','');
+  setOrderPayType(o.paymentType||'cash');
+  window._orderSvcs=(o.services||[]).map(s=>{ const cur=findSvc(s.id); return {id:s.id,name:(cur&&cur.name)||s.name,price:(cur&&cur.price!=null)?cur.price:s.price,qty:s.qty}; });
+  const stock=getOrderMaterialAvailability([]);
+  window._orderMats=(o.materials||[]).map(m=>{ const meta=stock[m.id]||{max:0,name:m.name||'товар',src:m.src||'warehouse'}; return {id:m.id,name:m.name||meta.name,qty:+m.qty||1,src:m.src||meta.src,max:+meta.max||0}; });
+  renderOrderPickList();
+  renderSelectedSvcs();
+  renderOrderMatPicker();
+  renderOrderMats();
+  renderOrderPaySummary();
+  syncOrderClientHint(false);
+  saveOrderDraft();
+  setOrderFeedback('success','Повторне замовлення підготовлено — перевір оплату і склад');
+}
 async function fetchServerOrderNumber(){ const sp=getSupa(); if(!sp||!navigator.onLine||!_session) return null; try{ const {data,error}=await sp.rpc('next_v4_order_number'); if(error||data==null) return null; return String(data); }catch(e){ return null; } }
 async function assignServerNumbers(){ let changed=false; for(const o of (orders||[])){ if(o.numSrc==='temp'){ const n=await fetchServerOrderNumber(); if(n){ o.orderNumber=n; o.numSrc='server'; changed=true; } else break; } } if(changed){ save('orders',orders); if(typeof renderOrders==='function')renderOrders(); if(typeof renderDebtors==='function')renderDebtors(); } }
 function priceRow(item,isCustom,cols){
@@ -313,45 +481,196 @@ function getPriceCat(item){
 function filterPrice(){ activeCatFilter=-1; renderCatTiles(); renderPrice(); }
 
 // ==================== ORDERS ====================
+function getOrderCashEntries(orderId){
+  return (cashbook||[])
+    .filter(c=>c.type==='income' && c.orderId===orderId)
+    .sort((a,b)=>new Date(a.date)-new Date(b.date));
+}
+function getOrderPaidAmount(o){
+  if(o && o.id){
+    const entries=getOrderCashEntries(o.id);
+    if(entries.length) return entries.reduce((s,c)=>s+(+c.amount||0),0);
+  }
+  return +(o&&o.paidAmount!=null?o.paidAmount:0)||0;
+}
+function getOrderDebtAmount(o){
+  if(!o || o.status==='cancel') return 0;
+  return Math.max(0,(+o.total||0)-getOrderPaidAmount(o));
+}
+function syncOrderPaymentState(orderOrId){
+  const o=typeof orderOrId==='string' ? orders.find(x=>x.id===orderOrId) : orderOrId;
+  if(!o) return {paid:0,debt:0};
+  o.paidAmount=getOrderPaidAmount(o);
+  o.debt=Math.max(0,(+o.total||0)-(+o.paidAmount||0));
+  return {paid:o.paidAmount,debt:o.debt};
+}
+function paymentSourceLabel(src){
+  const map={order_base:'Стартова оплата',debt_settlement:'Доплата боргу',close_cash:'Закриття в касу',manual:'Ручний платіж'};
+  return map[src]||'Платіж';
+}
+function buildOrderPaymentDesc(o, source){
+  const num=o.orderNumber||o.id.slice(-5).toUpperCase();
+  const base='Замовлення #'+num+' — '+(o.clientName||'');
+  if(source==='debt_settlement') return 'Погашення боргу #'+num+' — '+(o.clientName||'');
+  if(source==='close_cash') return 'Закриття замовлення #'+num+' — '+(o.clientName||'');
+  return base;
+}
+function addOrderPaymentEntry(o, amount, method, source, date, desc){
+  const amt=+amount||0;
+  if(!o || amt<=0) return null;
+  cashbook.push({
+    id:uid(),
+    date:date||new Date().toISOString(),
+    type:'income',
+    amount:amt,
+    method:method||o.paymentType||'cash',
+    desc:desc||buildOrderPaymentDesc(o,source),
+    orderId:o.id,
+    paymentSource:source||'manual'
+  });
+  syncOrderPaymentState(o);
+  save('cash',cashbook);
+  return true;
+}
+function upsertOrderBasePayment(o, desiredPaid, date){
+  if(!o) return;
+  cashbook = cashbook.filter(c=>!(c.type==='income' && c.orderId===o.id && (c.paymentSource||'manual')==='order_base'));
+  const extraPaid=getOrderCashEntries(o.id).reduce((s,c)=>s+(+c.amount||0),0);
+  const baseAmount=Math.max(0,(+desiredPaid||0)-extraPaid);
+  if(baseAmount>0){
+    cashbook.push({
+      id:uid(),
+      date:date||o.date||new Date().toISOString(),
+      type:'income',
+      amount:baseAmount,
+      method:o.paymentType||'cash',
+      desc:buildOrderPaymentDesc(o,'order_base'),
+      orderId:o.id,
+      paymentSource:'order_base'
+    });
+  }
+  syncOrderPaymentState(o);
+  save('cash',cashbook);
+}
+function getOrderPaymentMeta(o){
+  const total=+((o&&o.total)||0);
+  const paid=getOrderPaidAmount(o);
+  const debt=getOrderDebtAmount(o);
+  if(!total) return {label:'Без суми', cls:'pay-empty'};
+  if(debt<=0) return {label:'Оплачено', cls:'pay-paid'};
+  if(paid>0) return {label:'Частково', cls:'pay-partial'};
+  return {label:'Борг', cls:'pay-debt'};
+}
+function getOrderStatusMeta(o){
+  const key=((o&&o.status)||'new');
+  const map={
+    new:{key:'new',label:'Нове',icon:'🆕',cls:'badge-new'},
+    progress:{key:'progress',label:'В роботі',icon:'🔄',cls:'badge-progress'},
+    done:{key:'done',label:'Виконано',icon:'✅',cls:'badge-done'},
+    cancel:{key:'cancel',label:'Скасовано',icon:'❌',cls:'badge-cancel'}
+  };
+  return map[key]||map.new;
+}
+function refreshOrderCollections(){
+  save('orders',orders);
+  renderOrders();
+  if(typeof renderDebtors==='function') renderDebtors();
+  if(typeof renderCash==='function') renderCash();
+  if(typeof renderHome==='function') renderHome();
+  renderOrderBell();
+}
+function reopenOrderModalIfCurrent(oid){
+  const overlay=document.querySelector('.modal-overlay.open');
+  if(!overlay || !window._printOrder || window._printOrder.id!==oid) return;
+  closeModal();
+  viewOrder(oid);
+}
+function setOrderStatusQuick(oid,status){
+  const o=orders.find(x=>x.id===oid); if(!o) return;
+  if(status==='progress' && !o.startedAt) o.startedAt=new Date().toISOString();
+  if(status==='done' && !o.doneAt) o.doneAt=new Date().toISOString();
+  if(status==='cancel' && !o.cancelledAt) o.cancelledAt=new Date().toISOString();
+  o.status=status;
+  refreshOrderCollections();
+  reopenOrderModalIfCurrent(oid);
+}
+function startOrderWork(oid){ setOrderStatusQuick(oid,'progress'); }
+function finishOrderWork(oid){ setOrderStatusQuick(oid,'done'); }
+function cancelOrderQuick(oid){ if(!confirm('Позначити замовлення як скасоване?')) return; setOrderStatusQuick(oid,'cancel'); }
+function renderOrderListFilters(){
+  const el=document.getElementById('orderFilterRow'); if(!el) return;
+  const cur=window._orderListFilter||'all';
+  const filters=[['all','Усі'],['new','Нові'],['progress','В роботі'],['done','Виконано'],['debt','З боргом']];
+  el.innerHTML=filters.map(([k,label])=>`<button type="button" class="order-filter-btn${cur===k?' active':''}" onclick="setOrderListFilter('${k}')">${label}</button>`).join('');
+}
+function setOrderListFilter(v){
+  window._orderListFilter=v||'all';
+  renderOrderListFilters();
+  filterOrders();
+}
 function renderOrders(){
-  const stats = {total:orders.length, new_:0, progress:0, done:0, totalSum:0};
+  const stats = {total:orders.length, new_:0, progress:0, done:0, totalSum:0, debtCount:0, debtSum:0};
   orders.forEach(o=>{
     if(o.status==='new') stats.new_++;
     if(o.status==='progress') stats.progress++;
     if(o.status==='done'){ stats.done++; stats.totalSum+=o.total||0; }
+    const debt=getOrderDebtAmount(o);
+    if(debt>0){ stats.debtCount++; stats.debtSum+=debt; }
   });
   document.getElementById('orderStats').innerHTML = `
     <div class="stat-card"><div class="num">${stats.total}</div><div class="lbl">Всього</div></div>
     <div class="stat-card"><div class="num">${stats.new_}</div><div class="lbl">Нових</div></div>
     <div class="stat-card"><div class="num">${stats.progress}</div><div class="lbl">В роботі</div></div>
     <div class="stat-card"><div class="num">${fmtMoney(stats.totalSum)}</div><div class="lbl">Виконано</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--accent)">${fmtMoney(stats.debtSum)}</div><div class="lbl">Борг (${stats.debtCount})</div></div>
   `;
+  renderOrderListFilters();
   filterOrders();
 }
 function filterOrders(){
   const q = (document.getElementById('orderSearch')?.value||'').toLowerCase();
+  const filter = window._orderListFilter||'all';
   const list = orders.filter(o => {
-    const s = `${o.id} ${o.car||''} ${o.clientName||''} ${o.phone||''}`.toLowerCase();
-    return !q || s.includes(q);
+    const s = `${o.id} ${o.orderNumber||''} ${o.car||''} ${o.plate||''} ${o.clientName||''} ${o.phone||''}`.toLowerCase();
+    if(q && !s.includes(q)) return false;
+    if(filter==='all') return true;
+    if(filter==='debt') return getOrderDebtAmount(o)>0;
+    return (o.status||'new')===filter;
   }).sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-  if(!list.length){ document.getElementById('ordersList').innerHTML='<p style="color:var(--text-dim);text-align:center;padding:40px">Замовлень поки немає</p>'; return; }
+  if(!list.length){
+    const emptyText = filter==='debt' ? 'Боргових замовлень немає' : 'Замовлень поки немає';
+    document.getElementById('ordersList').innerHTML=`<p style="color:var(--text-dim);text-align:center;padding:40px">${emptyText}</p>`;
+    return;
+  }
 
   let html='';
   list.forEach(o => {
-    const statusMap = {new:'badge-new', progress:'badge-progress', done:'badge-done', cancel:'badge-cancel'};
-    const statusText = {new:'Нове', progress:'В роботі', done:'Виконано', cancel:'Скасовано'};
+    const st = getOrderStatusMeta(o);
+    const pay = getOrderPaymentMeta(o);
+    const paid = getOrderPaidAmount(o);
+    const debt = getOrderDebtAmount(o);
     html += `<div class="card" onclick="viewOrder('${o.id}')">
       <div class="flex-between">
-        <span style="font-family:'Oswald';color:var(--red-light)">#${o.id.slice(-5).toUpperCase()}</span>
-        <span class="badge ${statusMap[o.status]||'badge-new'}">${statusText[o.status]||o.status}</span>
+        <span style="font-family:'Oswald';color:var(--red-light)">#${o.orderNumber||o.id.slice(-5).toUpperCase()}</span>
+        <div class="gap-btns" style="gap:6px">
+          <span class="badge ${st.cls}">${st.icon} ${st.label}</span>
+          <span class="pay-badge ${pay.cls}">${pay.label}</span>
+        </div>
       </div>
       <div style="margin-top:6px;font-size:0.85rem">
-        <div>🚗 ${o.car||'—'}</div>
+        <div>🚗 ${o.car||'—'} ${o.plate?'· '+o.plate:''}</div>
         <div>👤 ${o.clientName||'—'} ${o.phone?'• '+o.phone:''}</div>
         <div style="color:var(--text-dim);font-size:0.78rem">${fmtDate(o.date)}</div>
       </div>
-      <div style="margin-top:6px;font-family:'Oswald';font-size:1.1rem">${fmtMoney(o.total||0)}${o.debt>0?' <span style="color:var(--accent);font-size:0.82rem">• борг '+fmtMoney(o.debt)+'</span>':''}${topSecret?' <span class="ts-price">(майстер: '+fmtMoney(Math.round((o.total||0)*0.35))+')</span>':''}</div>
+      <div style="margin-top:6px;font-family:'Oswald';font-size:1.1rem">${fmtMoney(o.total||0)}${debt>0?' <span style="color:var(--accent);font-size:0.82rem">• борг '+fmtMoney(debt)+'</span>':''}${topSecret?' <span class="ts-price">(майстер: '+fmtMoney(Math.round((o.total||0)*0.35))+')</span>':''}</div>
+      <div style="margin-top:4px;color:var(--text-dim);font-size:0.77rem">${o.paymentType==='cashless'?'💳 Безготівка':'💵 Готівка'} · оплачено ${fmtMoney(paid)}${debt>0?' · залишок '+fmtMoney(debt):''}</div>
+      <div class="order-card-actions no-print" onclick="event.stopPropagation()">
+        <button class="order-action-btn" onclick="event.stopPropagation();repeatOrder('${o.id}')">🔁 Повтор</button>
+        <button class="order-action-btn ${st.key==='progress'?'is-active':''}" onclick="event.stopPropagation();startOrderWork('${o.id}')">🔄 В роботу</button>
+        <button class="order-action-btn success ${st.key==='done'?'is-active':''}" onclick="event.stopPropagation();finishOrderWork('${o.id}')">✅ Виконано</button>
+        <button class="order-action-btn danger ${st.key==='cancel'?'is-active':''}" onclick="event.stopPropagation();cancelOrderQuick('${o.id}')">✖ Скасувати</button>
+      </div>
     </div>`;
   });
   document.getElementById('ordersList').innerHTML = html;
@@ -359,16 +678,130 @@ function filterOrders(){
 function nextOrderNumber(){ let n=parseInt(localStorage.getItem(LS_KEY+'orderSeq')||'0',10)||0; n++; try{localStorage.setItem(LS_KEY+'orderSeq',n);}catch(e){} return String(n).padStart(5,'0'); }
 function renderOrderBell(){
   const b=document.getElementById('oBellBadge'); if(!b) return;
-  const n=(orders||[]).filter(o=>(o.debt||0)>0).length;
+  const n=(orders||[]).filter(o=>getOrderDebtAmount(o)>0).length;
   if(n>0){ b.textContent=n; b.style.display='inline-block'; } else { b.style.display='none'; }
 }
+function getOrderLiveState(){
+  const services=window._orderSvcs||[];
+  let total=0, itemCount=0;
+  services.forEach(s=>{
+    const qty=Math.max(1,+s.qty||1);
+    itemCount+=qty;
+    total+=(+s.price||0)*qty;
+  });
+  const pe=document.getElementById('oPaid');
+  const rawPresent=!!(pe&&pe.value!=='');
+  let entered=rawPresent?(parseFloat(pe.value)||0):total;
+  if(entered<0) entered=0;
+  const applied=Math.min(entered,total);
+  const debt=Math.max(0,total-applied);
+  const change=Math.max(0,entered-total);
+  return {servicesCount:services.length,itemCount,total,entered,applied,debt,change,rawPresent};
+}
+function setOrderFeedback(type,msg){
+  const el=document.getElementById('oOrderFeedback'); if(!el) return;
+  if(!msg){ el.style.display='none'; el.textContent=''; el.className='order-feedback'; return; }
+  el.style.display='block';
+  el.textContent=msg;
+  el.className='order-feedback '+type;
+}
+function clearOrderFeedback(){ setOrderFeedback('', ''); }
+function renderOrderPaySummary(){
+  const el=document.getElementById('oPaySummary');
+  const totalEl=document.getElementById('oSvcTotal');
+  const headSub=document.getElementById('oHeadSub');
+  const s=getOrderLiveState();
+  if(totalEl) totalEl.textContent=fmtMoney(s.total);
+  if(headSub) headSub.textContent=s.servicesCount?`Обрано ${s.servicesCount} посл. · ${s.itemCount} шт · ${fmtMoney(s.total)}`:'Оберіть категорію та послуги зліва';
+  if(!el) return;
+  if(!s.total){ el.className='pay-summary is-empty'; el.textContent='До сплати: 0₴'; return; }
+  if(!s.rawPresent){ el.className='pay-summary is-empty'; el.textContent=`До сплати: ${fmtMoney(s.total)} · порожнє поле = повна оплата`; return; }
+  if(s.change>0){ el.className='pay-summary is-warn'; el.textContent=`До зарахування: ${fmtMoney(s.total)} · решта: ${fmtMoney(s.change)}`; return; }
+  if(s.debt>0){ el.className='pay-summary is-warn'; el.textContent=`Сплачено: ${fmtMoney(s.applied)} · борг: ${fmtMoney(s.debt)}`; return; }
+  el.className='pay-summary is-ok';
+  el.textContent=`Оплачено повністю: ${fmtMoney(s.total)}`;
+}
+function setOrderFieldInvalid(id,on){
+  const el=document.getElementById(id);
+  if(el) el.classList.toggle('is-invalid', !!on);
+}
+function getOrderFormIssues(markFields){
+  const mark=markFields!==false;
+  if(mark) ['oClient','oPhone','oCar','oPlate'].forEach(id=>setOrderFieldInvalid(id,false));
+  const issues=[];
+  const client=((document.getElementById('oClient')||{}).value||'').trim();
+  const phone=((document.getElementById('oPhone')||{}).value||'').trim();
+  const car=((document.getElementById('oCar')||{}).value||'').trim();
+  const plate=((document.getElementById('oPlate')||{}).value||'').trim();
+  if(!client && !phone && !plate){
+    issues.push('Вкажіть клієнта, телефон або держномер');
+    if(mark){ setOrderFieldInvalid('oClient',true); setOrderFieldInvalid('oPhone',true); setOrderFieldInvalid('oPlate',true); }
+  }
+  if(client && client.length<2){
+    issues.push("Ім'я клієнта закоротке");
+    if(mark) setOrderFieldInvalid('oClient',true);
+  }
+  if(phone){
+    const digits=phone.replace(/\D/g,'');
+    if(digits.length!==12 || !digits.startsWith('380')){
+      issues.push('Телефон має бути у форматі +380 XX XXX XX XX');
+      if(mark) setOrderFieldInvalid('oPhone',true);
+    }
+  }
+  if(car && car.length<2){
+    issues.push('Уточніть авто');
+    if(mark) setOrderFieldInvalid('oCar',true);
+  }
+  if(plate){
+    const norm=normPlate(plate);
+    if(norm.length<6 || norm.length>10){
+      issues.push('Перевірте держномер');
+      if(mark) setOrderFieldInvalid('oPlate',true);
+    }
+  }
+  return issues;
+}
+function updateOrderSubmitState(){
+  const btn=document.querySelector('[data-order-submit]'); if(!btn) return;
+  const s=getOrderLiveState();
+  const busy=!!window._orderSubmitting;
+  const matIssues=getOrderMaterialIssues(window._orderMats||[], getOrderEditBaseMaterials());
+  const formIssues=getOrderFormIssues(false);
+  btn.disabled=busy || !s.servicesCount || !!matIssues.length || !!formIssues.length;
+  btn.textContent=busy ? (window._editOrderId?'⏳ Зберігаю...':'⏳ Оформлюю...') : (window._editOrderId?'💾 Зберегти зміни':'✅ Оформити');
+  btn.title=busy?'Зачекайте, триває збереження':(matIssues.length?'На складі не вистачає матеріалів':(formIssues[0]|| (s.servicesCount?'':'Спочатку додайте послугу')));
+}
+function initOrderInteractions(){
+  ['oClient','oCar','oPlate','oPaid','oNotes','oSvcSearch'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el || el.dataset.bound==='1') return;
+    el.addEventListener('input',()=>{
+      clearOrderFeedback();
+      setOrderFieldInvalid(id,false);
+      if(id==='oPaid'){ renderOrderPaySummary(); }
+      if(id==='oClient' || id==='oPlate'){ syncOrderClientHint(id!=='oClient'); }
+      if(id==='oCar'){ renderOrderPaySummary(); }
+      saveOrderDraft();
+      updateOrderSubmitState();
+    });
+    el.dataset.bound='1';
+  });
+  renderOrderPaySummary();
+  updateOrderSubmitState();
+  syncOrderClientHint(false);
+}
+window._orderListFilter = window._orderListFilter || 'all';
 function setOrderPayType(v){
   const sel=document.getElementById('oPayType'); if(sel) sel.value=v;
   const cash=document.getElementById('payCashBtn'), card=document.getElementById('payCardBtn');
   if(cash) cash.classList.toggle('active', v==='cash');
   if(card) card.classList.toggle('active', v==='cashless');
+  renderOrderPaySummary();
+  updateOrderSubmitState();
+  saveOrderDraft();
 }
 function openNewOrder(edit){
+  window._orderSubmitting=false;
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
   const navBtn=document.querySelector('.nav button[data-tab="home"]'); if(navBtn) navBtn.classList.add('active');
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -377,6 +810,8 @@ function openNewOrder(edit){
   window._orderMats = [];
   window._orderCatFilter = 0;
   window._orderRadius = null;
+  const search=document.getElementById('oSvcSearch'); if(search) search.value='';
+  clearOrderFeedback();
   renderOrderCatBtns();
   renderOrderRadius();
   renderOrderPickList();
@@ -394,14 +829,18 @@ function openNewOrder(edit){
     window._orderMats=(edit.materials||[]).map(m=>{ const cur=(window._stockIdx||{})[m.id]; return {id:m.id,name:m.name,qty:m.qty,src:m.src,max:(cur?cur.max:0)+(+m.qty||0)}; });
     renderSelectedSvcs(); renderOrderMats(); renderOrderPickList();
     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='✏️ Редагувати #'+(edit.orderNumber||edit.id.slice(-6).toUpperCase());
-    const sb=document.querySelector('.cart-actions .btn-red'); if(sb) sb.textContent='💾 Зберегти зміни';
+    const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='💾 Зберегти зміни';
   } else {
     window._editOrderId=null;
     ['oClient','oPhone','oCar','oPlate','oPaid','oNotes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
     setOrderPayType('cash');
     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='🧾 Нове замовлення';
-    const sb=document.querySelector('.cart-actions .btn-red'); if(sb) sb.textContent='✅ Оформити';
+    const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='✅ Оформити';
+    if(applyOrderDraft(loadOrderDraft())) setOrderFeedback('success','Чернетку відновлено');
   }
+  renderOrderPaySummary();
+  updateOrderSubmitState();
+  syncOrderClientHint(false);
 }
 function renderOrderCatBtns(){
   const el = document.getElementById('oSvcCatBtns');
@@ -460,24 +899,27 @@ function addOrderSvc(id){
   else { window._orderSvcs.push({id:item.id,name:item.name,price:item.price,qty:1}); }
   renderOrderPickList();
   renderSelectedSvcs();
+  clearOrderFeedback();
 }
 function removeOrderSvc(id){
   window._orderSvcs = window._orderSvcs.filter(s=>s.id!==id);
   renderOrderPickList();
   renderSelectedSvcs();
+  clearOrderFeedback();
 }
 function changeOrderSvcQty(id,delta){
   const s = window._orderSvcs.find(x=>x.id===id);
   if(!s) return;
   s.qty = Math.max(1, s.qty+delta);
   renderSelectedSvcs();
+  clearOrderFeedback();
 }
 function renderSelectedSvcs(){
   const el = document.getElementById('oSelectedSvcs');
   const tel = document.getElementById('oSvcTotal');
   if(!el) return;
   let total=0;
-  if(!window._orderSvcs.length){ el.innerHTML='<div style="text-align:center;color:var(--text-dim);font-size:0.8rem;padding:14px">Оберіть послуги зліва</div>'; if(tel)tel.textContent=fmtMoney(0); return; }
+  if(!window._orderSvcs.length){ el.innerHTML='<div style="text-align:center;color:var(--text-dim);font-size:0.8rem;padding:14px">Оберіть послуги зліва або натисніть хіт нижче</div>'; if(tel)tel.textContent=fmtMoney(0); renderOrderPaySummary(); updateOrderSubmitState(); saveOrderDraft(); return; }
   let h = '';
   window._orderSvcs.forEach(s=>{
     const sub = s.price*s.qty; total+=sub;
@@ -492,18 +934,100 @@ function renderSelectedSvcs(){
   });
   el.innerHTML = h;
   if(tel) tel.textContent = fmtMoney(total);
+  renderOrderPaySummary();
+  updateOrderSubmitState();
+  saveOrderDraft();
 }
 function addServiceRow(){} // deprecated, kept for compat
 function _stockList(){ const out=[]; (warehouse||[]).forEach(w=>out.push({id:w.id,name:w.name||'товар',max:+w.qty||0,src:'warehouse'})); (tires||[]).forEach(t=>out.push({id:t.id,name:((t.brand||'Шина')+' '+(t.size||'')).trim(),max:+t.qty||0,src:'tires'})); return out; }
-function renderOrderMatPicker(){ const sel=document.getElementById('oMatPick'); if(!sel) return; const list=_stockList(); window._stockIdx={}; list.forEach(x=>window._stockIdx[x.id]=x); if(!list.length){ sel.innerHTML='<option value="">Склад порожній</option>'; return; } sel.innerHTML='<option value="">— товар зі складу —</option>'+list.map(x=>`<option value="${x.id}">${x.name} (зал.: ${x.max})</option>`).join(''); }
-function addOrderMat(){ const sel=document.getElementById('oMatPick'); const qe=document.getElementById('oMatQty'); if(!sel||!sel.value) return; const idx=(window._stockIdx||{})[sel.value]; if(!idx) return; let q=parseInt(qe&&qe.value)||1; if(q<1)q=1; window._orderMats=window._orderMats||[]; const ex=window._orderMats.find(m=>m.id===idx.id); if(ex){ ex.qty+=q; } else { window._orderMats.push({id:idx.id,name:idx.name,qty:q,src:idx.src,max:idx.max}); } if(qe)qe.value=1; sel.value=''; renderOrderMats(); }
-function removeOrderMat(i){ (window._orderMats||[]).splice(i,1); renderOrderMats(); }
-function renderOrderMats(){ const el=document.getElementById('oMatList'); if(!el) return; const ms=window._orderMats||[]; if(!ms.length){ el.innerHTML=''; return; } el.innerHTML=ms.map((m,i)=>`<div class="omat-item"><span${m.qty>m.max?' style="color:#ff7043"':''}>${m.name} × ${m.qty}${m.qty>m.max?' ⚠️':''}</span><button type="button" onclick="removeOrderMat(${i})">✕</button></div>`).join(''); }
+function getOrderEditBaseMaterials(){
+  if(!window._editOrderId) return [];
+  const o=orders.find(x=>x.id===window._editOrderId);
+  return (o&&o.materials)||[];
+}
+function getOrderMaterialAvailability(baseMaterials){
+  const map={};
+  _stockList().forEach(x=>map[x.id]={id:x.id,name:x.name,max:+x.max||0,src:x.src});
+  (baseMaterials||[]).forEach(m=>{
+    if(!map[m.id]) map[m.id]={id:m.id,name:m.name||'товар',max:0,src:m.src||'warehouse'};
+    map[m.id].max+=(+m.qty||0);
+  });
+  return map;
+}
+function getOrderMaterialIssues(materials, baseMaterials){
+  const stock=getOrderMaterialAvailability(baseMaterials);
+  return (materials||[]).map(m=>{
+    const meta=stock[m.id]||{max:0,name:m.name||'товар',src:m.src};
+    const qty=+m.qty||0;
+    const max=+meta.max||0;
+    return {...m,name:m.name||meta.name,max,missing:Math.max(0,qty-max)};
+  }).filter(m=>m.missing>0);
+}
+function syncOrderMaterialCaps(){
+  const base=getOrderEditBaseMaterials();
+  const stock=getOrderMaterialAvailability(base);
+  window._orderMats=(window._orderMats||[]).map(m=>{
+    const meta=stock[m.id]||{max:0,name:m.name||'товар',src:m.src};
+    return {...m,name:m.name||meta.name,max:+meta.max||0,src:m.src||meta.src};
+  });
+}
+function renderOrderMatPicker(){
+  const sel=document.getElementById('oMatPick'); if(!sel) return;
+  syncOrderMaterialCaps();
+  const base=getOrderEditBaseMaterials();
+  const stock=getOrderMaterialAvailability(base);
+  const used={};
+  (window._orderMats||[]).forEach(m=>used[m.id]=(used[m.id]||0)+(+m.qty||0));
+  const list=Object.values(stock).map(x=>({
+    ...x,
+    remain:Math.max(0,(+x.max||0)-(used[x.id]||0))
+  }));
+  window._stockIdx={};
+  list.forEach(x=>window._stockIdx[x.id]=x);
+  if(!list.length){ sel.innerHTML='<option value="">Склад порожній</option>'; return; }
+  sel.innerHTML='<option value="">— товар зі складу —</option>'+list.map(x=>`<option value="${x.id}" ${x.remain<=0?'disabled':''}>${x.name} (зал.: ${x.remain}${x.remain<=0?' · нема':''})</option>`).join('');
+}
+function addOrderMat(){
+  const sel=document.getElementById('oMatPick'); const qe=document.getElementById('oMatQty');
+  if(!sel||!sel.value) return;
+  const idx=(window._stockIdx||{})[sel.value]; if(!idx) return;
+  let q=parseInt(qe&&qe.value)||1; if(q<1)q=1;
+  if((+idx.remain||0)<=0){ setOrderFeedback('error','На складі більше немає цього матеріалу'); renderOrderMatPicker(); return; }
+  if(q>idx.remain){ setOrderFeedback('error',`Доступно лише ${idx.remain} шт: ${idx.name}`); q=idx.remain; }
+  window._orderMats=window._orderMats||[];
+  const ex=window._orderMats.find(m=>m.id===idx.id);
+  if(ex){ ex.qty+=q; } else { window._orderMats.push({id:idx.id,name:idx.name,qty:q,src:idx.src,max:idx.max}); }
+  if(qe)qe.value=1; sel.value='';
+  renderOrderMatPicker();
+  renderOrderMats();
+}
+function removeOrderMat(i){ (window._orderMats||[]).splice(i,1); renderOrderMatPicker(); renderOrderMats(); }
+function renderOrderMats(){
+  const el=document.getElementById('oMatList'); if(!el) return;
+  syncOrderMaterialCaps();
+  const ms=window._orderMats||[];
+  if(!ms.length){ el.innerHTML=''; updateOrderSubmitState(); saveOrderDraft(); return; }
+  const issues=getOrderMaterialIssues(ms, getOrderEditBaseMaterials());
+  const issueMap={}; issues.forEach(x=>issueMap[x.id]=x);
+  let html=ms.map((m,i)=>{
+    const issue=issueMap[m.id];
+    return `<div class="omat-item${issue?' is-overflow':''}"><span><b>${m.name}</b> × ${m.qty} <small>/ доступно ${m.max}</small>${issue?` <em>− бракує ${issue.missing}</em>`:''}</span><button type="button" onclick="removeOrderMat(${i})">✕</button></div>`;
+  }).join('');
+  if(issues.length){
+    html+=`<div class="omat-warning">⚠️ На складі не вистачає: ${issues.map(x=>`${x.name} (−${x.missing})`).join(', ')}</div>`;
+  }
+  el.innerHTML=html;
+  updateOrderSubmitState();
+  saveOrderDraft();
+}
 function saveNewOrder(){
   const services = window._orderSvcs||[];
   let total = 0;
   services.forEach(s=>{ total+=s.price*s.qty; });
-  if(!services.length){ alert('Оберіть хоча б одну послугу'); return; }
+  if(!services.length){ setOrderFeedback('error','Спочатку додайте хоча б одну послугу'); return; }
+  const formIssues=getOrderFormIssues(true);
+  if(formIssues.length){ setOrderFeedback('error',formIssues[0]); updateOrderSubmitState(); return; }
+  clearOrderFeedback();
   const order = {
     id: uid(),
     date: new Date().toISOString(),
@@ -518,8 +1042,21 @@ function saveNewOrder(){
     status: 'new',
     materials: (window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src}))
   };
-  { const _pe=document.getElementById('oPaid'); let _p=(_pe&&_pe.value!=='')?(parseFloat(_pe.value)||0):(order.total||0); if(_p<0)_p=0; if(_p>(order.total||0))_p=order.total||0; order.paidAmount=_p; order.debt=Math.max(0,(order.total||0)-_p); }
-  if(order.paidAmount>0){ cashbook.push({id:uid(),date:order.date,type:'income',amount:order.paidAmount,method:order.paymentType||'cash',desc:'Замовлення #'+(order.orderNumber||order.id.slice(-5).toUpperCase())+' — '+order.clientName,orderId:order.id}); save('cash',cashbook); }
+  const matIssues=getOrderMaterialIssues(order.materials, []);
+  if(matIssues.length){
+    renderOrderMatPicker();
+    renderOrderMats();
+    setOrderFeedback('error','На складі не вистачає: '+matIssues.map(x=>`${x.name} (−${x.missing})`).join(', '));
+    return;
+  }
+  {
+    const _live=getOrderLiveState();
+    order.paidAmount=_live.applied;
+    order.debt=_live.debt;
+    order.cashReceived=_live.entered;
+    order.changeAmount=_live.change;
+  }
+  upsertOrderBasePayment(order, order.paidAmount, order.date);
   (order.materials||[]).forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=Math.max(0,(+it.qty||0)-(+mt.qty||0)); } }); if((order.materials||[]).length){ save('tires',tires); save('warehouse',warehouse); if(typeof renderTires==='function')renderTires(); if(typeof renderWarehouse==='function')renderWarehouse(); }
   // auto-add client (or update existing)
   if((order.clientName||'').trim() || order.phone){
@@ -537,11 +1074,17 @@ function saveNewOrder(){
     save('clients',clients);
   }
   orders.unshift(order);
+  clearOrderDraft();
   save('orders',orders);
   renderOrders();
   renderClients();
+  if(typeof renderCash==='function') renderCash();
+  if(typeof renderDebtors==='function') renderDebtors();
+  if(typeof renderHome==='function') renderHome();
+  renderOrderBell();
   // Show print-ready order
-  showOrderPrint(order);
+  showOrderPrint(order,{mode:'created'});
+  openNewOrder();
   if(navigator.onLine && _session){ assignServerNumbers(); }
 }
 
@@ -557,9 +1100,16 @@ function viewOrder(oid){
       <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right;font-weight:700">${fmtMoney(s.price*s.qty)}</td>
     </tr>`).join('');
   const masterRow = topSecret ? `<div style="text-align:right;color:#b8860b;font-size:0.9rem;margin-top:4px">Майстер 35%: ${fmtMoney(Math.round((o.total||0)*0.35))}</div>` : '';
-  const statusLabels = {new:'🆕 Нове',progress:'🔄 В роботі',done:'✅ Виконано',cancel:'❌ Скасовано'};
+  const statusMeta = getOrderStatusMeta(o);
+  const debtAmount = getOrderDebtAmount(o);
+  const paidAmount = getOrderPaidAmount(o);
+  const payments = getOrderCashEntries(o.id);
+  const paymentHistory = payments.length
+    ? `<div class="order-payments-box"><div class="order-payments-title">💰 Історія оплат</div>${payments.map(p=>`<div class="order-pay-row"><div><b>${fmtMoney(p.amount)}</b> · ${paymentSourceLabel(p.paymentSource||'manual')}</div><div style="color:var(--text-dim)">${fmtDate(p.date)} · ${(p.method||'cash')==='cashless'?'💳 Безготівка':'💵 Готівка'}</div></div>`).join('')}</div>`
+    : `<div class="order-payments-box is-empty"><div class="order-payments-title">💰 Історія оплат</div><div style="color:var(--text-dim);font-size:0.82rem">Ще не було жодної оплати</div></div>`;
   openModal(`
     <div id="orderPrintArea">
+      <div class="order-status-strip ${statusMeta.cls}">${statusMeta.icon} ${statusMeta.label}</div>
       <div style="text-align:center;margin-bottom:12px">
         <div style="font-family:'Oswald';font-size:1.3rem;font-weight:700">GT TIRES SERVICE</div>
         <div style="font-size:0.75rem;color:#888">ЗАКАЗ-НАРЯД</div>
@@ -572,9 +1122,9 @@ function viewOrder(oid){
         <div><b>Авто:</b> ${o.car||'—'}</div>
         <div><b>Держномер:</b> ${o.plate||'—'}</div>
         <div><b>Оплата:</b> ${o.paymentType==='cashless'?'Безготівка':o.paymentType==='cash'?'Готівка':'—'}</div>
-        <div><b>Оплачено:</b> ${fmtMoney(o.paidAmount!=null?o.paidAmount:(o.total||0))}</div>
-        <div><b>Борг:</b> ${fmtMoney(o.debt||0)}</div>
-        <div><b>Статус:</b> ${statusLabels[o.status]||o.status}</div>
+        <div><b>Оплачено:</b> ${fmtMoney(paidAmount)}</div>
+        <div><b>Борг:</b> ${fmtMoney(debtAmount)}</div>
+        <div><b>Статус:</b> ${statusMeta.icon} ${statusMeta.label}</div>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
         <thead>
@@ -591,25 +1141,30 @@ function viewOrder(oid){
         ВСЬОГО: ${fmtMoney(o.total||0)}
       </div>
       ${masterRow}
+      ${paymentHistory}
       ${o.notes?'<div style="margin-top:8px;font-size:0.8rem;color:var(--text-dim)">📝 '+o.notes+'</div>':''}
       <div style="display:flex;gap:30px;margin-top:24px;font-size:0.75rem;color:#888">
         <div style="flex:1;border-top:1px solid #555;padding-top:4px">Підпис клієнта</div>
         <div style="flex:1;border-top:1px solid #555;padding-top:4px">Підпис майстра</div>
       </div>
     </div>
-    <div class="gap-btns mt no-print" style="flex-wrap:wrap">
+    <div class="order-modal-actions no-print">
       <button class="btn btn-red btn-sm" onclick="printOrderNariad()">🖨️ Друк</button>
       <button class="btn btn-dark btn-sm" onclick="openEditOrder('${o.id}')">✏️ Редагувати</button>
+      <button class="btn btn-dark btn-sm" onclick="repeatOrder('${o.id}')">🔁 Повторити</button>
+      <button class="order-action-btn ${statusMeta.key==='progress'?'is-active':''}" onclick="startOrderWork('${o.id}')">🔄 В роботу</button>
+      <button class="order-action-btn success ${statusMeta.key==='done'?'is-active':''}" onclick="finishOrderWork('${o.id}')">✅ Виконано</button>
+      <button class="order-action-btn danger ${statusMeta.key==='cancel'?'is-active':''}" onclick="cancelOrderQuick('${o.id}')">✖ Скасувати</button>
       <label style="font-size:0.78rem;margin-top:6px">Статус</label>
-      <select id="oStatus" style="flex:1">
+      <select id="oStatus" style="flex:1;min-width:150px">
         <option value="new" ${o.status==='new'?'selected':''}>Нове</option>
         <option value="progress" ${o.status==='progress'?'selected':''}>В роботі</option>
         <option value="done" ${o.status==='done'?'selected':''}>Виконано</option>
         <option value="cancel" ${o.status==='cancel'?'selected':''}>Скасовано</option>
       </select>
       <button class="btn btn-green btn-sm" onclick="updateOrderStatus('${o.id}')">💾</button>
-      <button class="btn btn-dark btn-sm" onclick="completeAndCash('${o.id}')">✅ Каса</button>
-      <button class="btn btn-dark btn-sm" onclick="if(confirm('Видалити?')){orders=orders.filter(x=>x.id!=='${o.id}');save('orders',orders);closeModal();renderOrders();}">🗑️</button>
+      <button class="btn btn-dark btn-sm" onclick="completeAndCash('${o.id}')">💵 Закрити в касу</button>
+      <button class="btn btn-dark btn-sm" onclick="if(confirm('Видалити?')){orders=orders.filter(x=>x.id!=='${o.id}');closeModal();refreshOrderCollections();}">🗑️</button>
       <button class="btn btn-dark btn-sm" onclick="closeModal()">Закрити</button>
     </div>
   `);
@@ -617,16 +1172,33 @@ function viewOrder(oid){
 function updateOrderStatus(oid){
   const o=orders.find(x=>x.id===oid); if(!o) return;
   o.status=document.getElementById('oStatus').value;
-  save('orders',orders); closeModal(); renderOrders();
+  if(o.status==='progress' && !o.startedAt) o.startedAt=new Date().toISOString();
+  if(o.status==='done' && !o.doneAt) o.doneAt=new Date().toISOString();
+  if(o.status==='cancel' && !o.cancelledAt) o.cancelledAt=new Date().toISOString();
+  closeModal();
+  refreshOrderCollections();
 }
 function completeAndCash(oid){
   const o=orders.find(x=>x.id===oid); if(!o) return;
+  const _rem=getOrderDebtAmount(o);
   o.status='done';
-  const _rem=Math.max(0,(o.total||0)-(o.paidAmount||0));
-  if(_rem>0){ cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:_rem,method:o.paymentType||'cash',desc:'Замовлення #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+o.clientName,orderId:o.id}); }
-  o.paidAmount=o.total||0; o.debt=0;
+  o.doneAt=o.doneAt||new Date().toISOString();
+  if(_rem<=0){
+    syncOrderPaymentState(o);
+    closeModal();
+    refreshOrderCollections();
+    return;
+  }
+  addOrderPaymentEntry(o,_rem,o.paymentType||'cash','close_cash',new Date().toISOString(),buildOrderPaymentDesc(o,'close_cash'));
+  o.cashReceived=(+o.cashReceived||0)+_rem;
+  o.changeAmount=0;
   save('orders',orders); save('cash',cashbook);
-  closeModal(); renderOrders();
+  closeModal();
+  renderOrders();
+  if(typeof renderDebtors==='function') renderDebtors();
+  if(typeof renderCash==='function') renderCash();
+  if(typeof renderHome==='function') renderHome();
+  renderOrderBell();
 }
 
 // ==================== CLIENTS ====================
@@ -740,8 +1312,8 @@ function saveNewItem(){
 
 // ==================== CASH ====================
 function renderDebtors(){
-  const list=(orders||[]).filter(o=>(o.debt||0)>0).sort((a,b)=>(b.debt||0)-(a.debt||0));
-  const totalDebt=list.reduce((s,o)=>s+(o.debt||0),0);
+  const list=(orders||[]).filter(o=>getOrderDebtAmount(o)>0).sort((a,b)=>getOrderDebtAmount(b)-getOrderDebtAmount(a));
+  const totalDebt=list.reduce((s,o)=>s+getOrderDebtAmount(o),0);
   const st=document.getElementById('debtorsStats');
   if(st) st.innerHTML=`<div class="stat-card"><div class="num" style="color:var(--accent)">${fmtMoney(totalDebt)}</div><div class="lbl">Загальний борг</div></div><div class="stat-card"><div class="num">${list.length}</div><div class="lbl">Боржників</div></div>`;
   const el=document.getElementById('debtorsList'); if(!el)return;
@@ -749,19 +1321,40 @@ function renderDebtors(){
   el.innerHTML=list.map(o=>`<div class="card" style="margin-bottom:10px">
     <div class="flex-between"><div><b>#${o.orderNumber||o.id.slice(-5).toUpperCase()}</b> · ${o.clientName||'—'}${o.phone?' · '+o.phone:''}</div><span>${o.paymentType==='cashless'?'💳':'💵'}</span></div>
     <div style="font-size:0.82rem;color:var(--text-dim);margin:4px 0">${o.car||''} ${o.plate?'· '+o.plate:''} · ${fmtDate(o.date)}</div>
-    <div style="font-family:'Oswald';font-size:1.02rem">Сума ${fmtMoney(o.total||0)} · Оплач. ${fmtMoney(o.paidAmount||0)} · <span style="color:var(--accent)">Борг ${fmtMoney(o.debt||0)}</span></div>
-    <div class="gap-btns mt no-print"><input type="number" id="pay_${o.id}" placeholder="${o.debt||0}" style="max-width:130px"><button class="btn btn-red btn-sm" onclick="settleDebt('${o.id}')">💵 Погасити</button></div>
+    <div style="font-family:'Oswald';font-size:1.02rem">Сума ${fmtMoney(o.total||0)} · Оплач. ${fmtMoney(getOrderPaidAmount(o))} · <span style="color:var(--accent)">Борг ${fmtMoney(getOrderDebtAmount(o))}</span></div>
+    <div class="gap-btns mt no-print"><input type="number" id="pay_${o.id}" placeholder="${getOrderDebtAmount(o)}" style="max-width:130px"><button class="btn btn-red btn-sm" onclick="settleDebt('${o.id}')">💵 Погасити</button></div>
   </div>`).join('');
 }
 function settleDebt(oid){
   const o=orders.find(x=>x.id===oid); if(!o) return;
   const inp=document.getElementById('pay_'+oid);
-  let amt=(inp&&inp.value!=='')?(parseFloat(inp.value)||0):(o.debt||0);
-  if(amt<=0) return; if(amt>(o.debt||0)) amt=o.debt||0;
-  cashbook.push({id:uid(),date:new Date().toISOString(),type:'income',amount:amt,method:o.paymentType||'cash',desc:'Погашення боргу #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+(o.clientName||''),orderId:o.id});
-  o.paidAmount=(o.paidAmount||0)+amt; o.debt=Math.max(0,(o.total||0)-o.paidAmount);
+  const debt=getOrderDebtAmount(o);
+  let amt=(inp&&inp.value!=='')?(parseFloat(inp.value)||0):debt;
+  if(amt<=0) return; if(amt>debt) amt=debt;
+  addOrderPaymentEntry(o,amt,o.paymentType||'cash','debt_settlement',new Date().toISOString(),buildOrderPaymentDesc(o,'debt_settlement'));
   save('orders',orders); save('cash',cashbook);
-  renderDebtors(); renderOrders();
+  renderDebtors();
+  renderOrders();
+  if(typeof renderCash==='function') renderCash();
+  if(typeof renderHome==='function') renderHome();
+  renderOrderBell();
+  reopenOrderModalIfCurrent(oid);
+}
+function removeCashEntry(cid){
+  const entry=(cashbook||[]).find(x=>x.id===cid); if(!entry) return;
+  if(!confirm('Видалити запис з каси?')) return;
+  cashbook=cashbook.filter(x=>x.id!==cid);
+  save('cash',cashbook);
+  if(entry.orderId){
+    syncOrderPaymentState(entry.orderId);
+    save('orders',orders);
+    renderOrders();
+    if(typeof renderDebtors==='function') renderDebtors();
+    if(typeof renderHome==='function') renderHome();
+    renderOrderBell();
+    reopenOrderModalIfCurrent(entry.orderId);
+  }
+  renderCash();
 }
 function renderCash(){
   const income=cashbook.filter(c=>c.type==='income').reduce((s,c)=>s+c.amount,0);
@@ -780,11 +1373,13 @@ function renderCash(){
   let html='';
   sorted.forEach(c=>{
     const isIncome=c.type==='income';
+    const orderTag=c.orderId?`<span class="cash-order-tag">${paymentSourceLabel(c.paymentSource||'manual')}</span>`:'';
     html+=`<div class="card"><div class="flex-between">
       <span style="font-size:0.8rem;color:var(--text-dim)">${fmtDate(c.date)}</span>
       <span style="font-family:'Oswald';font-size:1.1rem;color:${isIncome?'var(--green)':'var(--accent)'}">${isIncome?'+':'−'}${fmtMoney(c.amount)}</span>
     </div><div style="font-size:0.82rem;margin-top:4px">${c.desc||'—'}</div>
-    <button class="btn btn-dark btn-sm mt" onclick="if(confirm('Видалити?')){cashbook=cashbook.filter(x=>x.id!=='${c.id}');save('cash',cashbook);renderCash();}">🗑️</button>
+    <div class="cash-entry-meta">${(c.method||'cash')==='cashless'?'💳 Безготівка':'💵 Готівка'} ${orderTag}</div>
+    <button class="btn btn-dark btn-sm mt" onclick="removeCashEntry('${c.id}')">🗑️</button>
     </div>`;
   });
   document.getElementById('cashList').innerHTML=html;
@@ -1627,7 +2222,20 @@ function taiPullMarketToCalc(){
 }
 
 // ==================== РЕДАГУВАННЯ ЗАКАЗУ + НОВА ПОСЛУГА В ЗАКАЗІ ====================
-function submitOrder(){ if(window._editOrderId) saveEditedOrder(window._editOrderId); else saveNewOrder(); }
+function submitOrder(){
+  if(window._orderSubmitting) return;
+  window._orderSubmitting=true;
+  updateOrderSubmitState();
+  try{
+    if(window._editOrderId) saveEditedOrder(window._editOrderId);
+    else saveNewOrder();
+  }catch(e){
+    console.error(e);
+    setOrderFeedback('error','Не вдалося зберегти замовлення');
+  }finally{
+    setTimeout(()=>{ window._orderSubmitting=false; updateOrderSubmitState(); }, 600);
+  }
+}
 function openEditOrder(oid){ const o=orders.find(x=>x.id===oid); if(!o) return; openNewOrder(o); }
 
 // створити послугу, якої немає в прайсі, прямо в заказі (і зберегти для повторного використання)
@@ -1657,12 +2265,13 @@ function saveEditedOrder(oid){
   const o=orders.find(x=>x.id===oid);
   if(!o){ window._editOrderId=null; return saveNewOrder(); }
   const services=window._orderSvcs||[];
-  if(!services.length){ alert('Оберіть хоча б одну послугу'); return; }
+  if(!services.length){ setOrderFeedback('error','Спочатку додайте хоча б одну послугу'); return; }
+  const formIssues=getOrderFormIssues(true);
+  if(formIssues.length){ setOrderFeedback('error',formIssues[0]); updateOrderSubmitState(); return; }
+  clearOrderFeedback();
   let total=0; services.forEach(s=>{ total+=s.price*s.qty; });
   const g=id=>{ const e=document.getElementById(id); return e?e.value:''; };
-
-  // 1) повертаємо НА СКЛАД старі списані матеріали
-  (o.materials||[]).forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=(+it.qty||0)+(+mt.qty||0); } });
+  const prevMaterials=(o.materials||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src}));
 
   // 2) оновлюємо поля заказу (id / номер / дату не чіпаємо)
   o.clientName=g('oClient').trim();
@@ -1674,19 +2283,34 @@ function saveEditedOrder(oid){
   o.services=services;
   o.total=total;
   o.materials=(window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src}));
-  { const pe=document.getElementById('oPaid'); let p=(pe&&pe.value!=='')?(parseFloat(pe.value)||0):(total||0); if(p<0)p=0; if(p>total)p=total; o.paidAmount=p; o.debt=Math.max(0,total-p); }
+  {
+    const live=getOrderLiveState();
+    o.paidAmount=live.applied;
+    o.debt=live.debt;
+    o.cashReceived=live.entered;
+    o.changeAmount=live.change;
+  }
+  if(!['done','cancel'].includes(o.status||'new')) o.status='progress';
   o.updatedAt=new Date().toISOString();
 
-  // 3) списуємо НОВІ матеріали
+  const matIssues=getOrderMaterialIssues(o.materials, prevMaterials);
+  if(matIssues.length){
+    renderOrderMatPicker();
+    renderOrderMats();
+    setOrderFeedback('error','На складі не вистачає: '+matIssues.map(x=>`${x.name} (−${x.missing})`).join(', '));
+    return;
+  }
+
+  // 3) повертаємо старі матеріали на склад і списуємо нові
+  prevMaterials.forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=(+it.qty||0)+(+mt.qty||0); } });
   (o.materials||[]).forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=Math.max(0,(+it.qty||0)-(+mt.qty||0)); } });
   save('tires',tires); save('warehouse',warehouse);
   if(typeof renderTires==='function') renderTires();
   if(typeof renderWarehouse==='function') renderWarehouse();
 
-  // 4) синхронізуємо касу: прибрати старі записи цього заказу, додати один актуальний
-  cashbook=cashbook.filter(c=>c.orderId!==o.id);
-  if(o.paidAmount>0){ cashbook.push({id:uid(),date:o.date,type:'income',amount:o.paidAmount,method:o.paymentType||'cash',desc:'Замовлення #'+(o.orderNumber||o.id.slice(-5).toUpperCase())+' — '+o.clientName,orderId:o.id}); }
-  save('cash',cashbook);
+  // 4) синхронізуємо базову оплату, не вбиваючи історію доплат
+  upsertOrderBasePayment(o, o.paidAmount, o.date);
+  syncOrderPaymentState(o);
   if(typeof renderCash==='function') renderCash();
 
   // 5) клієнт (як у створенні)
@@ -1699,8 +2323,11 @@ function saveEditedOrder(oid){
   }
 
   save('orders',orders); renderOrders(); renderClients();
+  if(typeof renderDebtors==='function') renderDebtors();
+  if(typeof renderHome==='function') renderHome();
+  renderOrderBell();
   window._editOrderId=null;
-  closeModal(); viewOrder(o.id);
+  showOrderPrint(o,{mode:'updated'});
 }
 
 // ==================== ШИНИ AI — AI ОЦІНКА ШИНИ (по тексту, через бекенд) ====================
@@ -3179,8 +3806,8 @@ function homeMetrics(){
   const exp=cb.filter(c=>c.type==='expense').reduce((s,c)=>s+c.amount,0);
   const cashm=cb.filter(c=>c.type==='income'&&(c.method||'cash')==='cash').reduce((s,c)=>s+c.amount,0);
   const cashless=cb.filter(c=>c.type==='income'&&c.method==='cashless').reduce((s,c)=>s+c.amount,0);
-  const debt=(orders||[]).reduce((s,o)=>s+(o.debt||0),0);
-  const debtc=(orders||[]).filter(o=>(o.debt||0)>0).length;
+  const debt=(orders||[]).reduce((s,o)=>s+getOrderDebtAmount(o),0);
+  const debtc=(orders||[]).filter(o=>getOrderDebtAmount(o)>0).length;
   const ordc=(orders||[]).filter(o=>_inPeriod(o.date,p)).length;
   return {inc,exp,bal:inc-exp,cashm,cashless,ordc,debt,debtc,cli:(clients||[]).length};
 }
@@ -3217,4 +3844,4 @@ function toggleHomeWidget(k,onv){
   if(onv){ if(!homeWidgets.includes(k)) homeWidgets.push(k); } else { homeWidgets=homeWidgets.filter(x=>x!==k); }
   save('homeW',homeWidgets); renderHome();
 }
-(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); openNewOrder(); applyOrderBg(); (function(){var _pet=document.getElementById('priceEditToggle'); if(_pet)_pet.checked=priceEditOn;})(); initAuth(); setInterval(gtAutoSync,30000); })();
+(function(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); if(u)u.value=SUPA_CFG.url(); if(k)k.value=SUPA_CFG.key(); updateSyncStatus(); applyHeader(); renderHome(); openNewOrder(); initOrderInteractions(); renderOrderListFilters(); applyOrderBg(); (function(){var _pet=document.getElementById('priceEditToggle'); if(_pet)_pet.checked=priceEditOn;})(); initAuth(); setInterval(gtAutoSync,30000); })();

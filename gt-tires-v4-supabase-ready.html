@@ -125,9 +125,10 @@
       <div class="cart-fields">
         <input id="oClient" placeholder="Ім'я клієнта">
         <input id="oPhone" type="tel" placeholder="Телефон +380..." oninput="orderPhoneLookup()">
+        <div class="client-hint" id="oClientHint">Новий клієнт</div>
         <div class="cart-row-2">
           <input id="oCar" placeholder="Авто (марка, модель)">
-          <input id="oPlate" placeholder="Держномер">
+          <input id="oPlate" placeholder="Держномер" oninput="orderPlateLookup()">
         </div>
         <select id="oPayType" style="display:none"><option value="cash">Готівка</option><option value="cashless">Безготівка</option></select>
         <div class="pay-toggle">
@@ -135,6 +136,7 @@
           <button type="button" class="pay-btn card" id="payCardBtn" onclick="setOrderPayType('cashless')">💳 Безнал</button>
         </div>
         <input id="oPaid" type="number" placeholder="Оплачено ₴ (порожнє = повна)">
+        <div class="pay-summary is-empty" id="oPaySummary">До сплати: 0₴</div>
         <textarea id="oNotes" rows="1" placeholder="Нотатки"></textarea>
       </div>
       <div id="oSelectedSvcs" class="cart-list"></div>
@@ -148,9 +150,10 @@
         <div id="oMatList"></div>
       </div>
       <div class="cart-total"><span>Разом</span><b id="oSvcTotal">0 ₴</b></div>
+      <div class="order-feedback" id="oOrderFeedback" style="display:none"></div>
       <div class="cart-actions">
-        <button class="btn btn-dark" onclick="openNewOrder()">Скасувати</button>
-        <button class="btn btn-red" onclick="submitOrder()">✅ Оформити</button>
+        <button class="btn btn-dark" onclick="clearOrderDraft();openNewOrder()">Скасувати</button>
+        <button class="btn btn-green" data-order-submit onclick="submitOrder()">✅ Оформити</button>
       </div>
     </aside>
   </div>
@@ -175,8 +178,9 @@
     </div>
   </div>
   <div class="search-box mb">
-    <input type="text" placeholder="Пошук по номеру, авто, клієнту..." id="orderSearch" oninput="filterOrders()">
+    <input type="text" placeholder="Пошук по номеру, авто, клієнту, телефону..." id="orderSearch" oninput="filterOrders()">
   </div>
+  <div class="order-filter-row mb" id="orderFilterRow"></div>
   <div class="stats-grid" id="orderStats"></div>
   <div id="ordersList"></div>
 </div>
@@ -402,5 +406,6 @@
 
 <script src="app.js"></script>
 <script src="print.js"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
 </body>
 </html>
