@@ -3751,15 +3751,26 @@ async function doLogin(){
   }catch(e){ if(er)er.textContent='Помилка входу'; }
   if(btn){btn.disabled=false;btn.textContent='Увійти';}
 }
-async function doLogout(){ const s=getSupa(); if(s){ try{ await s.auth.signOut(); }catch(e){} } _session=null; document.body.classList.add('locked'); const p=document.getElementById('authPass'); if(p)p.value=''; }
+async function doLogout(){ const s=getSupa(); if(s){ try{ await s.auth.signOut(); }catch(e){} } _session=null; document.body.classList.add('locked'); const p=document.getElementById('authPass'); if(p)p.value=''; const er=document.getElementById('authErr'); if(er)er.textContent=''; }
 function showApp(){ document.body.classList.remove('locked'); updateSyncStatus(); flushQueue(); }
 function _hasPersistedSession(){ try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf('-auth-token')>-1 && (localStorage.getItem(k)||'').length>20) return true; } }catch(e){} return false; }
 function _previewBadge(txt){ if(document.getElementById('previewBadge'))return; const d=document.createElement('div'); d.id='previewBadge'; d.textContent=txt; d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:9998;background:rgba(211,47,47,.92);color:#fff;font-size:0.72rem;padding:6px 13px;border-radius:20px;box-shadow:0 4px 14px rgba(0,0,0,.5);max-width:92vw;text-align:center'; document.body.appendChild(d); }
 async function initAuth(){
-  // === ВХІД ТИМЧАСОВО ВИМКНЕНО ===
-  document.body.classList.remove('locked');
-  _session = {bypass:true};
-  const lo=document.querySelector('.logout-wrap'); if(lo) lo.style.display='none';
+  // Спробувати відновити сесію з localStorage (auto-login)
+  const s = getSupa();
+  if(s){
+    try{
+      const { data } = await s.auth.getSession();
+      if(data && data.session){
+        _session = data.session;
+        showApp();
+        return;
+      }
+    }catch(e){}
+  }
+  // Якщо сесії немає — показати форму входу
+  document.body.classList.add('locked');
+  const lo=document.querySelector('.logout-wrap'); if(lo) lo.style.display='';
 }
 function setOrderBg(v){ document.documentElement.style.setProperty('--order-bg', v); localStorage.setItem(LS_KEY+'orderBg', v); }
 function resetOrderBg(){ localStorage.removeItem(LS_KEY+'orderBg'); document.documentElement.style.setProperty('--order-bg','#1E1E1E'); var i=document.getElementById('orderBgInput'); if(i)i.value='#1e1e1e'; }
