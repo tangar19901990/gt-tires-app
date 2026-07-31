@@ -12,17 +12,24 @@ Vanilla JS + Supabase, без збірки та фреймворків. Депл
 ## Структура файлів
 
 ```
-gt-tires-v4-supabase-ready.html   ← розмітка, підключає css/ і js/
-css/styles.css                    ← усі стилі
-js/app.js                         ← уся логіка (vanilla JS, 1 файл)
+gt-tires-v4-supabase-ready.html   ← адмін-панель, підключає styles.css і app.js
+gt-tires-miniapp.html             ← Telegram Mini App для клієнтів
+index.html                        ← стартова сторінка з посиланнями на обидва
+styles.css                        ← усі стилі
+app.js                            ← уся логіка (vanilla JS, 1 файл)
+print.js                          ← друк рахунку/наряду
+gt_tires_bot.py                   ← Telegram-бот (Python), відкриває miniapp
+reference-prices/                 ← прайси у текстовому/CSV вигляді для довідки (не підключені в код)
 backup/                           ← резервні копії робочих версій
-docs/PROJECT_STRUCTURE.md         ← карта модулів усередині app.js
+tests/smoke-test.js               ← смок-тест критичної логіки (jsdom)
+PROJECT_STRUCTURE.md              ← карта модулів усередині app.js
 README.md
 CONTEXT.md                        ← правила проєкту (для себе / для AI)
+ONBOARDING.md                     ← підключення нового клієнта (окрема копія)
 ```
 
-До розділення це був один HTML-файл (~776 КБ). CSS і JS винесено окремо
-**без зміни логіки** — браузер отримує байт-у-байт той самий код.
+Усі файли лежать пласко в корені репозиторію (без папок `css/`/`js/`) —
+шляхи в HTML відносні до кореня.
 
 ---
 
@@ -64,17 +71,17 @@ npx serve .
 backup/gt-tires-v4-supabase-ready_РРРР-ММ-ДД.html
 ```
 
-Поточний backup: `backup/gt-tires-v4-supabase-ready_2026-06-30.html`
-(односторінкова продакшн-версія — точка відкату).
+Дивись найновіший файл у `backup/` за датою в назві — це остання точка відкату.
 
 ---
 
 ## Перевірка після правок
 
 ```bash
-node --check js/app.js     # синтаксис JS
-grep -c 'css/styles.css' gt-tires-v4-supabase-ready.html   # = 1
-grep -c 'js/app.js'      gt-tires-v4-supabase-ready.html    # = 1
+node --check app.js                                         # синтаксис JS
+grep -c 'styles.css' gt-tires-v4-supabase-ready.html         # = 1
+grep -c 'app.js'      gt-tires-v4-supabase-ready.html        # = 1
+cd tests && npm install && node smoke-test.js                # бізнес-логіка
 ```
 
 Детальні правила розробки — у `CONTEXT.md`.

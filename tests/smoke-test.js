@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
-const DIR = __dirname;
+const DIR = path.join(__dirname, '..'); // app.js/index.html лежать у корені репо, не в tests/
 let failed = 0;
 const ok = (label) => console.log(`  ✅ ${label}`);
 const fail = (label, detail) => { failed++; console.log(`  ❌ ${label}${detail ? ' — ' + detail : ''}`); };

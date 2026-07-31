@@ -10,17 +10,18 @@
 ```
 .
 ├── gt-tires-v4-supabase-ready.html   розмітка; <link css> у <head>, <script app.js> перед </body>
-├── css/
-│   └── styles.css                    усі стилі застосунку
-├── js/
-│   └── app.js                        уся логіка (vanilla JS, класичний глобальний скрипт)
+├── styles.css                        усі стилі застосунку
+├── app.js                            уся логіка (vanilla JS, класичний глобальний скрипт)
+├── print.js                          друк рахунку/наряду
+├── reference-prices/                 прайси текстом/CSV для довідки (не підключені в код)
 ├── backup/
 │   └── gt-tires-v4-supabase-ready_РРРР-ММ-ДД.html
-├── docs/
-│   └── PROJECT_STRUCTURE.md           (цей файл)
+├── PROJECT_STRUCTURE.md              (цей файл)
 ├── README.md
 └── CONTEXT.md
 ```
+
+Усі файли лежать пласко в корені — окремих папок `css/`/`js/`/`docs/` немає.
 
 ---
 
@@ -28,10 +29,10 @@
 
 ```
 1. <meta charset="UTF-8">  +  Google Fonts
-2. Supabase CDN  (рядок 12 HTML)
+2. Supabase CDN
 3. розмітка <body>
-4. css/styles.css  → через <link> у <head>
-5. js/app.js       → перед </body> (рядок ~342)
+4. styles.css  → через <link> у <head>
+5. app.js      → перед </body>
        └─ init-IIFE наприкінці app.js спрацьовує, коли DOM уже готовий
 ```
 
