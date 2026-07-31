@@ -1445,6 +1445,13 @@ async function markBookingDone(id){
 function bookingToOrder(id){
   const b = (window._bookings||[]).find(x=>x.id===id);
   if(!b) return;
+  // Спочатку перемикаємось на вкладку "Головна" БЕЗ повторного відкриття нового
+  // замовлення (клік по кнопці меню сам по собі викликає openNewOrder і стирає
+  // будь-які дані, встановлені раніше) — тому перемикаємо секцію вручну.
+  document.querySelectorAll('.nav button').forEach(b2=>b2.classList.remove('active'));
+  const homeBtn=document.querySelector('.nav button[data-tab="home"]'); if(homeBtn) homeBtn.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  const homeSec=document.getElementById('sec-home'); if(homeSec) homeSec.classList.add('active');
   openNewOrder();
   setClientNameFields(b.name);
   const phoneEl=document.getElementById('oPhone'); if(phoneEl) phoneEl.value=b.phone||'';
@@ -1452,7 +1459,6 @@ function bookingToOrder(id){
   const notesEl=document.getElementById('oNotes'); if(notesEl) notesEl.value=(b.service_wanted?('Бажана послуга: '+b.service_wanted+'. '):'')+(b.preferred_time?('Бажаний час: '+b.preferred_time):'');
   saveOrderDraft();
   markBookingDone(id);
-  const homeBtn=document.querySelector('.nav button[data-tab="home"]'); if(homeBtn) homeBtn.click();
 }
 function settleDebt(oid){
   const o=orders.find(x=>x.id===oid); if(!o) return;
