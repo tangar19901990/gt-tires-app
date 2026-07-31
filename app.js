@@ -407,6 +407,7 @@ function applyOrderDraft(draft){
   setOrderPayType(draft.paymentType||'cash');
   renderOrderCatBtns();
   renderOrderRadius();
+  renderSvcViewSwitch();
   renderOrderPickList();
   renderSelectedSvcs();
   renderOrderMatPicker();
@@ -832,6 +833,7 @@ function openNewOrder(edit){
   clearOrderFeedback();
   renderOrderCatBtns();
   renderOrderRadius();
+  renderSvcViewSwitch();
   renderOrderPickList();
   renderOrderQuick();
   renderSelectedSvcs();
@@ -903,14 +905,34 @@ function renderOrderRadius(){
   h+='</div>';
   el.innerHTML=h;
 }
+function svcViewMode(){ return localStorage.getItem(LS_KEY+'svcViewMode')||'grid'; }
+function setSvcViewMode(m){ localStorage.setItem(LS_KEY+'svcViewMode',m); renderOrderPickList(); renderSvcViewSwitch(); }
+function renderSvcViewSwitch(){
+  const el=document.getElementById('oSvcViewSwitch'); if(!el) return;
+  const cur=svcViewMode();
+  const modes=[['grid','🔲','Сітка'],['list','📃','Список'],['slider','↔️','Слайдер']];
+  el.innerHTML=modes.map(([m,ic,label])=>{
+    const on=cur===m;
+    return `<button type="button" onclick="setSvcViewMode('${m}')" style="flex:1;min-width:90px;padding:8px 6px;border-radius:8px;font-size:0.78rem;font-weight:600;background:${on?'var(--red,#e01f26)':'#1a1a1a'};color:#fff;border:1px solid ${on?'var(--red,#e01f26)':'#2a2a2a'}">${ic} ${label}</button>`;
+  }).join('');
+}
 function renderOrderPickList(){
   const el = document.getElementById('oSvcPickList');
   if(!el) return;
   const q = (document.getElementById('oSvcSearch')?.value||'').toLowerCase();
   const cf = window._orderCatFilter;
+  const mode = svcViewMode();
+  if(mode==='list'){ el.style.cssText='display:flex;flex-direction:column;gap:6px'; el.className=''; }
+  else if(mode==='slider'){ el.style.cssText='display:flex;flex-direction:row;overflow-x:auto;gap:10px;padding-bottom:8px;-webkit-overflow-scrolling:touch'; el.className=''; }
+  else { el.style.cssText=''; el.className='osvc-grid'; }
   let h=''; let currentCat=-1; let count=0;
-  const mk=(item)=>{ const p=effPrice(item); const added=window._orderSvcs.some(s=>s.id===item.id);
+  const mkGrid=(item)=>{ const p=effPrice(item); const added=window._orderSvcs.some(s=>s.id===item.id);
     return `<button type="button" class="osvc-btn${added?' added':''}" onclick="addOrderSvc(${item.id})"><span class="sn">${item.name}</span><span class="sp">${fmtMoney(p)}${added?' ✓':''}</span>${priceEditOn?`<span class="osvc-edit" onclick="event.stopPropagation();editPrice(${item.id})">✏️</span>`:''}</button>`; };
+  const mkList=(item)=>{ const p=effPrice(item); const added=window._orderSvcs.some(s=>s.id===item.id); const r=svcRadius(item.name);
+    return `<button type="button" onclick="addOrderSvc(${item.id})" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:${added?'rgba(224,31,38,.15)':'#141414'};border:1px solid ${added?'var(--red,#e01f26)':'#2a2a2a'};border-radius:10px;padding:10px 12px;color:#fff">${r?`<span style="font-family:'Oswald';font-weight:700;font-size:1.3rem;color:var(--red,#e01f26);min-width:52px">${r}</span>`:''}<span style="flex:1;font-size:0.86rem;line-height:1.25">${item.name}</span><span style="font-weight:700;color:#4ade80;white-space:nowrap">${fmtMoney(p)}${added?' ✓':''}</span>${priceEditOn?`<span onclick="event.stopPropagation();editPrice(${item.id})">✏️</span>`:''}</button>`; };
+  const mkSlider=(item)=>{ const p=effPrice(item); const added=window._orderSvcs.some(s=>s.id===item.id); const r=svcRadius(item.name);
+    return `<button type="button" onclick="addOrderSvc(${item.id})" style="flex:0 0 auto;width:128px;display:flex;flex-direction:column;align-items:center;gap:6px;background:${added?'rgba(224,31,38,.15)':'#141414'};border:1px solid ${added?'var(--red,#e01f26)':'#2a2a2a'};border-radius:12px;padding:12px 8px;color:#fff">${r?`<span style="font-family:'Oswald';font-weight:700;font-size:1.4rem;color:var(--red,#e01f26)">${r}</span>`:''}<span style="font-size:0.76rem;text-align:center;line-height:1.2;min-height:2.2em">${item.name}</span><span style="font-weight:700;color:#4ade80">${fmtMoney(p)}${added?' ✓':''}</span></button>`; };
+  const mk = mode==='list'?mkList : mode==='slider'?mkSlider : mkGrid;
   PRICE_LIST.forEach(item=>{
     if(item.id===undefined && item.cat!==undefined){ currentCat=item.cat; return; }
     if(!item.id) return;
