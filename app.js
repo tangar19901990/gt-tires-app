@@ -3808,6 +3808,44 @@ function mapClient(c){ return {id:c.id,name:c.name||'',phone:c.phone||'',car:c.c
 function mapOrder(o){ const paid=(o.paidAmount!=null)?o.paidAmount:(o.status==='paid'?(o.total||0):(o.paid_amount||0)); return {id:o.id,order_number:o.order_number||o.orderNumber||null,client_id:o.client_id||o.clientId||null,client_name:o.clientName||o.client_name||'',phone:o.phone||'',car:o.car||'',plate:o.plate||'',driver:o.driver||'',status:o.status||'new',total:o.total||0,paid_amount:paid,debt:Math.max(0,(o.total||0)-paid),payment_type:o.payment_type||o.paymentType||null,comment:o.notes||o.comment||'',created_at:o.date||o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()}; }
 function mapItems(o){ return (o.services||o.items||[]).map((s,i)=>({id:o.id+'_'+i,order_id:o.id,name:s.name||'',category:s.category||null,qty:s.qty||1,unit:s.unit||'шт',price:s.price||0,total:(s.price||0)*(s.qty||1),created_at:o.date||new Date().toISOString()})); }
 function mapServicesFromPrice(){ const out=[]; let cat=''; if(typeof PRICE_LIST!=='undefined'){ PRICE_LIST.forEach(it=>{ if(it&&it.cat!=null){ cat=(typeof CAT_META!=='undefined'&&CAT_META[it.cat])?CAT_META[it.cat].name:String(it.cat); return; } if(it&&it.id!=null&&it.name){ out.push({id:'svc_'+it.id,name:it.name,category:cat,type:null,size:_rSize(it.name),unit:'шт',price:effPrice(it),is_active:true,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}); } }); } (customServices||[]).forEach(c=>{ out.push({id:'svc_'+c.id,name:c.name,category:'Власні',type:null,size:'',unit:'шт',price:effPrice(c),is_active:true,created_at:new Date().toISOString(),updated_at:new Date().toISOString()}); }); return out; }
+
+/* Синхронізація прайсу CRM -> Mini App (app_prices).
+   Mini App має власну таксономію категорій (тип авто клієнта), відмінну від
+   технічних категорій CRM — мапимо тільки ті, що мають прямий відповідник.
+   Рядки, синхронізовані звідси, позначені source='crm_sync' і безпечно
+   перезаписуються щоразу; вручну додані адміном у Mini App рядки не чіпаються. */
+const MINIAPP_CAT_MAP = { 0:'Легкові', 1:'Вантажні', 2:'С/Г та спецтехніка' };
+async function syncPriceToMiniApp(){
+  const s = getSupa();
+  if(!s){ alert('Спочатку вкажіть URL і ключ Supabase'); return; }
+  if(!navigator.onLine){ alert('Немає інтернету'); return; }
+  const rows = [];
+  let cat = -1, sort = 0;
+  PRICE_LIST.forEach(it=>{
+    if(it && it.id===undefined && it.cat!==undefined){ cat = it.cat; return; }
+    if(!it || !it.id) return;
+    const miniCat = MINIAPP_CAT_MAP[cat];
+    if(!miniCat) return; // ця категорія CRM не має відповідника в Mini App — пропускаємо
+    rows.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : ('crm-'+it.id+'-'+Date.now()),
+      category: miniCat,
+      subcategory: null,
+      name: it.name,
+      price: String(effPrice(it)),
+      sort: sort++,
+      source: 'crm_sync',
+    });
+  });
+  if(!rows.length){ alert('Немає послуг для синхронізації (перевірте категорії Легкові/Вантажні/Сільгосп)'); return; }
+  try{
+    // Спочатку прибираємо старі синхронізовані рядки, щоб не накопичувались дублікати
+    const { error: delErr } = await s.from('app_prices').delete().eq('source','crm_sync');
+    if(delErr){ alert('Помилка очищення старого прайсу: '+delErr.message); return; }
+    const { error: insErr } = await s.from('app_prices').insert(rows);
+    if(insErr){ alert('Помилка вивантаження: '+insErr.message); return; }
+    alert('✅ Синхронізовано '+rows.length+' позицій у Mini App (Легкові/Вантажні/Сільгосп).\nІнші категорії (латки, вентилі тощо) в Mini App не показуються — там немає для них місця в структурі клієнтського прайсу.');
+  }catch(e){ alert('Помилка: '+e.message); }
+}
 function mapProducts(){ const out=[]; (typeof warehouse!=='undefined'?warehouse:[]).forEach(w=>out.push({id:w.id,name:w.name||'',category:'Матеріали',sku:w.sku||null,qty:w.qty||0,min_qty:w.min_qty||0,buy_price:w.buy_price||0,sell_price:w.price||w.sell_price||0,image:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})); (typeof tires!=='undefined'?tires:[]).forEach(t=>out.push({id:t.id,name:((t.brand||'Шина')+' '+(t.size||'')).trim(),category:'Шини',sku:null,qty:t.qty||0,min_qty:0,buy_price:0,sell_price:t.price||0,image:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})); return out; }
 function mapCash(){ return (typeof cashbook!=='undefined'?cashbook:[]).map(c=>({id:c.id,type:c.type||'income',amount:c.amount||0,method:c.method||null,order_id:c.orderId||null,comment:c.desc||c.comment||'',created_at:c.date||new Date().toISOString()})); }
 async function _upsert(table,rows,conflict){ const s=getSupa(); if(!s||!navigator.onLine){ enqueue(table,rows); return {queued:true}; } try{ const {error}=await s.from(table).upsert(rows,{onConflict:conflict||'id'}); if(error){ enqueue(table,rows); return {error}; } return {ok:true}; }catch(e){ enqueue(table,rows); return {error:e}; } }
