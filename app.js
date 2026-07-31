@@ -374,6 +374,7 @@ function saveOrderDraft(){
   if(window._editOrderId) return;
   const draft={
     clientName:(document.getElementById('oClient')||{}).value||'',
+    company:(document.getElementById('oCompany')||{}).value||'',
     phone:(document.getElementById('oPhone')||{}).value||'',
     car:(document.getElementById('oCar')||{}).value||'',
     plate:(document.getElementById('oPlate')||{}).value||'',
@@ -393,7 +394,7 @@ function saveOrderDraft(){
 function applyOrderDraft(draft){
   if(!draft || window._editOrderId) return false;
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
-  set('oClient',draft.clientName); set('oPhone',draft.phone); set('oCar',draft.car); set('oPlate',draft.plate);
+  set('oClient',draft.clientName); setClientNameFields(draft.clientName); set('oCompany',draft.company); set('oPhone',draft.phone); set('oCar',draft.car); set('oPlate',draft.plate);
   set('oNotes',draft.notes); set('oPaid',draft.paid);
   window._orderCatFilter=(typeof draft.catFilter==='number' && draft.catCount===CAT_META.length)?draft.catFilter:0;
   window._orderRadius=draft.radius||null;
@@ -421,7 +422,7 @@ function repeatOrder(oid){
   clearOrderDraft();
   openNewOrder();
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
-  set('oClient',o.clientName||''); set('oPhone',o.phone||''); set('oCar',o.car||''); set('oPlate',o.plate||'');
+  set('oClient',o.clientName||''); setClientNameFields(o.clientName); set('oCompany',o.company||''); set('oPhone',o.phone||''); set('oCar',o.car||''); set('oPlate',o.plate||'');
   set('oNotes',o.notes||''); set('oPaid','');
   setOrderPayType(o.paymentType||'cash');
   window._orderSvcs=(o.services||[]).map(s=>{ const cur=findSvc(s.id); return {id:s.id,name:(cur&&cur.name)||s.name,price:(cur&&cur.price!=null)?cur.price:s.price,qty:s.qty}; });
@@ -764,8 +765,32 @@ function updateOrderSubmitState(){
   btn.textContent=busy ? (window._editOrderId?'⏳ Зберігаю...':'⏳ Оформлюю...') : (window._editOrderId?'💾 Зберегти зміни':'✅ Оформити');
   btn.title=busy?'Зачекайте, триває збереження':(matIssues.length?'На складі не вистачає матеріалів':(formIssues[0]|| (s.servicesCount?'':'Спочатку додайте послугу')));
 }
+function splitClientName(full){
+  full=(full||'').trim();
+  if(!full) return ['',''];
+  const parts=full.split(/\s+/);
+  if(parts.length===1) return ['',parts[0]];
+  return [parts[0], parts.slice(1).join(' ')];
+}
+function syncClientNameField(){
+  const ln=(document.getElementById('oLastName')||{}).value||'';
+  const fn=(document.getElementById('oFirstName')||{}).value||'';
+  const ce=document.getElementById('oClient');
+  if(ce) ce.value=(ln+' '+fn).trim();
+  clearOrderFeedback();
+  setOrderFieldInvalid('oClient',false);
+  syncOrderClientHint(false);
+  saveOrderDraft();
+  updateOrderSubmitState();
+}
+function setClientNameFields(full){
+  const [ln,fn]=splitClientName(full);
+  const le=document.getElementById('oLastName'); if(le) le.value=ln;
+  const fe=document.getElementById('oFirstName'); if(fe) fe.value=fn;
+  const ce=document.getElementById('oClient'); if(ce) ce.value=(full||'').trim();
+}
 function initOrderInteractions(){
-  ['oClient','oCar','oPlate','oPaid','oNotes','oSvcSearch'].forEach(id=>{
+  ['oClient','oCompany','oCar','oPlate','oPaid','oNotes','oSvcSearch'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el || el.dataset.bound==='1') return;
     el.addEventListener('input',()=>{
@@ -816,7 +841,7 @@ function openNewOrder(edit){
   if(edit){
     window._editOrderId=edit.id;
     const set=(id,v)=>{const e=document.getElementById(id); if(e) e.value=(v==null?'':v);};
-    set('oClient',edit.clientName); set('oPhone',edit.phone); set('oCar',edit.car); set('oPlate',edit.plate);
+    set('oClient',edit.clientName); setClientNameFields(edit.clientName); set('oCompany',edit.company||''); set('oPhone',edit.phone); set('oCar',edit.car); set('oPlate',edit.plate);
     setOrderPayType(edit.paymentType||'cash'); set('oPaid',edit.paidAmount!=null?edit.paidAmount:''); set('oNotes',edit.notes);
     window._orderSvcs=(edit.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
     window._orderMats=(edit.materials||[]).map(m=>{ const cur=(window._stockIdx||{})[m.id]; return {id:m.id,name:m.name,qty:m.qty,src:m.src,max:(cur?cur.max:0)+(+m.qty||0)}; });
@@ -825,7 +850,7 @@ function openNewOrder(edit){
     const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='💾 Зберегти зміни';
   } else {
     window._editOrderId=null;
-    ['oClient','oPhone','oCar','oPlate','oPaid','oNotes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+    ['oClient','oLastName','oFirstName','oCompany','oPhone','oCar','oPlate','oPaid','oNotes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
     setOrderPayType('cash');
     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='🧾 Нове замовлення';
     const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='✅ Оформити';
@@ -1038,6 +1063,7 @@ function saveNewOrder(){
     id: uid(),
     date: new Date().toISOString(),
     clientName: document.getElementById('oClient').value.trim(),
+    company: (document.getElementById('oCompany')?document.getElementById('oCompany').value.trim():''),
     phone: document.getElementById('oPhone').value.trim(),
     car: document.getElementById('oCar').value.trim(),
     plate: (document.getElementById('oPlate')?document.getElementById('oPlate').value.trim():''),
@@ -1124,6 +1150,7 @@ function viewOrder(oid){
         <div><b>№:</b> ${o.orderNumber||o.id.slice(-6).toUpperCase()}</div>
         <div><b>Дата:</b> ${fmtDate(o.date)}</div>
         <div><b>Клієнт:</b> ${o.clientName||'—'}</div>
+        ${o.company?`<div><b>Фірма:</b> ${o.company}</div>`:''}
         <div><b>Тел:</b> ${o.phone||'—'}</div>
         <div><b>Авто:</b> ${o.car||'—'}</div>
         <div><b>Держномер:</b> ${o.plate||'—'}</div>
