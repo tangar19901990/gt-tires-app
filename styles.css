@@ -670,3 +670,73 @@ button, .ocat-card, .osvc-btn, .orad-btn {
     transition-duration: .01ms !important;
   }
 }
+
+/* ===== РОЗШИРЕНІ АНІМАЦІЇ ===== */
+
+/* Ripple — хвиля від дотику */
+.ocat-card, .osvc-btn, .orad-btn, .pay-btn, .btn { position:relative; overflow:hidden; }
+.gt-ripple{
+  position:absolute; border-radius:50%; transform:scale(0);
+  background:rgba(255,255,255,.35); pointer-events:none;
+  animation:gtRipple .55s ease-out forwards;
+}
+@keyframes gtRipple{ to{ transform:scale(2.6); opacity:0; } }
+
+/* Пульсуюче світіння активної категорії */
+.ocat-card.active{
+  animation: gtActiveGlow 2.2s ease-in-out infinite;
+}
+@keyframes gtActiveGlow{
+  0%,100%{ box-shadow:0 0 0 1px var(--red), 0 0 14px -2px rgba(224,31,38,.45); }
+  50%    { box-shadow:0 0 0 1px var(--red), 0 0 26px 2px rgba(224,31,38,.75); }
+}
+
+/* Галочка ✓ вилітає з підскоком */
+.ocat-check{ animation: gtPop .32s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes gtPop{
+  0%{ transform:scale(0) rotate(-45deg); opacity:0; }
+  100%{ transform:none; opacity:1; }
+}
+
+/* Позиції кошика виїжджають збоку */
+#oSelectedSvcs > *{ animation: gtSlideIn .28s cubic-bezier(.4,0,.2,1) both; }
+@keyframes gtSlideIn{
+  from{ opacity:0; transform:translateX(-14px); }
+  to{ opacity:1; transform:none; }
+}
+
+/* Сума пульсує при зміні */
+.cart-total.gt-bump b{ animation: gtBump .45s cubic-bezier(.34,1.56,.64,1); }
+@keyframes gtBump{
+  0%{ transform:scale(1); }
+  40%{ transform:scale(1.18); color:#c9ffd2; }
+  100%{ transform:scale(1); }
+}
+
+/* Блік, що пробігає по картці при натисканні */
+.osvc-btn.added::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.22) 50%,transparent 70%);
+  animation: gtShine .7s ease;
+}
+@keyframes gtShine{ from{ transform:translateX(-110%);} to{ transform:translateX(110%);} }
+
+/* Кнопки кількості підстрибують */
+.qty-btn:active, [onclick*="changeOrderSvcQty"]:active{
+  animation: gtPop .22s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Плавніший вхід бокового меню */
+body.nav-open .nav-wrap button{ animation: gtNavIn .32s ease both; }
+@keyframes gtNavIn{ from{ opacity:0; transform:translateX(-12px);} to{ opacity:1; transform:none;} }
+body.nav-open .nav-wrap button:nth-child(1){animation-delay:.02s}
+body.nav-open .nav-wrap button:nth-child(2){animation-delay:.04s}
+body.nav-open .nav-wrap button:nth-child(3){animation-delay:.06s}
+body.nav-open .nav-wrap button:nth-child(4){animation-delay:.08s}
+body.nav-open .nav-wrap button:nth-child(5){animation-delay:.10s}
+body.nav-open .nav-wrap button:nth-child(6){animation-delay:.12s}
+body.nav-open .nav-wrap button:nth-child(7){animation-delay:.14s}
+body.nav-open .nav-wrap button:nth-child(8){animation-delay:.16s}
+
+/* Плавний скрол по всьому застосунку */
+html{ scroll-behavior:smooth; }
