@@ -27,46 +27,6 @@
   --radius: 16px;
   --shadow: 0 16px 34px -18px rgba(0,0,0,.9), 0 0 26px -12px rgba(64,140,255,.3), inset 0 1px 0 rgba(255,255,255,.04);
 }
-/* ===== THEME: Clean Minimal / Light Clean ===== */
-[data-theme="light-clean"] {
-  --red: #C41E24; --red-dark: #8F1015; --red-light: #E0433C;
-  --black: #FFFFFF; --black-soft: #F7F7F9; --dark-bg: #F3F4F6;
-  --card-bg: #FFFFFF; --card-bg-2: #F5F6F8; --order-bg: #FFFFFF; --card-hover: #ECEDEF;
-  --text: #1A1B1F; --text-dim: #6B7280; --text-2: #3F4147;
-  --accent: #C41E24; --green: #1E9E3F; --green-dark: #127A2F;
-  --yellow: #B8860B; --amber: #C97A1A; --blue: #2563EB; --blue-dark: #1C479C;
-  --debt: #D6342B; --debt-bg: #FCE9E8; --debt-border: #F0B3AE;
-  --border: #E2E4E8; --border-soft: #EBEDF0;
-  --shadow: 0 8px 24px -12px rgba(0,0,0,.15);
-}
-/* ===== THEME: Industrial Steel ===== */
-[data-theme="industrial"] {
-  --red: #E8622C; --red-dark: #A6431C; --red-light: #FF8A54;
-  --black: #24262A; --black-soft: #2B2E33; --dark-bg: #24262A;
-  --card-bg: #34383D; --card-bg-2: #2B2E33; --order-bg: #34383D; --card-hover: #3D4247;
-  --text: #ECEDEE; --text-dim: #9CA1A6; --text-2: #C7CBCF;
-  --accent: #E8622C; --green: #6FA33C; --green-dark: #4C7A28;
-  --yellow: #FFC107; --amber: #D98324; --blue: #5B8DB8; --blue-dark: #2E5A80;
-  --debt: #E8622C; --debt-bg: #3A2A20; --debt-border: #5C4433;
-  --border: #494D52; --border-soft: #40444A;
-  --shadow: 0 10px 24px -14px rgba(0,0,0,.7);
-}
-/* ===== THEME: High-Contrast / Accessibility ===== */
-[data-theme="high-contrast"] {
-  --red: #FF0000; --red-dark: #B30000; --red-light: #FF4D4D;
-  --black: #000000; --black-soft: #000000; --dark-bg: #000000;
-  --card-bg: #000000; --card-bg-2: #000000; --order-bg: #000000; --card-hover: #1A1A1A;
-  --text: #FFFFFF; --text-dim: #E0E0E0; --text-2: #FFFFFF;
-  --accent: #FFFF00; --green: #00FF00; --green-dark: #00CC00;
-  --yellow: #FFFF00; --amber: #FFAA00; --blue: #00CCFF; --blue-dark: #0099CC;
-  --debt: #FF0000; --debt-bg: #330000; --debt-border: #FF0000;
-  --border: #FFFFFF; --border-soft: #FFFFFF;
-  --shadow: none;
-}
-[data-theme="high-contrast"] body{ background-image:none!important; font-size:1.08em; }
-[data-theme="high-contrast"] * { border-width:2px!important; font-weight:600; }
-[data-theme="light-clean"] body{ background-image:none!important; }
-[data-theme="industrial"] body{ background-image: radial-gradient(1100px 560px at 75% -12%, #34383D, #24262A 62%); }
 * { margin:0; padding:0; box-sizing:border-box; }
 html { font-size:15px; }
 body {
