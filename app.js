@@ -854,7 +854,7 @@ function renderOrderCatBtns(){
     const g=groupOf(i);
     if(g!==lastGroup){
       if(lastGroup!==-1) h+='</div>';
-      h+=`<div style="grid-column:1/-1;font-family:'Oswald';font-weight:700;letter-spacing:.05em;color:var(--red-light,#ff5555);margin:${lastGroup===-1?'0':'14px'} 0 4px;font-size:0.85rem;text-transform:uppercase">${groupTitles[g]}</div>`;
+      h+=`<div style="grid-column:1/-1;font-family:'Oswald';font-weight:700;letter-spacing:.08em;color:var(--red-light,#ff4444);margin:${lastGroup===-1?'0':'22px'} 0 10px;font-size:1.5rem;text-transform:uppercase;text-shadow:0 0 10px rgba(255,68,68,.75),0 0 22px rgba(255,68,68,.4);padding-bottom:6px;border-bottom:2px solid rgba(255,68,68,.35)">${groupTitles[g]}</div>`;
       h+='<div style="display:contents">';
       lastGroup=g;
     }
