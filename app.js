@@ -45,7 +45,8 @@ const CAT_META = [
   { name:"Вентилі", icon:"🎯", color:"#d81b60", short:"Вентилі" },
   { name:"Рихтування дисків", icon:"💿", color:"#7b1fa2", short:"Рихтування" },
 ];
-const CAT_ICONS = {0:"icons/cat-0.png",1:"icons/cat-1.png",2:"icons/cat-2.png",3:"icons/cat-3.png",4:"icons/cat-4.png",5:"icons/cat-5.png",6:"icons/cat-6.png",7:"icons/cat-7.png",8:"icons/cat-8.png",9:"icons/cat-9.png",10:"icons/cat-10.png",11:"icons/cat-11.png",12:"icons/cat-12.png"};
+const CAT_ICONS_V = 3; // підняти це число, коли міняєш будь-яку icons/cat-N.png — примусово скине кеш браузера
+const CAT_ICONS = {0:"icons/cat-0.png?v="+CAT_ICONS_V,1:"icons/cat-1.png?v="+CAT_ICONS_V,2:"icons/cat-2.png?v="+CAT_ICONS_V,3:"icons/cat-3.png?v="+CAT_ICONS_V,4:"icons/cat-4.png?v="+CAT_ICONS_V,5:"icons/cat-5.png?v="+CAT_ICONS_V,6:"icons/cat-6.png?v="+CAT_ICONS_V,7:"icons/cat-7.png?v="+CAT_ICONS_V,8:"icons/cat-8.png?v="+CAT_ICONS_V,9:"icons/cat-9.png?v="+CAT_ICONS_V,10:"icons/cat-10.png?v="+CAT_ICONS_V,11:"icons/cat-11.png?v="+CAT_ICONS_V,12:"icons/cat-12.png?v="+CAT_ICONS_V};
 const PRICE_LIST = [
   // === 0: ЛЕГКОВИЙ МОНТАЖ ===
   { cat:0 },
