@@ -212,6 +212,7 @@ document.querySelectorAll('.nav button').forEach(btn => {
     document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
     document.getElementById('sec-'+btn.dataset.tab).classList.add('active');
     if(btn.dataset.tab==='debtors') renderDebtors(); if(btn.dataset.tab==='stats') renderHome();
+    if(btn.dataset.tab==='bookings') renderBookings();
     if(btn.dataset.tab==='home') openNewOrder();
     if(btn.dataset.tab==='tiremarket'){ try{ renderTireMarketPanel(); }catch(e){} }
   });
@@ -1411,6 +1412,47 @@ function renderDebtors(){
     <div style="font-family:'Oswald';font-size:1.02rem">Сума ${fmtMoney(o.total||0)} · Оплач. ${fmtMoney(getOrderPaidAmount(o))} · <span style="color:var(--accent)">Борг ${fmtMoney(getOrderDebtAmount(o))}</span></div>
     <div class="gap-btns mt no-print"><input type="number" id="pay_${o.id}" placeholder="${getOrderDebtAmount(o)}" style="max-width:130px"><button class="btn btn-red btn-sm" onclick="settleDebt('${o.id}')">💵 Погасити</button></div>
   </div>`).join('');
+}
+// ==================== ЗАЯВКИ З MINI APP ====================
+async function renderBookings(){
+  const el = document.getElementById('bookingsList');
+  if(!el) return;
+  const s = getSupa();
+  if(!s){ el.innerHTML = '<div class="card" style="text-align:center;color:var(--text-dim);padding:24px">Спочатку підключіть Supabase в Налаштуваннях</div>'; return; }
+  el.innerHTML = '<div class="card" style="text-align:center;color:var(--text-dim);padding:24px">Завантаження…</div>';
+  try{
+    const { data, error } = await s.from('mini_app_bookings').select('*').order('created_at',{ascending:false});
+    if(error){ el.innerHTML = '<div class="card" style="text-align:center;color:var(--accent);padding:24px">Помилка: '+error.message+'</div>'; return; }
+    window._bookings = data||[];
+    if(!data || !data.length){ el.innerHTML = '<div class="card" style="text-align:center;color:var(--text-dim);padding:24px">Заявок немає</div>'; return; }
+    el.innerHTML = data.map(b=>{
+      const isNew = b.status==='new';
+      return `<div class="card" style="margin-bottom:10px;border-left:4px solid ${isNew?'var(--red,#e01f26)':'#2a2a2a'}">
+        <div class="flex-between"><div><b>${b.name||'—'}</b> · ${b.phone||'—'}</div><span style="font-size:0.78rem;color:var(--text-dim)">${fmtDate(b.created_at)}</span></div>
+        <div style="font-size:0.85rem;margin:4px 0">${b.car?('🚗 '+b.car):''}${b.service_wanted?(' · 🛠 '+b.service_wanted):''}${b.preferred_time?(' · 🕐 '+b.preferred_time):''}</div>
+        <div class="gap-btns mt no-print">
+          ${isNew?`<button class="btn btn-red btn-sm" onclick="bookingToOrder('${b.id}')">📋 Оформити замовлення</button>`:''}
+          <button class="btn btn-dark btn-sm" onclick="markBookingDone('${b.id}')">${isNew?'✔ Позначити оброблено':'✔ Оброблено'}</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){ el.innerHTML = '<div class="card" style="text-align:center;color:var(--accent);padding:24px">Помилка: '+e.message+'</div>'; }
+}
+async function markBookingDone(id){
+  const s = getSupa(); if(!s) return;
+  try{ await s.from('mini_app_bookings').update({status:'done'}).eq('id',id); renderBookings(); }catch(e){ alert('Помилка: '+e.message); }
+}
+function bookingToOrder(id){
+  const b = (window._bookings||[]).find(x=>x.id===id);
+  if(!b) return;
+  openNewOrder();
+  setClientNameFields(b.name);
+  const phoneEl=document.getElementById('oPhone'); if(phoneEl) phoneEl.value=b.phone||'';
+  const carEl=document.getElementById('oCar'); if(carEl) carEl.value=b.car||'';
+  const notesEl=document.getElementById('oNotes'); if(notesEl) notesEl.value=(b.service_wanted?('Бажана послуга: '+b.service_wanted+'. '):'')+(b.preferred_time?('Бажаний час: '+b.preferred_time):'');
+  saveOrderDraft();
+  markBookingDone(id);
+  const homeBtn=document.querySelector('.nav button[data-tab="home"]'); if(homeBtn) homeBtn.click();
 }
 function settleDebt(oid){
   const o=orders.find(x=>x.id===oid); if(!o) return;
