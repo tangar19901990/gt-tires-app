@@ -302,9 +302,11 @@
         note('✅ Заявку прийнято! Ми зателефонуємо для підтвердження.');
         ['bkPhone','bkCar','bkService','bkTime'].forEach(id=>document.getElementById(id).value='');
       } else {
-        note('Помилка відправки, спробуй ще раз');
+        let bodyTxt = '';
+        try{ bodyTxt = await r.text(); }catch(e2){}
+        note('Помилка відправки ('+r.status+'): '+bodyTxt.slice(0,200));
       }
-    }catch(e){ note('Немає з\'єднання, спробуй ще раз'); }
+    }catch(e){ note('Немає з\'єднання: '+e.message); }
   }
   function open_(s){const t={orders:'Мої замовлення',tires:'Підбір шин',bonus:'Бонуси',promo:'Акції та новини',map:'Як нас знайти',contact:'Зв\'язок'};
     note('«'+(t[s]||s)+'» — зробимо в наступному блоці.');}
