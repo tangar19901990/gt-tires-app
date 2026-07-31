@@ -219,6 +219,40 @@ document.querySelectorAll('.nav button').forEach(btn => {
 
 // ==================== MODAL ====================
 function openModal(html){ var mc=document.getElementById('modalContent'); mc.classList.remove('modal-wide'); mc.innerHTML=html; document.getElementById('modalOverlay').classList.add('open'); }
+const THEME_KEY = LS_KEY+'theme';
+const THEMES = [
+  {id:'dark-pro', name:'Neo-Carbon / Dark Pro', desc:'Темний, преміальний, за замовчуванням', sw:['#060608','#e01f26','#F2F3F5']},
+  {id:'light-clean', name:'Clean Minimal', desc:'Світлий, повітряний, дилерський', sw:['#F3F4F6','#C41E24','#1A1B1F']},
+  {id:'industrial', name:'Industrial Steel', desc:'Сталь та мокрий асфальт', sw:['#24262A','#E8622C','#ECEDEE']},
+  {id:'high-contrast', name:'High-Contrast', desc:'Максимальний контраст для майстерні', sw:['#000000','#FFFF00','#FFFFFF']},
+];
+function applyTheme(id){
+  const valid = THEMES.some(t=>t.id===id) ? id : 'dark-pro';
+  document.documentElement.setAttribute('data-theme', valid==='dark-pro' ? '' : valid);
+  try{ localStorage.setItem(THEME_KEY, valid); }catch(e){}
+}
+function initTheme(){
+  let saved='dark-pro';
+  try{ saved = localStorage.getItem(THEME_KEY) || 'dark-pro'; }catch(e){}
+  applyTheme(saved);
+}
+function openThemePicker(){
+  let cur='dark-pro';
+  try{ cur = localStorage.getItem(THEME_KEY) || 'dark-pro'; }catch(e){}
+  const rows = THEMES.map(t=>{
+    const on = cur===t.id;
+    const swatches = t.sw.map(c=>`<span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:${c};border:1px solid rgba(255,255,255,.25);margin-right:4px"></span>`).join('');
+    return `<button type="button" onclick="applyTheme('${t.id}');closeModal();openThemePicker();" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:${on?'rgba(224,31,38,.15)':'#141414'};border:2px solid ${on?'var(--red,#e01f26)':'#2a2a2a'};border-radius:10px;padding:12px;color:#fff;margin-bottom:8px">
+      <div>${swatches}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:0.92rem">${t.name}${on?' ✓':''}</div>
+        <div style="font-size:0.76rem;color:var(--text-dim,#888)">${t.desc}</div>
+      </div>
+    </button>`;
+  }).join('');
+  openModal(`<div style="font-family:'Oswald';font-weight:700;font-size:1.1rem;margin-bottom:12px">🎨 Тема оформлення</div>${rows}`);
+}
+document.addEventListener('DOMContentLoaded', initTheme);
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
 
 // ==================== PRICE TABLE ====================
