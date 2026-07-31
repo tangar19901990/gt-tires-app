@@ -43,7 +43,7 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body class="locked">
 
@@ -96,6 +96,7 @@
 <!-- NAV -->
 <button class="menu-toggle" id="menuToggle" aria-label="Меню" onclick="toggleMenu()">☰</button>
 <button class="hdr-toggle" id="hdrToggle" title="Згорнути/розгорнути шапку" onclick="toggleHeader()">▲</button>
+<button class="hdr-toggle" id="themeToggle" title="Тема оформлення" style="right:70px" onclick="openThemePicker()">🎨</button>
 <div class="nav-backdrop" id="navBackdrop" onclick="toggleMenu(false)"></div>
 <aside class="nav-wrap" id="sidebar">
   <div class="side-brand"><span class="sb-gt">GT</span> TIRES</div>
@@ -443,7 +444,7 @@
   <div class="modal" id="modalContent"></div>
 </div>
 
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 <script src="print.js"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js');}</script>
