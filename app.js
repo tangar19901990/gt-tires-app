@@ -34,10 +34,10 @@ const CAT_META = [
   { name:"Легковий монтаж", icon:"🚗", color:"#e53935", short:"Легкові" },
   { name:"Вантажний монтаж", icon:"🚛", color:"#1e88e5", short:"Вантажні" },
   { name:"Сільгосп / Спец", icon:"🚜", color:"#43a047", short:"Сільгосп" },
-  { name:"Пластирі TL", icon:"🔴", color:"#e53935", short:"TL" },
-  { name:"Пластирі CT", icon:"🟠", color:"#fb8c00", short:"CT" },
-  { name:"Пластирі BP", icon:"🟡", color:"#fdd835", short:"BP" },
-  { name:"Пластирі UP", icon:"🟢", color:"#43a047", short:"UP" },
+  { name:"Пластирі TL", icon:"🔴", color:"#39ff14", short:"TL" },
+  { name:"Пластирі CT", icon:"🟠", color:"#39ff14", short:"CT" },
+  { name:"Пластирі BP", icon:"🟡", color:"#39ff14", short:"BP" },
+  { name:"Пластирі UP", icon:"🟢", color:"#39ff14", short:"UP" },
   { name:"Ремонт камер", icon:"🛞", color:"#00acc1", short:"Камери" },
   { name:"Додатковий ремонт", icon:"🔧", color:"#f4511e", short:"Дод.ремонт" },
   { name:"Балансування вантаж", icon:"⚖️", color:"#3949ab", short:"Баланс." },
@@ -873,9 +873,9 @@ function renderOrderCatBtns(){
   const cardHtml = (c,i) => {
     const on=window._orderCatFilter===i; const col=c.color;
     const ic=(typeof CAT_ICONS!=='undefined'&&CAT_ICONS[i])?`<img src="${CAT_ICONS[i]}">`:`<div style="font-size:3rem;height:60px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))">${c.icon}</div>`;
-    const style=`background:#121212;border:2px solid ${on?col:'#2a2a2a'};box-shadow:${on?'0 0 0 1px '+col+',0 0 20px '+col+'77':'0 4px 12px rgba(0,0,0,.45)'}`;
-    const check=on?`<span class="ocat-check" style="background:${col}">✓</span>`:'';
-    return `<div class="ocat-card${on?' active':''}" style="${style}" onclick="window._orderCatFilter=${i};window._orderRadius=null;document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderRadius();renderOrderPickList()">${check}${ic}<div class="nm" style="color:#ffd700;font-size:1.25rem;font-weight:800;text-shadow:0 0 8px rgba(255,215,0,.5);display:inline-block;border:2px solid #e01f26;border-radius:8px;padding:3px 10px;box-shadow:0 0 10px rgba(224,31,38,.5)">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
+    const style=`--glowcol:${col};background:#121212;border:2px solid ${col};box-shadow:${on?'0 0 0 2px '+col+',0 0 28px '+col+'aa,0 0 50px '+col+'55,inset 0 0 18px '+col+'22':'0 0 14px '+col+'55,0 0 3px '+col+'99,inset 0 0 10px '+col+'11'};transition:box-shadow .25s ease,border-color .25s ease`;
+    const check=on?`<span class="ocat-check" style="background:${col};color:#0a0a0a">✓</span>`:'';
+    return `<div class="ocat-card${on?' active':''}" style="${style}" onclick="window._orderCatFilter=${i};window._orderRadius=null;document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderRadius();renderOrderPickList()">${check}${ic}<div class="nm" style="color:${col};font-size:1.25rem;font-weight:800;text-shadow:0 0 10px ${col}aa;display:inline-block;border:2px solid ${col};border-radius:8px;padding:3px 10px;background:${col}14;box-shadow:0 0 14px ${col}77">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
   };
   let h=''; let lastGroup=-1;
   CAT_META.forEach((c,i)=>{
