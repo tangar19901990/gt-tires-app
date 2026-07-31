@@ -1417,6 +1417,7 @@ function renderDebtors(){
 // ==================== БАНЕР НОВИХ ЗАЯВОК (зверху екрана) ====================
 async function checkNewBookings(){
   const el = document.getElementById('newBookingsBanner');
+  const cnt = document.getElementById('newBookingsCount');
   if(!el) return;
   const s = getSupa();
   if(!s){ el.style.display='none'; return; }
@@ -1425,8 +1426,9 @@ async function checkNewBookings(){
     if(error){ return; }
     const n = (data||[]).length;
     if(n>0){
-      el.textContent = '📝 Нових заявок: '+n+' — натисни, щоб переглянути';
-      el.style.display='block';
+      if(cnt) cnt.textContent = n>99?'99+':String(n);
+      el.style.display='flex';
+      el.title = 'Нових заявок: '+n;
     } else {
       el.style.display='none';
     }
