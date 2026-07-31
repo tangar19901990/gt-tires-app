@@ -12,6 +12,37 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  var LICENSE_URL = 'https://lxeswqlkereptdtwytbp.supabase.co';
+  var LICENSE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZXN3cWxrZXJlcHRkdHd5dGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzEyNDgsImV4cCI6MjA5NjQwNzI0OH0.CIkN-KAhlM6TgFzdkaCyUbnvTq4OmiNH953IHJR4x5E';
+  var CLIENT_SLUG = 'gt-tires';
+
+  function showBlock(msg){
+    function render(){
+      var d = document.createElement('div');
+      d.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#060608;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:sans-serif;';
+      d.innerHTML = '<div style="font-size:22px;font-weight:700;color:#e01f26;margin-bottom:12px">Доступ призупинено</div><div style="color:#aab2c5;max-width:320px;line-height:1.5">' + msg + '</div>';
+      document.body.appendChild(d);
+    }
+    if (document.body) render();
+    else document.addEventListener('DOMContentLoaded', render);
+  }
+
+  try {
+    var _lc = window.supabase.createClient(LICENSE_URL, LICENSE_KEY);
+    _lc.from('licenses').select('paid_until,is_active').eq('client_slug', CLIENT_SLUG).single()
+      .then(function(res){
+        if (res.error || !res.data) return; // офлайн/помилка мережі — не блокуємо
+        var today = new Date().toISOString().slice(0,10);
+        if (!res.data.is_active || res.data.paid_until < today) {
+          showBlock('Зверніться до підтримки для поновлення доступу.');
+        }
+      })
+      .catch(function(){});
+  } catch (e) {}
+})();
+</script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body class="locked">
