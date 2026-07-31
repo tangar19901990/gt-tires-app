@@ -607,3 +607,66 @@ body.hdr-collapsed{padding-top:54px}
 /* debtors: red debt-tinted cards */
 #debtorsList .card{background:var(--debt-bg);border-color:var(--debt-border)}
 /* ================= END MODERN UI LAYER ================= */
+
+/* ===== МІКРОІНТЕРАКЦІЇ ТА ПЛАВНІ АНІМАЦІЇ ===== */
+
+/* «Провалювання» при натисканні — головний тактильний відгук */
+.ocat-card:active,
+.osvc-btn:active,
+.orad-btn:active,
+.pay-btn:active,
+.btn:active,
+.order-filter-btn:active,
+.order-action-btn:active {
+  transform: scale(.97) !important;
+  transition: transform .06s ease !important;
+}
+
+/* Плавна поява списку послуг при зміні категорії/режиму */
+@keyframes gtFadeUp {
+  from { opacity:0; transform: translateY(8px); }
+  to   { opacity:1; transform: none; }
+}
+#oSvcPickList > * {
+  animation: gtFadeUp .26s ease both;
+}
+/* Каскадна поява перших елементів — ефект «перетікання» */
+#oSvcPickList > *:nth-child(1){animation-delay:.00s}
+#oSvcPickList > *:nth-child(2){animation-delay:.02s}
+#oSvcPickList > *:nth-child(3){animation-delay:.04s}
+#oSvcPickList > *:nth-child(4){animation-delay:.06s}
+#oSvcPickList > *:nth-child(5){animation-delay:.08s}
+#oSvcPickList > *:nth-child(6){animation-delay:.10s}
+#oSvcPickList > *:nth-child(7){animation-delay:.12s}
+#oSvcPickList > *:nth-child(8){animation-delay:.14s}
+
+/* Плавна поява карток категорій */
+#oSvcCatBtns .ocat-card {
+  animation: gtFadeUp .3s ease both;
+}
+
+/* М'яка поява модальних вікон */
+.modal-overlay.open #modalContent,
+#modalOverlay.open #modalContent {
+  animation: gtModalIn .22s cubic-bezier(.4,0,.2,1) both;
+}
+@keyframes gtModalIn {
+  from { opacity:0; transform: translateY(14px) scale(.98); }
+  to   { opacity:1; transform: none; }
+}
+
+/* Плавніший перехід кольорів скрізь */
+button, .ocat-card, .osvc-btn, .orad-btn {
+  transition-property: transform, box-shadow, border-color, background, color;
+  transition-duration: .18s;
+  transition-timing-function: ease;
+}
+
+/* Повага до системного налаштування «зменшити рух» */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
