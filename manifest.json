@@ -2,7 +2,7 @@
   "name": "GT Tires Service",
   "short_name": "GT Tires",
   "description": "CRM для шиномонтажу GT Tires",
-  "start_url": "./gt-tires-v4-supabase-ready.html?v=18",
+  "start_url": "./gt-tires-v4-supabase-ready.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
