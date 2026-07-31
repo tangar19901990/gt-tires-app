@@ -874,7 +874,7 @@ function renderOrderCatBtns(){
     const ic=(typeof CAT_ICONS!=='undefined'&&CAT_ICONS[i])?`<img src="${CAT_ICONS[i]}">`:`<div style="font-size:3rem;height:60px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))">${c.icon}</div>`;
     const style=`background:#121212;border:2px solid ${on?col:'#2a2a2a'};box-shadow:${on?'0 0 0 1px '+col+',0 0 20px '+col+'77':'0 4px 12px rgba(0,0,0,.45)'}`;
     const check=on?`<span class="ocat-check" style="background:${col}">✓</span>`:'';
-    return `<div class="ocat-card${on?' active':''}" style="${style}" onclick="window._orderCatFilter=${i};window._orderRadius=null;document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderRadius();renderOrderPickList()">${check}${ic}<div class="nm" style="color:${on?col:'#fff'}">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
+    return `<div class="ocat-card${on?' active':''}" style="${style}" onclick="window._orderCatFilter=${i};window._orderRadius=null;document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderRadius();renderOrderPickList()">${check}${ic}<div class="nm" style="color:#ffd700;font-size:1.25rem;font-weight:800;text-shadow:0 0 8px rgba(255,215,0,.5)">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
   };
   let h=''; let lastGroup=-1;
   CAT_META.forEach((c,i)=>{
