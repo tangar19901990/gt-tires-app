@@ -232,8 +232,9 @@ function applyTheme(id){
   try{ localStorage.setItem(THEME_KEY, valid); }catch(e){}
 }
 function initTheme(){
-  try{ localStorage.removeItem(THEME_KEY); }catch(e){}
-  applyTheme('dark-pro');
+  let saved='dark-pro';
+  try{ saved = localStorage.getItem(THEME_KEY) || 'dark-pro'; }catch(e){}
+  applyTheme(saved);
 }
 function openThemePicker(){
   let cur='dark-pro';
@@ -977,12 +978,14 @@ function renderOrderPickList(){
   if(!count) h=`<div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--text-dim);font-size:0.84rem">${q?'Нічого не знайдено':'Оберіть категорію вгорі'}</div>`;
   el.innerHTML = h;
 }
+function gtHaptic(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||10); }catch(e){} }
 function addOrderSvc(id){
   id=+id; const item = findSvc(id);
   if(!item) return;
   const existing = window._orderSvcs.find(s=>s.id===id);
   if(existing){ existing.qty++; }
   else { window._orderSvcs.push({id:item.id,name:item.name,price:item.price,qty:1}); }
+  gtHaptic(10);
   renderOrderPickList();
   renderSelectedSvcs();
   clearOrderFeedback();
