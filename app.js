@@ -232,9 +232,8 @@ function applyTheme(id){
   try{ localStorage.setItem(THEME_KEY, valid); }catch(e){}
 }
 function initTheme(){
-  let saved='dark-pro';
-  try{ saved = localStorage.getItem(THEME_KEY) || 'dark-pro'; }catch(e){}
-  applyTheme(saved);
+  try{ localStorage.removeItem(THEME_KEY); }catch(e){}
+  applyTheme('dark-pro');
 }
 function openThemePicker(){
   let cur='dark-pro';
