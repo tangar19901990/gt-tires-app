@@ -383,6 +383,7 @@ function saveOrderDraft(){
     services:(window._orderSvcs||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty})),
     materials:(window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src})),
     catFilter:window._orderCatFilter,
+    catCount:CAT_META.length,
     radius:window._orderRadius
   };
   const hasData = draft.services.length || draft.materials.length || [draft.clientName,draft.phone,draft.car,draft.plate,draft.notes,draft.paid].some(v=>(v||'').trim());
@@ -394,7 +395,7 @@ function applyOrderDraft(draft){
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
   set('oClient',draft.clientName); set('oPhone',draft.phone); set('oCar',draft.car); set('oPlate',draft.plate);
   set('oNotes',draft.notes); set('oPaid',draft.paid);
-  window._orderCatFilter=typeof draft.catFilter==='number'?draft.catFilter:0;
+  window._orderCatFilter=(typeof draft.catFilter==='number' && draft.catCount===CAT_META.length)?draft.catFilter:0;
   window._orderRadius=draft.radius||null;
   window._orderSvcs=(draft.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
   const stock=getOrderMaterialAvailability([]);
