@@ -700,3 +700,13 @@ body.nav-open .nav-wrap button:nth-child(8){animation-delay:.16s}
 
 /* Плавний скрол по всьому застосунку */
 html{ scroll-behavior:smooth; }
+
+/* ===== БАНЕР НОВИХ ЗАЯВОК (мигає червоний/зелений/жовтий) ===== */
+@keyframes bookingBlink {
+  0%   { background:#e01f26; box-shadow:0 0 18px rgba(224,31,38,.7); }
+  33%  { background:#22c55e; box-shadow:0 0 18px rgba(34,197,94,.7); }
+  66%  { background:#eab308; box-shadow:0 0 18px rgba(234,179,8,.7); }
+  100% { background:#e01f26; box-shadow:0 0 18px rgba(224,31,38,.7); }
+}
+body.locked #newBookingsBanner{ display:none!important; }
+@media print{ #newBookingsBanner{ display:none!important; } }
