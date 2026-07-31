@@ -107,7 +107,7 @@
     <div class="b-hint">натисни,<br>щоб змінити</div>
   </button>
 
-  <button class="cta" onclick="open_('record')">
+  <button class="cta" onclick="openBooking()">
     <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
     <span>Записатися на шиномонтаж</span>
   </button>
@@ -132,6 +132,27 @@
     </div>
     <div class="ov-note">Ціни вказані за 1 колесо / послугу, у гривнях</div>
     <div id="catList"></div>
+  </div>
+
+  <!-- МОДАЛКА ЗАПИСУ КЛІЄНТА -->
+  <div class="modal" id="bookingModal">
+    <div class="modal-card">
+      <div class="modal-title">📝 Запис на шиномонтаж</div>
+      <label>Ваше ім'я</label>
+      <input id="bkName" placeholder="Іван">
+      <label>Телефон</label>
+      <input id="bkPhone" type="tel" placeholder="+380...">
+      <label>Авто (марка, модель)</label>
+      <input id="bkCar" placeholder="напр. Volkswagen Passat">
+      <label>Яка послуга потрібна</label>
+      <input id="bkService" placeholder="напр. Шиномонтаж легкові R16">
+      <label>Бажаний час</label>
+      <input id="bkTime" placeholder="напр. сьогодні після 17:00">
+      <div class="modal-btns">
+        <button class="md-cancel" onclick="closeBooking()">Скасувати</button>
+        <button class="md-save" onclick="submitBooking()">Записатись</button>
+      </div>
+    </div>
   </div>
 
   <!-- МОДАЛКА РЕДАГУВАННЯ -->
@@ -257,7 +278,35 @@
     try{await fetch(SUPABASE_URL+'/rest/v1/app_prices?id=eq.'+editId,{method:'DELETE',headers:{...H,Prefer:'return=minimal'}});
       closeEdit();await fetchPrices();renderPrices();}catch(e){note('Помилка видалення');}});}
 
-  function open_(s){const t={record:'Онлайн запис',orders:'Мої замовлення',tires:'Підбір шин',bonus:'Бонуси',promo:'Акції та новини',map:'Як нас знайти',contact:'Зв\'язок'};
+  function openBooking(){
+    const n = tg?.initDataUnsafe?.user?.first_name || '';
+    if(n && !document.getElementById('bkName').value) document.getElementById('bkName').value = n;
+    document.getElementById('bookingModal').classList.add('open');
+  }
+  function closeBooking(){ document.getElementById('bookingModal').classList.remove('open'); }
+  async function submitBooking(){
+    const name = document.getElementById('bkName').value.trim();
+    const phone = document.getElementById('bkPhone').value.trim();
+    const car = document.getElementById('bkCar').value.trim();
+    const service_wanted = document.getElementById('bkService').value.trim();
+    const preferred_time = document.getElementById('bkTime').value.trim();
+    if(!name || !phone){ note('Вкажи ім\'я і телефон'); return; }
+    try{
+      const r = await fetch(SUPABASE_URL+'/rest/v1/mini_app_bookings', {
+        method:'POST',
+        headers:{...H,'Content-Type':'application/json',Prefer:'return=minimal'},
+        body: JSON.stringify({name, phone, car, service_wanted, preferred_time, status:'new'})
+      });
+      if(r.ok){
+        closeBooking();
+        note('✅ Заявку прийнято! Ми зателефонуємо для підтвердження.');
+        ['bkPhone','bkCar','bkService','bkTime'].forEach(id=>document.getElementById(id).value='');
+      } else {
+        note('Помилка відправки, спробуй ще раз');
+      }
+    }catch(e){ note('Немає з\'єднання, спробуй ще раз'); }
+  }
+  function open_(s){const t={orders:'Мої замовлення',tires:'Підбір шин',bonus:'Бонуси',promo:'Акції та новини',map:'Як нас знайти',contact:'Зв\'язок'};
     note('«'+(t[s]||s)+'» — зробимо в наступному блоці.');}
 </script>
 </body>
