@@ -840,14 +840,27 @@ function renderOrderCatBtns(){
   if(!el) return;
   const counts={}; let cur=-1;
   PRICE_LIST.forEach(it=>{ if(it.id===undefined && it.cat!==undefined){ cur=it.cat; return; } if(it.id) counts[cur]=(counts[cur]||0)+1; });
-  let h='';
-  CAT_META.forEach((c,i)=>{
+  const groupOf = i => (i<=2?0 : (i>=3&&i<=6?1 : 2));
+  const groupTitles = ['🚗 Типи техніки','🩹 Латки','⚙️ Інше'];
+  const cardHtml = (c,i) => {
     const on=window._orderCatFilter===i; const col=c.color;
     const ic=(typeof CAT_ICONS!=='undefined'&&CAT_ICONS[i])?`<img src="${CAT_ICONS[i]}">`:`<div style="font-size:3rem;height:60px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))">${c.icon}</div>`;
     const style=`background:#121212;border:2px solid ${on?col:'#2a2a2a'};box-shadow:${on?'0 0 0 1px '+col+',0 0 20px '+col+'77':'0 4px 12px rgba(0,0,0,.45)'}`;
     const check=on?`<span class="ocat-check" style="background:${col}">✓</span>`:'';
-    h+=`<div class="ocat-card${on?' active':''}" style="${style}" onclick="window._orderCatFilter=${i};window._orderRadius=null;document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderRadius();renderOrderPickList()">${check}${ic}<div class="nm" style="color:${on?col:'#fff'}">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
+    return `<div class="ocat-card${on?' active':''}" style="${style}" onclick="window._orderCatFilter=${i};window._orderRadius=null;document.getElementById('oSvcSearch').value='';renderOrderCatBtns();renderOrderRadius();renderOrderPickList()">${check}${ic}<div class="nm" style="color:${on?col:'#fff'}">${c.short}</div><div class="cnt">${counts[i]||0} послуг</div></div>`;
+  };
+  let h=''; let lastGroup=-1;
+  CAT_META.forEach((c,i)=>{
+    const g=groupOf(i);
+    if(g!==lastGroup){
+      if(lastGroup!==-1) h+='</div>';
+      h+=`<div style="grid-column:1/-1;font-family:'Oswald';font-weight:700;letter-spacing:.05em;color:var(--red-light,#ff5555);margin:${lastGroup===-1?'0':'14px'} 0 4px;font-size:0.85rem;text-transform:uppercase">${groupTitles[g]}</div>`;
+      h+='<div style="display:contents">';
+      lastGroup=g;
+    }
+    h+=cardHtml(c,i);
   });
+  if(lastGroup!==-1) h+='</div>';
   el.innerHTML = h;
 }
 function filterOrderServices(){ renderOrderPickList(); }
