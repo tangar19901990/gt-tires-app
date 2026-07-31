@@ -1414,6 +1414,32 @@ function renderDebtors(){
   </div>`).join('');
 }
 // ==================== ЗАЯВКИ З MINI APP ====================
+// ==================== БАНЕР НОВИХ ЗАЯВОК (зверху екрана) ====================
+async function checkNewBookings(){
+  const el = document.getElementById('newBookingsBanner');
+  if(!el) return;
+  const s = getSupa();
+  if(!s){ el.style.display='none'; return; }
+  try{
+    const { data, error } = await s.from('mini_app_bookings').select('id').eq('status','new');
+    if(error){ return; }
+    const n = (data||[]).length;
+    if(n>0){
+      el.textContent = '📝 Нових заявок: '+n+' — натисни, щоб переглянути';
+      el.style.display='block';
+    } else {
+      el.style.display='none';
+    }
+  }catch(e){}
+}
+function goToBookingsTab(){
+  const btn = document.querySelector('.nav button[data-tab="bookings"]');
+  if(btn) btn.click();
+}
+document.addEventListener('DOMContentLoaded', function(){
+  setTimeout(checkNewBookings, 2000); // дати час підключитись до Supabase
+  setInterval(checkNewBookings, 30000);
+});
 async function renderBookings(){
   const el = document.getElementById('bookingsList');
   if(!el) return;
@@ -1437,10 +1463,11 @@ async function renderBookings(){
       </div>`;
     }).join('');
   }catch(e){ el.innerHTML = '<div class="card" style="text-align:center;color:var(--accent);padding:24px">Помилка: '+e.message+'</div>'; }
+  checkNewBookings();
 }
 async function markBookingDone(id){
   const s = getSupa(); if(!s) return;
-  try{ await s.from('mini_app_bookings').update({status:'done'}).eq('id',id); renderBookings(); }catch(e){ alert('Помилка: '+e.message); }
+  try{ await s.from('mini_app_bookings').update({status:'done'}).eq('id',id); renderBookings(); checkNewBookings(); }catch(e){ alert('Помилка: '+e.message); }
 }
 function bookingToOrder(id){
   const b = (window._bookings||[]).find(x=>x.id===id);
