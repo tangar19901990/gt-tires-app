@@ -621,6 +621,7 @@ button, .ocat-card, .osvc-btn, .orad-btn {
   transition-duration: .18s;
   transition-timing-function: ease;
 }
+#newBookingsBanner { transition: none !important; }
 
 /* Повага до системного налаштування «зменшити рух» */
 @media (prefers-reduced-motion: reduce) {
@@ -628,6 +629,11 @@ button, .ocat-card, .osvc-btn, .orad-btn {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
+  }
+  /* Виняток: сповіщення про нові заявки має мигати завжди, це не декоративна анімація */
+  #newBookingsBanner {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 
@@ -703,11 +709,10 @@ html{ scroll-behavior:smooth; }
 
 /* ===== БАНЕР НОВИХ ЗАЯВОК (мигає червоний/зелений/жовтий) ===== */
 @keyframes bookingBlink {
-  0%   { background:#e01f26; box-shadow:0 0 16px rgba(224,31,38,.8); }
-  25%  { background:#eab308; box-shadow:0 0 16px rgba(234,179,8,.8); }
-  50%  { background:#3b82f6; box-shadow:0 0 16px rgba(59,130,246,.8); }
-  75%  { background:#22c55e; box-shadow:0 0 16px rgba(34,197,94,.8); }
-  100% { background:#e01f26; box-shadow:0 0 16px rgba(224,31,38,.8); }
+  0%   { background:#e01f26; box-shadow:0 0 18px rgba(224,31,38,.7); }
+  33%  { background:#22c55e; box-shadow:0 0 18px rgba(34,197,94,.7); }
+  66%  { background:#eab308; box-shadow:0 0 18px rgba(234,179,8,.7); }
+  100% { background:#e01f26; box-shadow:0 0 18px rgba(224,31,38,.7); }
 }
 body.locked #newBookingsBanner{ display:none!important; }
 @media print{ #newBookingsBanner{ display:none!important; } }
