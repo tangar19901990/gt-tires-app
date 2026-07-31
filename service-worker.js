@@ -1,9 +1,9 @@
-const CACHE_NAME = 'gt-tires-v1';
+const CACHE_NAME = 'gt-tires-v2';
 const URLS_TO_CACHE = [
   './gt-tires-v4-supabase-ready.html',
-  './css/styles.css',
-  './js/app.js',
-  './js/print.js',
+  './styles.css',
+  './app.js',
+  './print.js',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
