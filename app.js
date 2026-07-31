@@ -979,6 +979,35 @@ function renderOrderPickList(){
   el.innerHTML = h;
 }
 function gtHaptic(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms||10); }catch(e){} }
+
+/* Ripple — хвиля від дотику на кнопках і картках */
+document.addEventListener('pointerdown', function(e){
+  try{
+    const t = e.target.closest('.ocat-card,.osvc-btn,.orad-btn,.pay-btn,.btn');
+    if(!t) return;
+    const r = t.getBoundingClientRect();
+    const size = Math.max(r.width, r.height);
+    const s = document.createElement('span');
+    s.className = 'gt-ripple';
+    s.style.width = s.style.height = size + 'px';
+    s.style.left = (e.clientX - r.left - size/2) + 'px';
+    s.style.top  = (e.clientY - r.top  - size/2) + 'px';
+    t.appendChild(s);
+    setTimeout(()=>{ try{ s.remove(); }catch(_){}} , 600);
+  }catch(_){}
+}, {passive:true});
+
+/* Пульсація суми при зміні */
+function gtBumpTotal(){
+  try{
+    const el = document.querySelector('.cart-total');
+    if(!el) return;
+    el.classList.remove('gt-bump');
+    void el.offsetWidth;
+    el.classList.add('gt-bump');
+    setTimeout(()=>{ try{ el.classList.remove('gt-bump'); }catch(_){}} , 500);
+  }catch(_){}
+}
 function addOrderSvc(id){
   id=+id; const item = findSvc(id);
   if(!item) return;
@@ -986,6 +1015,7 @@ function addOrderSvc(id){
   if(existing){ existing.qty++; }
   else { window._orderSvcs.push({id:item.id,name:item.name,price:item.price,qty:1}); }
   gtHaptic(10);
+  gtBumpTotal();
   renderOrderPickList();
   renderSelectedSvcs();
   clearOrderFeedback();
