@@ -43,7 +43,7 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="styles.css?v=4">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body class="locked">
 
@@ -96,6 +96,7 @@
 <!-- NAV -->
 <button class="menu-toggle" id="menuToggle" aria-label="Меню" onclick="toggleMenu()">☰</button>
 <button class="hdr-toggle" id="hdrToggle" title="Згорнути/розгорнути шапку" onclick="toggleHeader()">▲</button>
+<div id="newBookingsBanner" onclick="goToBookingsTab()" style="display:none;position:fixed;top:13px;left:13px;right:64px;z-index:130;border-radius:11px;padding:10px 14px;font-family:'Oswald';font-weight:700;font-size:0.9rem;color:#fff;text-align:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45);animation:bookingBlink 1.4s linear infinite"></div>
 <div class="nav-backdrop" id="navBackdrop" onclick="toggleMenu(false)"></div>
 <aside class="nav-wrap" id="sidebar">
   <div class="side-brand"><span class="sb-gt">GT</span> TIRES</div>
@@ -455,7 +456,7 @@
   <div class="modal" id="modalContent"></div>
 </div>
 
-<script src="app.js?v=24"></script>
+<script src="app.js?v=25"></script>
 <script src="print.js"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('service-worker.js');}</script>
