@@ -19,6 +19,7 @@ const SUITES = [
   { file: 'smoke-test.js',      name: 'Бізнес-логіка (прайс, замовлення, функції)' },
   { file: 'top-secret-test.js', name: 'Панель top_secret (пін, меню)' },
   { file: 'secrets-test.js',    name: 'Секрети в репозиторії' },
+  { file: 'print-test.js',      name: 'Друк заказ-наряду (фірма, нотатки)' },
 ];
 
 let failed = 0;

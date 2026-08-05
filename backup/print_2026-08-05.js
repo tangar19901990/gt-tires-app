@@ -60,11 +60,7 @@ function showOrderPrint(o){
 
 function printOrderNariad(){
   const o=window._printOrder; if(!o){ alert('Немає даних для друку'); return; }
-  // Екранування: у назві фірми чи нотатках може бути < > & — без цього ламається розмітка
-  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const company=(o.company||'').trim();
-  const notes=(o.notes||'').trim();
-  const rows=(o.services||[]).map(sv=>`<tr><td class="svc">${esc(sv.name)}</td><td class="c">${sv.qty}</td><td class="c b">${fmtMoney(sv.price)}</td><td class="c b">${fmtMoney(sv.price*sv.qty)}</td></tr>`).join('');
+  const rows=(o.services||[]).map(sv=>`<tr><td class="svc">${sv.name}</td><td class="c">${sv.qty}</td><td class="c b">${fmtMoney(sv.price)}</td><td class="c b">${fmtMoney(sv.price*sv.qty)}</td></tr>`).join('');
   const pay=o.paymentType==='cashless'?'БЕЗГОТІВКА':'ГОТІВКА';
   const paid=o.paidAmount!=null?o.paidAmount:(o.total||0);
   const debt=o.debt||0;
@@ -104,16 +100,6 @@ function printOrderNariad(){
     .pay{border:2px solid #d22730;border-radius:10px;padding:7px 14px;display:flex;align-items:center;gap:10px}
     .pay .pt{font-size:12px;color:#888;font-weight:700;line-height:1.2}
     .pay .pt b{display:block;color:#1a1a1a;font-size:14px}
-    /* фірма — окремим рядком над клієнтом, помітно для юросіб */
-    .firm{display:flex;align-items:center;gap:9px;border:2px solid #d22730;border-radius:10px;
-          padding:8px 14px;margin-bottom:12px;font-size:15px}
-    .firm .fl{font-size:11.5px;color:#888;font-weight:700;letter-spacing:.5px}
-    .firm .fv{font-weight:800}
-    /* нотатки */
-    .notes{border:1.5px solid #d0d0d0;border-left:4px solid #d22730;border-radius:8px;
-           padding:11px 14px;margin:0 0 18px;font-size:13.5px;line-height:1.5;color:#333;
-           white-space:pre-wrap;word-break:break-word}
-    .notes .nl{display:block;font-size:11.5px;color:#888;font-weight:700;letter-spacing:.5px;margin-bottom:4px}
     /* table */
     table{width:100%;border-collapse:collapse;margin-bottom:4px}
     thead th{background:#d22730;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:13px;font-weight:700;padding:11px 14px;text-align:left}
@@ -170,10 +156,9 @@ function printOrderNariad(){
       <div class="feat"><svg width="34" height="34" viewBox="0 0 48 48" fill="#d22730"><path d="M14 20h-5a2 2 0 00-2 2v18a2 2 0 002 2h5V20z"/><path d="M16 20l8-15c2.5 0 4 2 3.5 4.5L26 16h12a3 3 0 013 3.5l-3 16a4 4 0 01-4 3.5H16V20z"/></svg><div class="ft"><b>ДОСВІД ТА</b><span>ПРОФЕСІОНАЛІЗМ</span></div></div>
     </div>
     <div class="ttl">ЗАКАЗ-НАРЯД №&nbsp;<span class="num">${num}</span></div>
-    ${company?`<div class="firm"><svg width="22" height="22" viewBox="0 0 24 24" fill="#d22730"><path d="M3 21V7l7-4v4l7-3v17H3zm2-2h4v-3H5v3zm0-5h4v-3H5v3zm0-5h4V6H5v3zm6 10h6v-3h-6v3zm0-5h6v-3h-6v3zm0-5h6V6h-6v3z"/></svg><div><span class="fl">ФІРМА</span><div class="fv">${esc(company)}</div></div></div>`:''}
     <div class="info">
-      <div class="col"><div><span>Клієнт:</span> ${esc(o.clientName)||'—'}</div><div><span>Авто:</span> ${esc(o.car)||'—'}</div></div>
-      <div class="col"><div><span>Тел:</span> ${esc(o.phone)||'—'}</div><div><span>Номер авто:</span> ${esc(o.plate)||'—'}</div></div>
+      <div class="col"><div><span>Клієнт:</span> ${o.clientName||'—'}</div><div><span>Авто:</span> ${o.car||'—'}</div></div>
+      <div class="col"><div><span>Тел:</span> ${o.phone||'—'}</div><div><span>Номер авто:</span> ${o.plate||'—'}</div></div>
       <div class="pay"><svg width="30" height="30" viewBox="0 0 48 48" fill="none"><rect x="5" y="13" width="38" height="22" rx="3" stroke="#d22730" stroke-width="2.5"/><circle cx="24" cy="24" r="6" stroke="#d22730" stroke-width="2.5"/></svg><div class="pt">ОПЛАТА:<b>${pay}</b></div></div>
     </div>
     <table><thead><tr><th>ПОСЛУГА</th><th class="c">К-ть</th><th class="c">ЦІНА</th><th class="c">СУМА</th></tr></thead><tbody>${rows}</tbody></table>
@@ -182,7 +167,6 @@ function printOrderNariad(){
       <div class="paybox">${debtRows}${masterRow}</div>
       <div class="grand"><span>ВСЬОГО:</span><span class="gsum">${fmtMoney(o.total||0)}</span></div>
     </div>
-    ${notes?`<div class="notes"><span class="nl">НОТАТКИ</span>${esc(notes)}</div>`:''}
     <div class="signs">
       <div class="sg"><span>Підпис клієнта</span><div class="line"></div></div>
       <div class="sg"><span>Підпис майстра</span><div class="line"></div></div>
