@@ -14,3 +14,12 @@ package-lock.json
 # Системне
 .DS_Store
 Thumbs.db
+
+# Секрети — НІКОЛИ не комітити
+.env
+.env.local
+*.env
+!.env.example
+secrets.json
+*.pem
+*.key

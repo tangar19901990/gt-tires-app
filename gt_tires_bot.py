@@ -9,10 +9,21 @@ GT Tires Service / Tir Parking
   pip install python-telegram-bot --upgrade
 
 НАЛАШТУВАННЯ:
-  1. Встав свій BOT_TOKEN від @BotFather
-  2. Встав свій ADMIN_CHAT_ID (дізнатись: написати @userinfobot)
-  3. В BotFather: /mybots → твій бот → Bot Settings → Menu Button
-     → встанови URL на свій GitHub Pages (де лежить gt-tires-miniapp.html)
+  Токен і chat_id задаються ЗМІННИМИ ОТОЧЕННЯ, не в коді.
+
+  Linux / Mac:
+    export BOT_TOKEN='токен від @BotFather'
+    export ADMIN_CHAT_ID='твій id від @userinfobot'
+
+  Windows:
+    set BOT_TOKEN=токен від @BotFather
+    set ADMIN_CHAT_ID=твій id від @userinfobot
+
+  Або скопіюй .env.example у .env і впиши значення там
+  (.env у .gitignore — у репозиторій не потрапить).
+
+  Далі в BotFather: /mybots → твій бот → Bot Settings → Menu Button
+  → встанови URL на свій GitHub Pages (де лежить gt-tires-miniapp.html)
 
 ЗАПУСК:
   python gt_tires_bot.py
@@ -27,10 +38,41 @@ from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQu
 
 # ============================================================
 # ⚠️  НАЛАШТУВАННЯ
+#
+# Токен НІКОЛИ не пишемо в код — навіть як значення за
+# замовчуванням. Файл лежить у публічному репозиторії, а боти
+# цілодобово шукають у GitHub рядки виду 1234567890:AA...
+# Саме так у травні 2026 витік попередній токен: його знайшли
+# і повісили на бота чужий вебхук.
+#
+# Значення передаються змінними оточення (див. .env.example)
 # ============================================================
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8849628930:AAGrxPC2I978TtPuzrPywgPx6XkCPp8bk4w")
-ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "5881869536"))
-MINIAPP_URL = "https://tangar19901990.github.io/gt-tires-app/gt-tires-miniapp.html"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
+
+if not BOT_TOKEN:
+    raise SystemExit(
+        "Не задано BOT_TOKEN.\n"
+        "Linux/Mac:  export BOT_TOKEN='токен від @BotFather'\n"
+        "Windows:    set BOT_TOKEN=токен від @BotFather\n"
+        "Або створи файл .env за зразком .env.example"
+    )
+
+if not ADMIN_CHAT_ID:
+    raise SystemExit(
+        "Не задано ADMIN_CHAT_ID.\n"
+        "Дізнатись свій id: написати /start боту @userinfobot"
+    )
+
+try:
+    ADMIN_CHAT_ID = int(ADMIN_CHAT_ID)
+except ValueError:
+    raise SystemExit("ADMIN_CHAT_ID має бути числом, а не '%s'" % ADMIN_CHAT_ID)
+
+MINIAPP_URL = os.getenv(
+    "MINIAPP_URL",
+    "https://tangar19901990.github.io/gt-tires-app/gt-tires-miniapp.html"
+)
 # ============================================================
 
 logging.basicConfig(

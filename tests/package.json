@@ -5,7 +5,10 @@
   "scripts": {
     "test": "node run-all.js",
     "test:logic": "node smoke-test.js",
-    "test:panel": "node top-secret-test.js"
+    "test:panel": "node top-secret-test.js",
+    "test:secrets": "node secrets-test.js"
   },
-  "dependencies": { "jsdom": "^24.0.0" }
+  "dependencies": {
+    "jsdom": "^24.0.0"
+  }
 }
