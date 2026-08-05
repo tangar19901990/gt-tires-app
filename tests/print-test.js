@@ -50,4 +50,31 @@ t('без фірми блок не виводиться',   !html.includes('>Ф�
 t('без нотаток блок не виводиться', !html.includes('>НОТАТКИ<'));
 t('порожня фірма не ламає друк',    html.includes('Петров'));
 
+// --- ПДВ ---
+html=null;
+w._printOrder={clientName:'ТОВ Клієнт', company:'ТОВ "Логістика"', paymentType:'cashless', vat:true,
+  services:[{name:'Шиномонтаж',qty:1,price:1200}], total:1200, orderNumber:'1044'};
+w.printOrderNariad();
+t('позначено БЕЗГОТІВКА З ПДВ', html.includes('БЕЗГОТІВКА З ПДВ'));
+t('рядок "Сума без ПДВ" є',     html.includes('Сума без ПДВ'));
+t('рядок "ПДВ 20%" є',          html.includes('ПДВ 20%'));
+// 1200 / 1.2 = 1000, ПДВ = 200
+t('база порахована вірно (1000)', html.includes('1000'));
+t('ПДВ порахований вірно (200)',  html.includes('200'));
+
+// безнал БЕЗ ПДВ — рядків бути не має
+html=null;
+w._printOrder={clientName:'Петро', paymentType:'cashless', vat:false,
+  services:[], total:500, orderNumber:'1045'};
+w.printOrderNariad();
+t('без ПДВ: позначка звичайна',   html.includes('БЕЗГОТІВКА') && !html.includes('З ПДВ'));
+t('без ПДВ: рядків ПДВ немає',    !html.includes('Сума без ПДВ'));
+
+// готівка
+html=null;
+w._printOrder={clientName:'Іван', paymentType:'cash', services:[], total:300, orderNumber:'1046'};
+w.printOrderNariad();
+t('готівка: позначка ГОТІВКА',    html.includes('ГОТІВКА') && !html.includes('БЕЗГОТІВКА'));
+t('готівка: рядків ПДВ немає',    !html.includes('ПДВ 20%'));
+
 console.log(f?'\nПРОВАЛЕНО':'\nОК'); process.exit(f);

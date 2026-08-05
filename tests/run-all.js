@@ -19,7 +19,8 @@ const SUITES = [
   { file: 'smoke-test.js',      name: 'Бізнес-логіка (прайс, замовлення, функції)' },
   { file: 'top-secret-test.js', name: 'Панель top_secret (пін, меню)' },
   { file: 'secrets-test.js',    name: 'Секрети в репозиторії' },
-  { file: 'print-test.js',      name: 'Друк заказ-наряду (фірма, нотатки)' },
+  { file: 'print-test.js',      name: 'Друк заказ-наряду (фірма, нотатки, ПДВ)' },
+  { file: 'vat-money-test.js',  name: 'ПДВ: суми не губляться в касі' },
 ];
 
 let failed = 0;

@@ -382,7 +382,7 @@ function saveOrderDraft(){
     plate:(document.getElementById('oPlate')||{}).value||'',
     notes:(document.getElementById('oNotes')||{}).value||'',
     paid:(document.getElementById('oPaid')||{}).value||'',
-    paymentType:(document.getElementById('oPayType')||{}).value||'cash',   // тут зберігаємо як є, для відновлення UI
+    paymentType:(document.getElementById('oPayType')||{}).value||'cash',
     services:(window._orderSvcs||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty})),
     materials:(window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src})),
     catFilter:window._orderCatFilter,
@@ -427,7 +427,7 @@ function repeatOrder(oid){
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
   set('oClient',o.clientName||''); setClientNameFields(o.clientName); set('oCompany',o.company||''); set('oPhone',o.phone||''); set('oCar',o.car||''); set('oPlate',o.plate||'');
   set('oNotes',o.notes||''); set('oPaid','');
-  setOrderPayType(payTypeUI(o));
+  setOrderPayType(o.paymentType||'cash');
   window._orderSvcs=(o.services||[]).map(s=>{ const cur=findSvc(s.id); return {id:s.id,name:(cur&&cur.name)||s.name,price:(cur&&cur.price!=null)?cur.price:s.price,qty:s.qty}; });
   const stock=getOrderMaterialAvailability([]);
   window._orderMats=(o.materials||[]).map(m=>{ const meta=stock[m.id]||{max:0,name:m.name||'товар',src:m.src||'warehouse'}; return {id:m.id,name:m.name||meta.name,qty:+m.qty||1,src:m.src||meta.src,max:+meta.max||0}; });
@@ -661,7 +661,7 @@ function filterOrders(){
         <div style="color:var(--text-dim);font-size:0.78rem">${fmtDate(o.date)}</div>
       </div>
       <div style="margin-top:6px;font-family:'Oswald';font-size:1.1rem">${fmtMoney(o.total||0)}${debt>0?' <span style="color:var(--accent);font-size:0.82rem">• борг '+fmtMoney(debt)+'</span>':''}${topSecret?' <span class="ts-price">(майстер: '+fmtMoney(Math.round((o.total||0)*0.35))+')</span>':''}</div>
-      <div style="margin-top:4px;color:var(--text-dim);font-size:0.77rem">${o.paymentType==='cashless'?('💳 Безготівка'+(o.vat?' з ПДВ':'')):'💵 Готівка'} · оплачено ${fmtMoney(paid)}${debt>0?' · залишок '+fmtMoney(debt):''}</div>
+      <div style="margin-top:4px;color:var(--text-dim);font-size:0.77rem">${o.paymentType==='cashless'?'💳 Безготівка':'💵 Готівка'} · оплачено ${fmtMoney(paid)}${debt>0?' · залишок '+fmtMoney(debt):''}</div>
       <div class="order-card-actions no-print" onclick="event.stopPropagation()">
         <button class="order-action-btn" onclick="event.stopPropagation();repeatOrder('${o.id}')">🔁 Повтор</button>
         <button class="order-action-btn ${st.key==='progress'?'is-active':''}" onclick="event.stopPropagation();startOrderWork('${o.id}')">🔄 В роботу</button>
@@ -812,21 +812,11 @@ function initOrderInteractions(){
   syncOrderClientHint(false);
 }
 window._orderListFilter = window._orderListFilter || 'all';
-/* ПДВ — це властивість ДОКУМЕНТА, а не спосіб оплати.
-   Тому в paymentType лишається 'cashless', а ознака ПДВ живе окремо в o.vat.
-   Інакше 'cashless_vat' не потрапив би ні в готівку, ні в безготівку
-   у касовій книзі та звітах — суми просто зникли б. */
-function payTypeUI(o){ return (o && o.vat) ? 'cashless_vat' : (o && o.paymentType) || 'cash'; }
-function payTypeStore(v){ return v === 'cashless_vat' ? 'cashless' : (v || 'cash'); }
-function payTypeIsVat(v){ return v === 'cashless_vat'; }
-
 function setOrderPayType(v){
   const sel=document.getElementById('oPayType'); if(sel) sel.value=v;
   const cash=document.getElementById('payCashBtn'), card=document.getElementById('payCardBtn');
-  const vat=document.getElementById('payVatBtn');
   if(cash) cash.classList.toggle('active', v==='cash');
   if(card) card.classList.toggle('active', v==='cashless');
-  if(vat)  vat.classList.toggle('active',  v==='cashless_vat');
   renderOrderPaySummary();
   updateOrderSubmitState();
   saveOrderDraft();
@@ -856,7 +846,7 @@ function openNewOrder(edit){
     window._editOrderId=edit.id;
     const set=(id,v)=>{const e=document.getElementById(id); if(e) e.value=(v==null?'':v);};
     set('oClient',edit.clientName); setClientNameFields(edit.clientName); set('oCompany',edit.company||''); set('oPhone',edit.phone); set('oCar',edit.car); set('oPlate',edit.plate);
-    setOrderPayType(payTypeUI(edit)); set('oPaid',edit.paidAmount!=null?edit.paidAmount:''); set('oNotes',edit.notes);
+    setOrderPayType(edit.paymentType||'cash'); set('oPaid',edit.paidAmount!=null?edit.paidAmount:''); set('oNotes',edit.notes);
     window._orderSvcs=(edit.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
     window._orderMats=(edit.materials||[]).map(m=>{ const cur=(window._stockIdx||{})[m.id]; return {id:m.id,name:m.name,qty:m.qty,src:m.src,max:(cur?cur.max:0)+(+m.qty||0)}; });
     renderSelectedSvcs(); renderOrderMats(); renderOrderPickList();
@@ -1134,8 +1124,7 @@ function saveNewOrder(){
     phone: document.getElementById('oPhone').value.trim(),
     car: document.getElementById('oCar').value.trim(),
     plate: (document.getElementById('oPlate')?document.getElementById('oPlate').value.trim():''),
-    paymentType: payTypeStore(document.getElementById('oPayType')?document.getElementById('oPayType').value:'cash'),
-    vat: payTypeIsVat(document.getElementById('oPayType')?document.getElementById('oPayType').value:''),
+    paymentType: (document.getElementById('oPayType')?document.getElementById('oPayType').value:'cash'),
     orderNumber: 'TMP-'+nextOrderNumber(), numSrc:'temp',
     services, total,
     notes: document.getElementById('oNotes').value.trim(),
@@ -1222,7 +1211,7 @@ function viewOrder(oid){
         <div><b>Тел:</b> ${o.phone||'—'}</div>
         <div><b>Авто:</b> ${o.car||'—'}</div>
         <div><b>Держномер:</b> ${o.plate||'—'}</div>
-        <div><b>Оплата:</b> ${o.paymentType==='cashless'?('Безготівка'+(o.vat?' з ПДВ':'')):o.paymentType==='cash'?'Готівка':'—'}</div>
+        <div><b>Оплата:</b> ${o.paymentType==='cashless'?'Безготівка':o.paymentType==='cash'?'Готівка':'—'}</div>
         <div><b>Оплачено:</b> ${fmtMoney(paidAmount)}</div>
         <div><b>Борг:</b> ${fmtMoney(debtAmount)}</div>
         <div><b>Статус:</b> ${statusMeta.icon} ${statusMeta.label}</div>
@@ -1420,7 +1409,7 @@ function renderDebtors(){
   const el=document.getElementById('debtorsList'); if(!el)return;
   if(!list.length){ el.innerHTML='<div class="card" style="text-align:center;color:var(--text-dim);padding:24px">Боргів немає 🎉</div>'; return; }
   el.innerHTML=list.map(o=>`<div class="card" style="margin-bottom:10px">
-    <div class="flex-between"><div><b>#${o.orderNumber||o.id.slice(-5).toUpperCase()}</b> · ${o.clientName||'—'}${o.phone?' · '+o.phone:''}</div><span>${o.paymentType==='cashless'?(o.vat?'🧾':'💳'):'💵'}</span></div>
+    <div class="flex-between"><div><b>#${o.orderNumber||o.id.slice(-5).toUpperCase()}</b> · ${o.clientName||'—'}${o.phone?' · '+o.phone:''}</div><span>${o.paymentType==='cashless'?'💳':'💵'}</span></div>
     <div style="font-size:0.82rem;color:var(--text-dim);margin:4px 0">${o.car||''} ${o.plate?'· '+o.plate:''} · ${fmtDate(o.date)}</div>
     <div style="font-family:'Oswald';font-size:1.02rem">Сума ${fmtMoney(o.total||0)} · Оплач. ${fmtMoney(getOrderPaidAmount(o))} · <span style="color:var(--accent)">Борг ${fmtMoney(getOrderDebtAmount(o))}</span></div>
     <div class="gap-btns mt no-print"><input type="number" id="pay_${o.id}" placeholder="${getOrderDebtAmount(o)}" style="max-width:130px"><button class="btn btn-red btn-sm" onclick="settleDebt('${o.id}')">💵 Погасити</button></div>
@@ -2455,7 +2444,7 @@ function saveEditedOrder(oid){
   o.phone=g('oPhone').trim();
   o.car=g('oCar').trim();
   o.plate=g('oPlate').trim();
-  o.paymentType=payTypeStore(g('oPayType')); o.vat=payTypeIsVat(g('oPayType'));
+  o.paymentType=g('oPayType')||'cash';
   o.notes=g('oNotes').trim();
   o.services=services;
   o.total=total;

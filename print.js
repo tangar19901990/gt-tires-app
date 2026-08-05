@@ -65,7 +65,15 @@ function printOrderNariad(){
   const company=(o.company||'').trim();
   const notes=(o.notes||'').trim();
   const rows=(o.services||[]).map(sv=>`<tr><td class="svc">${esc(sv.name)}</td><td class="c">${sv.qty}</td><td class="c b">${fmtMoney(sv.price)}</td><td class="c b">${fmtMoney(sv.price*sv.qty)}</td></tr>`).join('');
-  const pay=o.paymentType==='cashless'?'БЕЗГОТІВКА':'ГОТІВКА';
+  const isVat=!!o.vat;
+  const pay=o.paymentType==='cashless'?(isVat?'БЕЗГОТІВКА З ПДВ':'БЕЗГОТІВКА'):'ГОТІВКА';
+  // Ціни в системі вказані З ПДВ, тому виділяємо податок «у тому числі»:
+  // база = сума / 1.2, ПДВ = сума − база. Ставка змінюється в VAT_RATE.
+  const VAT_RATE=0.20;
+  const grand=o.total||0;
+  const vatBase=isVat?Math.round(grand/(1+VAT_RATE)*100)/100:0;
+  const vatSum =isVat?Math.round((grand-vatBase)*100)/100:0;
+  const vatRows=isVat?`<div class="prow"><span>Сума без ПДВ:</span><span>${fmtMoney(vatBase)}</span></div><div class="prow vat"><span>ПДВ ${VAT_RATE*100}%:</span><span>${fmtMoney(vatSum)}</span></div>`:'';
   const paid=o.paidAmount!=null?o.paidAmount:(o.total||0);
   const debt=o.debt||0;
   const num=o.orderNumber||(o.id?o.id.slice(-6).toUpperCase():'');const masterRow=''; // частка майстра не друкується на клієнтському документі
@@ -130,6 +138,7 @@ function printOrderNariad(){
     .paybox{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#555}
     .prow{display:flex;gap:16px;justify-content:space-between;min-width:180px}
     .prow.dbt{color:#d22730;font-weight:700}
+    .prow.vat{color:#1a1a1a;font-weight:700;border-top:1px solid #ddd;padding-top:4px;margin-top:2px}
     .mrow{color:#b8860b;font-size:12px}
     .grand{margin-left:auto;font-size:24px;font-weight:800;font-style:italic;display:flex;align-items:baseline;gap:14px}
     .grand .gsum{color:#d22730;font-size:30px}
@@ -179,7 +188,7 @@ function printOrderNariad(){
     <table><thead><tr><th>ПОСЛУГА</th><th class="c">К-ть</th><th class="c">ЦІНА</th><th class="c">СУМА</th></tr></thead><tbody>${rows}</tbody></table>
     <div class="dash"></div>
     <div class="totwrap">
-      <div class="paybox">${debtRows}${masterRow}</div>
+      <div class="paybox">${vatRows}${debtRows}${masterRow}</div>
       <div class="grand"><span>ВСЬОГО:</span><span class="gsum">${fmtMoney(o.total||0)}</span></div>
     </div>
     ${notes?`<div class="notes"><span class="nl">НОТАТКИ</span>${esc(notes)}</div>`:''}
