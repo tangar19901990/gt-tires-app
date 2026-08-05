@@ -138,6 +138,12 @@ li::before{content:'';position:absolute;left:4px;top:6px;width:8px;height:8px;
   var C = window.GT_PRICING;
   var cards = document.getElementById('cards');
 
+  /* правки з top_secret мають пріоритет над файлом (тільки на цьому пристрої) */
+  try {
+    var ov = JSON.parse(localStorage.getItem('gt_pricing_override') || 'null');
+    if (ov && Array.isArray(ov.plans) && ov.plans.length) C = ov;
+  } catch(e){}
+
   if (!C || !Array.isArray(C.plans)) {
     cards.innerHTML = '<div class="err">Не вдалося завантажити тарифи.<br>Перевір файл pricing-config.js</div>';
     return;
