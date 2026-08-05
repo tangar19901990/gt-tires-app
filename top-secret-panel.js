@@ -48,16 +48,16 @@
     { group: 'Клієнти системи' },
 
     {
-      title: 'Ліцензії',
+      title: 'Ліцензії та заявки',
       desc:  'Хто платив, коли спливає',
       icon:  '🔑',
-      soon:  true
+      href:  'licenses.html?v=1'
     },
     {
       title: 'Підключити клієнта',
       desc:  'Видати доступ новій точці',
       icon:  '➕',
-      soon:  true
+      href:  'licenses.html?v=1'
     },
 
     { group: 'Дані' },

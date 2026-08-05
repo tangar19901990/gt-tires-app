@@ -27,11 +27,25 @@ d.getElementById('tsPinGo').click();
 t('вірний пін пускає',          d.getElementById('tsBody').hidden===false);
 t('замок сховано',              d.getElementById('tsGate').hidden===true);
 
+// Кількість не прибиваємо цвяхами — меню редагується у TS_MENU.
+// Звіряємо DOM із самим конфігом, щоб тест не падав від кожної правки.
+const src=fs.readFileSync(P+'top-secret-panel.js','utf8');
+const mStart=src.indexOf('var TS_MENU');
+const menu=src.slice(mStart, src.indexOf('/* ====', mStart));
+const wantGroups=(menu.match(/\{\s*group:/g)||[]).length;
+const wantSoon  =(menu.match(/soon:\s*true/g)||[]).length;
+const wantItems =(menu.match(/title:/g)||[]).length;
+
 const items=d.querySelectorAll('#tsBody .ts-item');
 const groups=d.querySelectorAll('#tsBody .ts-group');
-t('пунктів меню: '+items.length, items.length===6);
-t('розділів: '+groups.length,    groups.length===3);
-t('є пункт "скоро"',            d.querySelectorAll('.ts-soon').length===2);
+const soon=d.querySelectorAll('#tsBody .ts-soon');
+
+t(`пунктів меню: ${items.length} (у конфігу ${wantItems})`, items.length===wantItems);
+t(`розділів: ${groups.length} (у конфігу ${wantGroups})`,   groups.length===wantGroups);
+t(`пунктів "скоро": ${soon.length} (у конфігу ${wantSoon})`, soon.length===wantSoon);
+t('усі активні пункти ведуть кудись',
+  [...items].filter(x=>!x.classList.contains('ts-soon'))
+            .every(x=>x.tagName==='A'?!!x.getAttribute('href'):typeof x.onclick==='function'));
 
 d.getElementById('tsLock').click();
 t('замкнення повертає гейт',    d.getElementById('tsGate').hidden===false);

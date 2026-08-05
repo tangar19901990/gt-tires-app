@@ -53,6 +53,8 @@ Supabase → SQL Editor:
 select public.admin_set_password('новий_пароль');
 ```
 
+Працює лише з SQL Editor (роль `postgres`). З сайту викликати не можна — навмисно.
+
 ## Примітка про pgcrypto
 
 Живе у схемі `extensions`, тому функції мають

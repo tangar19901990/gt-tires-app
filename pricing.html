@@ -103,6 +103,32 @@ li::before{content:'';position:absolute;left:4px;top:6px;width:8px;height:8px;
 }
 .err{max-width:560px;margin:40px auto;padding:18px;border-radius:12px;
   background:#1C0F10;border:1px solid #4D1E20;color:#FF5A52;font-size:14px;text-align:center}
+
+/* --- модалка заявки --- */
+.modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+  padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(3px)}
+.modal.on{display:flex}
+.modal-box{width:100%;max-width:400px;max-height:92vh;overflow-y:auto;
+  background:var(--card-bg);border:1px solid var(--red);border-radius:18px;padding:26px 22px;
+  box-shadow:0 0 44px rgba(224,31,38,.26)}
+.modal-box h2{font-family:'Oswald',sans-serif;font-size:23px;letter-spacing:.5px}
+.modal-sub{color:var(--text-dim);font-size:12.5px;margin:6px 0 20px;line-height:1.5}
+.f{margin-bottom:13px}
+.f label{display:block;font-size:11.5px;color:var(--text-dim);margin-bottom:5px;font-weight:600}
+.f input,.f textarea{width:100%;padding:11px 12px;background:#16171d;border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:inherit;font-size:14px}
+.f input:focus,.f textarea:focus{outline:none;border-color:var(--red)}
+.f textarea{min-height:64px;resize:vertical}
+.f .hint{font-size:11px;color:var(--text-dim);margin-top:4px}
+.f.bad input{border-color:var(--red-light)}
+.row2{display:flex;gap:10px;margin-top:18px}
+.row2 .btn{flex:1;margin:0}
+.modal-msg{font-size:12.5px;font-weight:600;margin-top:12px;min-height:18px;text-align:center}
+.modal-msg.err-t{color:var(--red-light)}
+.done{text-align:center;padding:14px 0}
+.done-ico{font-size:44px;margin-bottom:12px}
+.done h3{font-family:'Oswald',sans-serif;font-size:21px;margin-bottom:10px}
+.done p{color:var(--text-dim);font-size:13.5px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -132,6 +158,65 @@ li::before{content:'';position:absolute;left:4px;top:6px;width:8px;height:8px;
 
 </div>
 
+<!-- ============ ЗАЯВКА ============ -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+
+    <div id="formStage">
+      <h2 id="mTitle">Заявка на підключення</h2>
+      <p class="modal-sub" id="mSub"></p>
+
+      <div class="f" id="fShop">
+        <label>Назва точки *</label>
+        <input id="iShop" placeholder="Шиномонтаж «Колесо»" maxlength="80">
+      </div>
+
+      <div class="f">
+        <label>Місто</label>
+        <input id="iCity" placeholder="Бровари" maxlength="60">
+      </div>
+
+      <div class="f" id="fPhone">
+        <label>Телефон *</label>
+        <input id="iPhone" type="tel" inputmode="tel" placeholder="+380 __ ___ __ __" maxlength="20">
+      </div>
+
+      <div class="f">
+        <label>Telegram</label>
+        <input id="iTg" placeholder="@nickname" maxlength="40">
+        <div class="hint">Так найшвидше надішлемо доступ</div>
+      </div>
+
+      <div class="f">
+        <label>Коментар</label>
+        <textarea id="iNote" placeholder="Скільки постів, що саме важливо…" maxlength="500"></textarea>
+      </div>
+
+      <div class="row2">
+        <button class="btn" id="mCancel">Скасувати</button>
+        <button class="btn primary" id="mSend">Надіслати</button>
+      </div>
+
+      <div class="modal-msg" id="mMsg"></div>
+    </div>
+
+    <div id="doneStage" style="display:none">
+      <div class="done">
+        <div class="done-ico">✅</div>
+        <h3>Заявку прийнято</h3>
+        <p>
+          Зв'яжемось і надішлемо доступ <b>протягом доби</b>,
+          зазвичай за годину.<br><br>
+          Якщо лишили Telegram — напишемо туди.
+        </p>
+        <button class="btn primary" id="mClose" style="margin-top:20px">Закрити</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="gtdb.js?v=1"></script>
 <script src="pricing-config.js?v=1"></script>
 <script>
 (function(){
@@ -225,14 +310,104 @@ li::before{content:'';position:absolute;left:4px;top:6px;width:8px;height:8px;
       cards.appendChild(el);
     });
 
-    /* кнопки — поки заглушка, підключимо на наступному кроці */
+    /* кнопки тарифів відкривають форму заявки */
     cards.querySelectorAll('[data-plan]').forEach(function(b){
       b.onclick = function(e){
         e.preventDefault();
-        alert('Реєстрація підключається на наступному кроці.\nТариф: ' + b.dataset.plan);
+        openLead(b.dataset.plan);
       };
     });
   }
+
+  /* ---------- заявка ---------- */
+
+  var modal = document.getElementById('modal');
+  var curPlan = null;
+
+  function openLead(planId){
+    curPlan = planId;
+    var p = C.plans.filter(function(x){ return x.id === planId; })[0];
+
+    document.getElementById('mSub').textContent = p
+      ? ('Тариф «' + p.name + '» · ' + (C.trialDays || 14) + ' днів безкоштовно, оплата потім')
+      : ((C.trialDays || 14) + ' днів безкоштовно');
+
+    document.getElementById('formStage').style.display = '';
+    document.getElementById('doneStage').style.display = 'none';
+    document.getElementById('mMsg').textContent = '';
+    modal.classList.add('on');
+    setTimeout(function(){ document.getElementById('iShop').focus(); }, 120);
+  }
+
+  function closeLead(){ modal.classList.remove('on'); }
+
+  document.getElementById('mCancel').onclick = closeLead;
+  document.getElementById('mClose').onclick  = closeLead;
+  modal.onclick = function(e){ if (e.target === modal) closeLead(); };
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') closeLead();
+  });
+
+  document.getElementById('mSend').onclick = function(){
+    var btn   = this;
+    var msg   = document.getElementById('mMsg');
+    var shop  = val('iShop');
+    var phone = val('iPhone');
+
+    document.getElementById('fShop').classList.remove('bad');
+    document.getElementById('fPhone').classList.remove('bad');
+    msg.className = 'modal-msg';
+
+    if (!shop){
+      document.getElementById('fShop').classList.add('bad');
+      msg.className = 'modal-msg err-t';
+      msg.textContent = 'Вкажіть назву точки';
+      return;
+    }
+    if (phone.replace(/\D/g,'').length < 9){
+      document.getElementById('fPhone').classList.add('bad');
+      msg.className = 'modal-msg err-t';
+      msg.textContent = 'Вкажіть телефон';
+      return;
+    }
+    if (!window.GTDB){
+      msg.className = 'modal-msg err-t';
+      msg.textContent = 'Не завантажився gtdb.js';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Надсилаю…';
+    msg.textContent = '';
+
+    var tg = val('iTg');
+    if (tg && tg[0] !== '@') tg = '@' + tg;
+
+    GTDB.insert('leads', {
+      shop_name: shop,
+      city:      val('iCity') || null,
+      phone:     phone,
+      telegram:  tg || null,
+      plan_id:   curPlan || null,
+      note:      val('iNote') || null
+    }).then(function(){
+      document.getElementById('formStage').style.display = 'none';
+      document.getElementById('doneStage').style.display = '';
+      ['iShop','iCity','iPhone','iTg','iNote'].forEach(function(id){
+        document.getElementById(id).value = '';
+      });
+    }).catch(function(err){
+      msg.className = 'modal-msg err-t';
+      msg.textContent = 'Не вдалося надіслати: ' + err.message;
+      var t = (C.contactTelegram || '');
+      if (t) msg.textContent += ' — напишіть напряму ' + t;
+    }).then(function(){
+      btn.disabled = false;
+      btn.textContent = 'Надіслати';
+    });
+  };
+
+  function val(id){ return document.getElementById(id).value.trim(); }
 
   function esc(s){
     return String(s == null ? '' : s)
