@@ -1,4 +1,5 @@
-const {JSDOM}=require('jsdom'), fs=require('fs'), P='/home/claude/gt-tires-app/';
+const {JSDOM}=require('jsdom'), fs=require('fs'), path=require('path');
+const P=path.join(__dirname,'..')+'/';
 const dom=new JSDOM('<!doctype html><html><body></body></html>',{runScripts:'outside-only',url:'https://x.test/'});
 const w=dom.window;
 ['sessionStorage','localStorage'].forEach(k=>{const m={};w[k]={getItem:x=>m[x]??null,setItem:(x,v)=>m[x]=String(v),removeItem:x=>delete m[x],key:i=>Object.keys(m)[i]??null,get length(){return Object.keys(m).length}};});

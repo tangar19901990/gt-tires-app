@@ -19,7 +19,27 @@ const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
 
-const DIR = __dirname;
+// Файли застосунку лежать у КОРЕНІ репозиторію, а тест — у tests/
+const DIR = path.join(__dirname, '..');
+
+// Головний файл CRM. Якщо колись перейменуєш — додай назву на початок списку.
+const HTML_CANDIDATES = [
+  'gt-tires-v4-supabase-ready.html',
+  'index.html',
+];
+
+function findAppHtml(){
+  for (const name of HTML_CANDIDATES){
+    const p = path.join(DIR, name);
+    if (fs.existsSync(p)) return { name, path: p };
+  }
+  throw new Error(
+    'Не знайдено головний HTML застосунку. Шукав у ' + DIR + ':\n  ' +
+    HTML_CANDIDATES.join('\n  ') +
+    '\nЯкщо файл перейменували — додай нову назву у HTML_CANDIDATES вгорі smoke-test.js'
+  );
+}
+
 let failed = 0;
 const ok = (label) => console.log(`  ✅ ${label}`);
 const fail = (label, detail) => { failed++; console.log(`  ❌ ${label}${detail ? ' — ' + detail : ''}`); };
@@ -30,14 +50,19 @@ async function main(){
   console.log('GT Tires CRM — smoke test\n' + '='.repeat(40));
 
   // ---- Завантажуємо реальний HTML + app.js у jsdom ----
-  let html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf-8');
+  const appHtml = findAppHtml();
+  console.log(`Файл: ${appHtml.name}\n`);
+  let html = fs.readFileSync(appHtml.path, 'utf-8');
   // Прибираємо зовнішні ресурси (шрифти/Supabase CDN/CSS) — тест не має мережі і вони не потрібні для логіки
   html = html
     .replace(/<link[^>]*fonts\.googleapis[^>]*>/g, '')
     .replace(/<script[^>]*supabase[^>]*><\/script>/g, '')
     .replace(/<link[^>]*styles\.css[^>]*>/g, '')
     .replace(/<script[^>]*print\.js[^>]*><\/script>/g, '')
-    .replace(/<script[^>]*app\.js[^>]*><\/script>/g, ''); // app.js підключимо вручну нижче, без мережі
+    .replace(/<script[^>]*app\.js[^>]*><\/script>/g, '') // app.js підключимо вручну нижче, без мережі
+    // Будь-які інші <script src="..."> (CDN, аналітика, top-secret-panel.js тощо):
+    // у тесті немає мережі, а до бізнес-логіки вони стосунку не мають.
+    .replace(/<script[^>]+src=["'][^"']+["'][^>]*><\/script>/g, '');
 
   const dom = new JSDOM(html, {
     url: 'https://tangar19901990.github.io/gt-tires-app/',
