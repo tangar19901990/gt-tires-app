@@ -59,3 +59,51 @@ select public.admin_set_password('новий_пароль');
 
 Живе у схемі `extensions`, тому функції мають
 `set search_path = public, extensions`. Без цього `gen_salt` не знаходиться.
+
+---
+
+## Сповіщення в Telegram
+
+Працюють на стороні бази — окремий сервер не потрібен.
+
+**Нова заявка** → тригер `trg_notify_new_lead` на `leads` шле повідомлення.
+
+**Підписка спливає** → `pg_cron` щодня о 09:00 (Київ) викликає
+`check_expiring_licenses()`. Пише за 7, 3, 1 день і в день закінчення.
+Повторів немає — надіслане позначається в `admin_config`
+(`notified:<slug>:<дата>`, чиститься через 60 днів).
+
+### Головне
+
+Відправка загорнута в `exception when others then null`.
+**Збій Telegram не заважає прийняти заявку** — клієнт її подасть у будь-якому разі,
+просто ти не отримаєш сповіщення. Перевірено на живому.
+
+### Налаштування
+
+Токен бота і chat_id лежать у `admin_config` — серверна таблиця, аноніму закрита.
+У коді сайту їх немає.
+
+```sql
+select public.admin_set_telegram('токен_бота', 'chat_id');
+```
+
+Викликається лише з SQL Editor.
+
+### Перевірка
+
+```sql
+select public.tg_send('перевірка');           -- має прийти повідомлення
+select public.check_expiring_licenses();       -- 'Нагадувань: N'
+select jobname, schedule, active from cron.job;
+```
+
+### Розклад
+
+`0 6 * * *` — це 06:00 UTC. Влітку в Києві 09:00, узимку 08:00.
+Змінити:
+```sql
+select cron.unschedule('check-expiring-licenses');
+select cron.schedule('check-expiring-licenses','0 7 * * *',
+  $$ select public.check_expiring_licenses(); $$);
+```
