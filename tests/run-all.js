@@ -21,6 +21,7 @@ const SUITES = [
   { file: 'secrets-test.js',    name: 'Секрети в репозиторії' },
   { file: 'print-test.js',      name: 'Друк заказ-наряду (фірма, нотатки, ПДВ)' },
   { file: 'vat-money-test.js',  name: 'ПДВ: суми не губляться в касі' },
+  { file: 'client-build-test.js', name: 'Збірка клієнта: адмінка не витікає' },
 ];
 
 let failed = 0;

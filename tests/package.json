@@ -8,7 +8,8 @@
     "test:panel": "node top-secret-test.js",
     "test:secrets": "node secrets-test.js",
     "test:print": "node print-test.js",
-    "test:vat": "node vat-money-test.js"
+    "test:vat": "node vat-money-test.js",
+    "test:client": "node client-build-test.js"
   },
   "dependencies": {
     "jsdom": "^24.0.0"
