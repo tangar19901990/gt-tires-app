@@ -24,6 +24,7 @@ const SUITES = [
   { file: 'client-build-test.js', name: 'Збірка клієнта: адмінка не витікає' },
   { file: 'sync-test.js',       name: 'Синхронізація каси (FK, помилки видимі)' },
   { file: 'backup-test.js',     name: 'Автоматична резервна копія' },
+  { file: 'order-date-test.js', name: 'Ручна дата заказ-наряду' },
 ];
 
 let failed = 0;

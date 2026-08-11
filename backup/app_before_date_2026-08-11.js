@@ -857,7 +857,6 @@ function openNewOrder(edit){
     const set=(id,v)=>{const e=document.getElementById(id); if(e) e.value=(v==null?'':v);};
     set('oClient',edit.clientName); setClientNameFields(edit.clientName); set('oCompany',edit.company||''); set('oPhone',edit.phone); set('oCar',edit.car); set('oPlate',edit.plate);
     setOrderPayType(payTypeUI(edit)); set('oPaid',edit.paidAmount!=null?edit.paidAmount:''); set('oNotes',edit.notes);
-    setOrderDateValue(edit.date);
     window._orderSvcs=(edit.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
     window._orderMats=(edit.materials||[]).map(m=>{ const cur=(window._stockIdx||{})[m.id]; return {id:m.id,name:m.name,qty:m.qty,src:m.src,max:(cur?cur.max:0)+(+m.qty||0)}; });
     renderSelectedSvcs(); renderOrderMats(); renderOrderPickList();
@@ -867,7 +866,6 @@ function openNewOrder(edit){
     window._editOrderId=null;
     ['oClient','oLastName','oFirstName','oCompany','oPhone','oCar','oPlate','oPaid','oNotes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
     setOrderPayType('cash');
-    setOrderDateNow();
     const h3=document.querySelector('.order-head h3'); if(h3) h3.textContent='🧾 Нове замовлення';
     const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='✅ Оформити';
     if(applyOrderDraft(loadOrderDraft())) setOrderFeedback('success','Чернетку відновлено');
@@ -1120,78 +1118,6 @@ function renderOrderMats(){
   updateOrderSubmitState();
   saveOrderDraft();
 }
-/* ============================================================
-   ДАТА ЗАМОВЛЕННЯ
-
-   За замовчуванням ставиться поточний час. Але буває, що наряд
-   оформлюють заднім числом — робота була вчора, а внести забули.
-   Тому дату можна виправити вручну і при створенні, і при
-   редагуванні.
-
-   Важливо: при зміні дати замовлення переносяться і повʼязані
-   касові записи — інакше звіт за день розійдеться з нарядами.
-   ============================================================ */
-
-/* ISO -> формат для <input type="datetime-local"> (місцевий час) */
-function isoToLocalInput(iso){
-  const d = iso ? new Date(iso) : new Date();
-  if (isNaN(d.getTime())) return '';
-  const pad = n => String(n).padStart(2,'0');
-  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) +
-         'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-}
-
-/* Значення поля -> ISO. Порожнє або криве = поточний час. */
-function orderDateFromInput(){
-  const el = document.getElementById('oDate');
-  const v  = el ? el.value : '';
-  if (!v) return new Date().toISOString();
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return new Date().toISOString();
-
-  // Захист від друкарських помилок: 2206 замість 2026
-  const year = d.getFullYear();
-  if (year < 2020 || year > new Date().getFullYear() + 1){
-    alert('Дата виглядає помилковою (' + year + ' рік).\nСтавлю поточний час.');
-    setOrderDateNow();
-    return new Date().toISOString();
-  }
-  return d.toISOString();
-}
-
-function setOrderDateNow(){
-  const el = document.getElementById('oDate');
-  if (el) el.value = isoToLocalInput(null);
-}
-
-function setOrderDateValue(iso){
-  const el = document.getElementById('oDate');
-  if (el) el.value = isoToLocalInput(iso);
-}
-
-/* Переносимо касові записи разом із замовленням, зберігаючи
-   час доби кожного запису — щоб порядок операцій не поплив. */
-function shiftOrderCashDates(orderId, oldIso, newIso){
-  if (!orderId || !oldIso || oldIso === newIso) return 0;
-  const oldD = new Date(oldIso), newD = new Date(newIso);
-  if (isNaN(oldD.getTime()) || isNaN(newD.getTime())) return 0;
-
-  const dayShift = new Date(newD.getFullYear(), newD.getMonth(), newD.getDate()) -
-                   new Date(oldD.getFullYear(), oldD.getMonth(), oldD.getDate());
-  if (!dayShift) return 0;
-
-  let n = 0;
-  (typeof cashbook !== 'undefined' ? cashbook : []).forEach(c=>{
-    if (c.orderId !== orderId) return;
-    const cd = new Date(c.date);
-    if (isNaN(cd.getTime())) return;
-    c.date = new Date(cd.getTime() + dayShift).toISOString();
-    n++;
-  });
-  if (n) save('cash', cashbook);
-  return n;
-}
-
 function saveNewOrder(){
   const services = window._orderSvcs||[];
   let total = 0;
@@ -1202,7 +1128,7 @@ function saveNewOrder(){
   clearOrderFeedback();
   const order = {
     id: uid(),
-    date: orderDateFromInput(),
+    date: new Date().toISOString(),
     clientName: document.getElementById('oClient').value.trim(),
     company: (document.getElementById('oCompany')?document.getElementById('oCompany').value.trim():''),
     phone: document.getElementById('oPhone').value.trim(),
@@ -2524,14 +2450,7 @@ function saveEditedOrder(oid){
   const g=id=>{ const e=document.getElementById(id); return e?e.value:''; };
   const prevMaterials=(o.materials||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src}));
 
-  // 2) оновлюємо поля заказу (id / номер не чіпаємо; дату — за полем)
-  const prevDate = o.date;
-  const newDate  = orderDateFromInput();
-  if (newDate !== prevDate){
-    o.date = newDate;
-    const moved = shiftOrderCashDates(o.id, prevDate, newDate);
-    if (moved) console.log('[order] перенесено касових записів:', moved);
-  }
+  // 2) оновлюємо поля заказу (id / номер / дату не чіпаємо)
   o.clientName=g('oClient').trim();
   o.phone=g('oPhone').trim();
   o.car=g('oCar').trim();

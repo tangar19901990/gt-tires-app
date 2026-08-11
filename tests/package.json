@@ -11,7 +11,8 @@
     "test:vat": "node vat-money-test.js",
     "test:client": "node client-build-test.js",
     "test:sync": "node sync-test.js",
-    "test:backup": "node backup-test.js"
+    "test:backup": "node backup-test.js",
+    "test:date": "node order-date-test.js"
   },
   "dependencies": {
     "jsdom": "^24.0.0"
