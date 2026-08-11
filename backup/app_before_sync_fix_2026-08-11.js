@@ -3937,25 +3937,7 @@ async function syncPriceToMiniApp(){
   }catch(e){ alert('Помилка: '+e.message); }
 }
 function mapProducts(){ const out=[]; (typeof warehouse!=='undefined'?warehouse:[]).forEach(w=>out.push({id:w.id,name:w.name||'',category:'Матеріали',sku:w.sku||null,qty:w.qty||0,min_qty:w.min_qty||0,buy_price:w.buy_price||0,sell_price:w.price||w.sell_price||0,image:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})); (typeof tires!=='undefined'?tires:[]).forEach(t=>out.push({id:t.id,name:((t.brand||'Шина')+' '+(t.size||'')).trim(),category:'Шини',sku:null,qty:t.qty||0,min_qty:0,buy_price:0,sell_price:t.price||0,image:null,created_at:new Date().toISOString(),updated_at:new Date().toISOString()})); return out; }
-/* У БД на v4_cash_operations.order_id стоїть зовнішній ключ на v4_orders.
-   Якщо касовий запис посилається на замовлення, якого вже немає (видалили
-   локально), вставка падає з foreign_key_violation — і разом з нею падає
-   ВЕСЬ пакет касових записів. Саме через це каса перестала синхронізуватись.
-   Тому: посилання на неіснуюче замовлення обнуляємо, сам запис зберігаємо —
-   гроші важливіші за звʼязок. */
-function mapCash(){
-  const known = {};
-  (typeof orders!=='undefined'?orders:[]).forEach(o=>{ if(o&&o.id) known[o.id]=1; });
-  return (typeof cashbook!=='undefined'?cashbook:[]).map(c=>({
-    id:c.id,
-    type:c.type||'income',
-    amount:c.amount||0,
-    method:c.method||null,
-    order_id:(c.orderId && known[c.orderId]) ? c.orderId : null,
-    comment:c.desc||c.comment||'',
-    created_at:c.date||new Date().toISOString()
-  }));
-}
+function mapCash(){ return (typeof cashbook!=='undefined'?cashbook:[]).map(c=>({id:c.id,type:c.type||'income',amount:c.amount||0,method:c.method||null,order_id:c.orderId||null,comment:c.desc||c.comment||'',created_at:c.date||new Date().toISOString()})); }
 async function _upsert(table,rows,conflict){ const s=getSupa(); if(!s||!navigator.onLine){ enqueue(table,rows); return {queued:true}; } try{ const {error}=await s.from(table).upsert(rows,{onConflict:conflict||'id'}); if(error){ enqueue(table,rows); return {error}; } return {ok:true}; }catch(e){ enqueue(table,rows); return {error:e}; } }
 async function saveClientToSupabase(c){ return _upsert('v4_clients',mapClient(c)); }
 async function saveOrderToSupabase(o){ const r=await _upsert('v4_orders',mapOrder(o)); const it=mapItems(o); if(it.length)await _upsert('v4_order_items',it); return r; }
@@ -3967,86 +3949,8 @@ async function syncToSupabase(){ const s=getSupa(); if(!s){alert('Спочатк
 async function loadFromSupabase(){ const s=getSupa(); if(!s){alert('Спочатку вкажіть URL і ключ Supabase');return;} if(!_session){alert('Спочатку увійдіть у систему');return;} if(!confirm("Завантажити дані з Supabase і обʼєднати з локальними? Локальні записи НЕ видаляються."))return; const mergeById=(local,cloud)=>{const m={};(local||[]).forEach(x=>m[x.id]=x);cloud.forEach(x=>m[x.id]={...m[x.id],...x});return Object.values(m);}; try{ const cl=((await s.from('v4_clients').select('*')).data)||[]; const or=((await s.from('v4_orders').select('*')).data)||[]; const oi=((await s.from('v4_order_items').select('*')).data)||[]; const ca=((await s.from('v4_cash_operations').select('*')).data)||[]; const pr=((await s.from('v4_products').select('*')).data)||[]; clients=mergeById(clients,cl.map(c=>({id:c.id,name:c.name,phone:c.phone,car:c.car,plate:c.plate,driver:c.driver,note:c.note,tireSize:c.tire_size,date:c.created_at}))); save('clients',clients); const ibo={}; oi.forEach(i=>{(ibo[i.order_id]=ibo[i.order_id]||[]).push({id:i.id,name:i.name,price:+i.price,qty:+i.qty,unit:i.unit});}); const cloudOrders=or.map(o=>({id:o.id,date:o.created_at,clientName:o.client_name,phone:o.phone,car:o.car,plate:o.plate,driver:o.driver,total:+o.total,notes:o.comment,status:o.status,services:ibo[o.id]||[]})); orders=mergeById(orders,cloudOrders); save('orders',orders); cashbook=mergeById((typeof cashbook!=='undefined'?cashbook:[]), ca.map(c=>({id:c.id,date:c.created_at,type:c.type||'income',amount:+c.amount,method:c.method,desc:c.comment,orderId:c.order_id}))); save('cash',cashbook); const prT=pr.filter(p=>p.category==='Шини').map(p=>({id:p.id,brand:p.name,size:'',qty:+p.qty||0,price:+p.sell_price||0})); const prW=pr.filter(p=>p.category!=='Шини').map(p=>({id:p.id,name:p.name,qty:+p.qty||0,unit:'шт',sku:p.sku,min_qty:+p.min_qty||0,buy_price:+p.buy_price||0,price:+p.sell_price||0})); tires=mergeById((typeof tires!=='undefined'?tires:[]),prT); save('tires',tires); warehouse=mergeById((typeof warehouse!=='undefined'?warehouse:[]),prW); save('warehouse',warehouse); if(typeof renderOrders==='function')renderOrders(); if(typeof renderClients==='function')renderClients(); if(typeof renderCash==='function')renderCash(); if(typeof renderTires==='function')renderTires(); if(typeof renderWarehouse==='function')renderWarehouse(); if(typeof renderHome==='function')renderHome(); updateSyncStatus(); alert('Завантажено: клієнтів '+cl.length+', заказів '+or.length+', позицій '+oi.length+', каса '+ca.length+', товари '+pr.length); }catch(e){ alert('Помилка завантаження: '+e.message); } }
 let _sig={};
 function _collSig(n,a){ return n+':'+(a?a.length:0)+':'+(a?JSON.stringify(a).length:0); }
-/* Помилки синхронізації більше не глушимо: раніше catch(e){} ховав збій,
-   і каса могла не доїжджати місяцями при статусі «🟢 Online». */
-let _syncErr = null;      // текст останньої помилки
-let _syncOk  = null;      // час останньої вдалої синхронізації
-
-const SYNC_CHUNK = 200;   // шлемо порціями: збій однієї порції не валить решту
-
-async function _upsertChunked(s, table, rows){
-  let bad = 0, firstErr = null;
-  for (let i = 0; i < rows.length; i += SYNC_CHUNK){
-    const part = rows.slice(i, i + SYNC_CHUNK);
-    try{
-      const { error } = await s.from(table).upsert(part, { onConflict:'id' });
-      if (error){ bad += part.length; firstErr = firstErr || error.message; }
-    }catch(e){
-      bad += part.length; firstErr = firstErr || (e && e.message) || 'невідома помилка';
-    }
-  }
-  return { bad, firstErr };
-}
-
-async function gtAutoSync(){
-  if(!getSupa() || !navigator.onLine || !_session){ updateSyncStatus(); return; }
-  await flushQueue();
-  await assignServerNumbers();
-
-  const colls = {
-    'v4_clients'        : (clients||[]).map(mapClient),
-    'v4_products'       : mapProducts(),
-    'v4_orders'         : (orders||[]).map(mapOrder),
-    'v4_order_items'    : [].concat(...(orders||[]).map(mapItems)),
-    'v4_cash_operations': mapCash()
-  };
-
-  const s = getSupa();
-  const problems = [];
-
-  for (const t in colls){
-    const sig = _collSig(t, colls[t]);
-    if (sig === _sig[t] || !colls[t].length){ _sig[t] = sig; continue; }
-
-    const { bad, firstErr } = await _upsertChunked(s, t, colls[t]);
-    if (bad === 0){
-      _sig[t] = sig;                       // доїхало повністю
-    } else {
-      problems.push(t.replace('v4_','') + ': ' + bad + ' зап. — ' + firstErr);
-      // _sig НЕ оновлюємо: спробуємо ще раз наступного разу
-    }
-  }
-
-  if (problems.length){
-    _syncErr = problems.join('; ');
-    console.warn('[sync]', _syncErr);
-  } else {
-    _syncErr = null;
-    _syncOk  = new Date();
-  }
-  updateSyncStatus();
-}
-
-function updateSyncStatus(){
-  const el = document.getElementById('supaStatus'); if(!el) return;
-  const cfg = !!(SUPA_CFG.url() && SUPA_CFG.key());
-  const net = navigator.onLine ? '🟢 Online' : '🔴 Offline';
-  const q   = _q().length;
-
-  let txt = net + ' · ' + (cfg ? 'налаштовано' : 'НЕ налаштовано');
-
-  if (cfg && navigator.onLine && !_session){
-    txt += ' · ⚠️ НЕ УВІЙШЛИ — дані тільки в цьому браузері';
-  } else if (_syncErr){
-    txt += ' · ❌ ПОМИЛКА: ' + _syncErr;
-  } else if (_syncOk){
-    txt += ' · ✅ синх. ' + _syncOk.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
-  }
-  if (q) txt += ' · у черзі: ' + q;
-
-  el.textContent = txt;
-  el.style.color = _syncErr ? '#FF5A52' : (cfg && navigator.onLine && !_session ? '#F0A53A' : '');
-}
+async function gtAutoSync(){ if(!getSupa()||!navigator.onLine||!_session){updateSyncStatus();return;} await flushQueue(); await assignServerNumbers(); const colls={'v4_clients':(clients||[]).map(mapClient),'v4_products':mapProducts(),'v4_orders':(orders||[]).map(mapOrder),'v4_order_items':[].concat(...(orders||[]).map(mapItems)),'v4_cash_operations':mapCash()}; const s=getSupa(); for(const t in colls){ const sig=_collSig(t,colls[t]); if(sig!==_sig[t]&&colls[t].length){ try{ const {error}=await s.from(t).upsert(colls[t],{onConflict:'id'}); if(!error)_sig[t]=sig; }catch(e){} } else _sig[t]=sig; } updateSyncStatus(); }
+function updateSyncStatus(){ const el=document.getElementById('supaStatus'); if(!el)return; const cfg=!!(SUPA_CFG.url()&&SUPA_CFG.key()); el.textContent=(navigator.onLine?'🟢 Online':'🔴 Offline')+' · '+(cfg?'налаштовано':'НЕ налаштовано')+' · у черзі: '+_q().length; }
 function saveSupaCfg(){ const u=document.getElementById('supaUrl'),k=document.getElementById('supaKey'); localStorage.setItem('gt_supa_url',(u?u.value:'').trim()); localStorage.setItem('gt_supa_key',(k?k.value:'').trim()); _supaClient=null; getSupa(); updateSyncStatus(); flushQueue(); alert('Підключення збережено.'); }
 window.addEventListener('online',()=>{flushQueue();updateSyncStatus();});
 window.addEventListener('offline',updateSyncStatus);

@@ -22,6 +22,7 @@ const SUITES = [
   { file: 'print-test.js',      name: 'Друк заказ-наряду (фірма, нотатки, ПДВ)' },
   { file: 'vat-money-test.js',  name: 'ПДВ: суми не губляться в касі' },
   { file: 'client-build-test.js', name: 'Збірка клієнта: адмінка не витікає' },
+  { file: 'sync-test.js',       name: 'Синхронізація каси (FK, помилки видимі)' },
 ];
 
 let failed = 0;

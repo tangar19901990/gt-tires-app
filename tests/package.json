@@ -9,7 +9,8 @@
     "test:secrets": "node secrets-test.js",
     "test:print": "node print-test.js",
     "test:vat": "node vat-money-test.js",
-    "test:client": "node client-build-test.js"
+    "test:client": "node client-build-test.js",
+    "test:sync": "node sync-test.js"
   },
   "dependencies": {
     "jsdom": "^24.0.0"
