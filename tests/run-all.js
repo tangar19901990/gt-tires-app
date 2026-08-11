@@ -23,6 +23,7 @@ const SUITES = [
   { file: 'vat-money-test.js',  name: 'ПДВ: суми не губляться в касі' },
   { file: 'client-build-test.js', name: 'Збірка клієнта: адмінка не витікає' },
   { file: 'sync-test.js',       name: 'Синхронізація каси (FK, помилки видимі)' },
+  { file: 'backup-test.js',     name: 'Автоматична резервна копія' },
 ];
 
 let failed = 0;

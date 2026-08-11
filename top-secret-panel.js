@@ -63,6 +63,12 @@
     { group: 'Дані' },
 
     {
+      title: 'Резервні копії',
+      desc:  'Відновити дані за датою',
+      icon:  '🕘',
+      run:   function () { tsBackups(); }
+    },
+    {
       title: 'Резервна копія',
       desc:  'Вивантажити все у файл',
       icon:  '💾',
@@ -248,6 +254,81 @@
     q('tsGate').hidden = true;
     q('tsBody').hidden = false;
     q('tsFoot').hidden = false;
+  }
+
+  /* ---------- резервні копії ---------- */
+
+  function tsBackups() {
+    if (typeof window.listBackups !== 'function') {
+      alert('Функція копій недоступна — онови сторінку.');
+      return;
+    }
+
+    var box = q('tsBody');
+    var prev = box.innerHTML;
+
+    box.innerHTML =
+      '<div class="ts-group">Резервні копії</div>' +
+      '<div class="ts-note">Завантажую…</div>';
+
+    window.listBackups().then(function (list) {
+      box.innerHTML = '<div class="ts-group">Резервні копії</div>';
+
+      if (!list.length) {
+        box.innerHTML +=
+          '<div class="ts-note">Копій ще немає.<br><br>' +
+          'Вони створюються автоматично раз на день, коли ви ' +
+          'увійшли в систему і синхронізація пройшла без помилок.</div>';
+      } else {
+        list.forEach(function (b) {
+          var c = b.counts || {};
+          var row = document.createElement('button');
+          row.className = 'ts-item';
+          row.innerHTML =
+            '<span class="ts-ico">🕘</span>' +
+            '<span class="ts-txt">' +
+              '<span class="ts-t">' + esc(fmtDay(b.id)) + '</span>' +
+              '<span class="ts-d">' +
+                'замовлень ' + (c.orders || 0) +
+                ' · клієнтів ' + (c.clients || 0) +
+                ' · каса ' + (c.cash || 0) +
+                ' · ' + (b.size_kb || 0) + ' КБ' +
+              '</span>' +
+            '</span>';
+          row.onclick = function () {
+            if (typeof window.restoreBackup === 'function') window.restoreBackup(b.id);
+          };
+          box.appendChild(row);
+        });
+
+        var note = document.createElement('div');
+        note.className = 'ts-note';
+        note.innerHTML = 'Натисніть на дату, щоб відновити.<br>' +
+                         'Поточні дані спершу збережуться у файл.';
+        box.appendChild(note);
+      }
+
+      var back = document.createElement('button');
+      back.className = 'ts-btn';
+      back.textContent = '← Назад';
+      back.onclick = function () { box.innerHTML = prev; renderMenu(); };
+      box.appendChild(back);
+
+    }).catch(function (e) {
+      box.innerHTML = '<div class="ts-group">Резервні копії</div>' +
+        '<div class="ts-note" style="color:#FF5A52">Помилка: ' + esc(e.message) + '</div>';
+    });
+  }
+
+  function fmtDay(id) {
+    var p = String(id).split('-');
+    if (p.length !== 3) return id;
+    var today = new Date().toISOString().slice(0, 10);
+    var yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    var d = p[2] + '.' + p[1] + '.' + p[0];
+    if (id === today) return d + ' — сьогодні';
+    if (id === yest) return d + ' — вчора';
+    return d;
   }
 
   /* ---------- дії пунктів ---------- */

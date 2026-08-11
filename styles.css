@@ -827,3 +827,5 @@ body.ts-open .ts-wrap{transform:none}
 .ts-soon:hover{background:transparent;border-color:transparent}
 
 .ts-foot{padding-top:12px;border-top:1px solid var(--border);margin-top:6px}
+.ts-note{font-size:12px;line-height:1.55;color:var(--text-dim);padding:10px 12px;
+  background:var(--card-bg-2);border:1px solid var(--border);border-radius:10px;margin:8px 0}

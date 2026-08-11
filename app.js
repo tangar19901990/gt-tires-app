@@ -3988,6 +3988,117 @@ async function _upsertChunked(s, table, rows){
   return { bad, firstErr };
 }
 
+/* ============================================================
+   АВТОМАТИЧНА РЕЗЕРВНА КОПІЯ
+
+   Основне сховище CRM — localStorage браузера. Чистка кешу,
+   переустановка системи чи зламаний телефон = втрата всього.
+   Посинхронізовані таблиці рятують частково: у них немає історії
+   і немає даних, які живуть лише локально (Б/У шини, ринкові
+   ціни, налаштування).
+
+   Тому раз на день, після вдалої синхронізації, кладемо повний
+   зліпок у v4_backups. Старі копії чистить pg_cron на сервері.
+   ============================================================ */
+
+const BACKUP_MARK = LS_KEY + 'lastCloudBackup';
+
+function collectBackupPayload(){
+  const pick = n => { try { return JSON.parse(localStorage.getItem(LS_KEY+n)) ?? null; } catch(e){ return null; } };
+  const data = {};
+  ['orders','clients','tires','warehouse','cash','usedTires','marketPrices',
+   'aiLogs','customServices','priceOverrides','settings'].forEach(k=>{
+    const v = pick(k);
+    if (v !== null) data[k] = v;
+  });
+  return data;
+}
+
+async function cloudBackup(force){
+  const s = getSupa();
+  if (!s || !navigator.onLine || !_session) return { skipped:'немає звʼязку або не увійшли' };
+
+  const today = new Date().toISOString().slice(0,10);
+  if (!force && localStorage.getItem(BACKUP_MARK) === today){
+    return { skipped:'сьогодні вже робили' };
+  }
+
+  const payload = collectBackupPayload();
+  const json    = JSON.stringify(payload);
+  const sizeKb  = Math.round(json.length / 1024);
+
+  // Порожню копію не пишемо — щоб не затерти вчорашню робочу
+  const counts = {
+    orders:(payload.orders||[]).length,
+    clients:(payload.clients||[]).length,
+    cash:(payload.cash||[]).length
+  };
+  if (!counts.orders && !counts.clients && !counts.cash){
+    return { skipped:'немає даних' };
+  }
+
+  if (sizeKb > 4500){
+    console.warn('[backup] завеликий зліпок:', sizeKb, 'КБ');
+    return { error:'зліпок ' + sizeKb + ' КБ — завеликий' };
+  }
+
+  try{
+    const { error } = await s.from('v4_backups').upsert({
+      id: today, payload, size_kb: sizeKb, counts, created_at: new Date().toISOString()
+    }, { onConflict:'id' });
+
+    if (error) return { error: error.message };
+
+    localStorage.setItem(BACKUP_MARK, today);
+    console.log('[backup] збережено', sizeKb, 'КБ', counts);
+    return { ok:true, sizeKb, counts };
+  }catch(e){
+    return { error:(e && e.message) || 'невідома помилка' };
+  }
+}
+
+/* Список копій — для екрана відновлення */
+async function listBackups(){
+  const s = getSupa();
+  if (!s || !_session) return [];
+  try{
+    const { data } = await s.from('v4_backups')
+      .select('id,created_at,size_kb,counts').order('created_at',{ascending:false}).limit(30);
+    return data || [];
+  }catch(e){ return []; }
+}
+
+/* Відновлення. Перед перезаписом робимо копію поточного стану у файл —
+   щоб помилковий вибір дати не знищив те, що є зараз. */
+async function restoreBackup(id){
+  const s = getSupa();
+  if (!s || !_session){ alert('Спочатку увійдіть у систему'); return; }
+
+  if (!confirm('Відновити дані станом на ' + id + '?\n\n' +
+               'Поточні дані буде ЗАМІНЕНО.\n' +
+               'Перед цим автоматично завантажиться файл із поточним станом.')) return;
+
+  try{ exportData(); }catch(e){}
+
+  try{
+    const { data, error } = await s.from('v4_backups').select('payload').eq('id', id).single();
+    if (error || !data){ alert('Не вдалося завантажити копію: ' + ((error&&error.message)||'немає даних')); return; }
+
+    Object.keys(data.payload).forEach(k=>{
+      localStorage.setItem(LS_KEY + k, JSON.stringify(data.payload[k]));
+    });
+
+    alert('Відновлено станом на ' + id + '.\nСторінка перезавантажиться.');
+    location.reload();
+  }catch(e){
+    alert('Помилка відновлення: ' + ((e&&e.message)||e));
+  }
+}
+
+window.cloudBackup = cloudBackup;
+window.listBackups = listBackups;
+window.restoreBackup = restoreBackup;
+
 async function gtAutoSync(){
   if(!getSupa() || !navigator.onLine || !_session){ updateSyncStatus(); return; }
   await flushQueue();
@@ -4023,6 +4134,9 @@ async function gtAutoSync(){
   } else {
     _syncErr = null;
     _syncOk  = new Date();
+    // Копію робимо лише коли синхронізація пройшла чисто —
+    // інакше є ризик зафіксувати неповний стан.
+    cloudBackup().then(r=>{ if (r && r.error) console.warn('[backup]', r.error); });
   }
   updateSyncStatus();
 }
