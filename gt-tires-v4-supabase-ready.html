@@ -43,7 +43,7 @@
   } catch (e) {}
 })();
 </script>
-<link rel="stylesheet" href="styles.css?v=14">
+<link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body class="locked">
 
@@ -152,6 +152,7 @@
   </div>
   <div class="order-layout">
     <div class="order-pick">
+      <div class="pick-head">🛠️ <span>Вибір послуг</span></div>
       <div id="oSvcCatBtns" class="ocat-grid"></div>
       <div id="oSvcViewSwitch" style="display:flex;gap:6px;margin:8px 0;flex-wrap:wrap"></div>
       <div id="oRadius"></div>
@@ -165,33 +166,53 @@
       <div id="oSvcPickList" class="osvc-grid"></div>
     </div>
     <aside class="order-cart">
-      <div class="cart-head">🧾 Поточне замовлення</div>
+      <div class="cart-head">🧾 <span>Поточне замовлення</span></div>
       <div class="cart-fields">
-        <input id="oCompany" placeholder="Фірма (необов'язково)">
-        <div class="cart-row-2">
-          <input id="oLastName" placeholder="Прізвище" oninput="syncClientNameField()">
-          <input id="oFirstName" placeholder="Ім'я" oninput="syncClientNameField()">
+        <label id="oWalkInRow" class="walkin-row">
+          <input type="checkbox" id="oWalkIn" onchange="toggleWalkIn()">
+          <span>🚶 Зальотний клієнт — дані не потрібні</span>
+        </label>
+
+        <div class="ofgroup g-client">
+          <div class="ofgroup-t">👤 Клієнт</div>
+          <input id="oCompany" placeholder="Фірма (необов'язково)">
+          <div class="cart-row-2">
+            <input id="oLastName" placeholder="Прізвище" oninput="syncClientNameField()">
+            <input id="oFirstName" placeholder="Ім'я" oninput="syncClientNameField()">
+          </div>
+          <input id="oClient" type="hidden">
+          <input id="oPhone" type="tel" placeholder="Телефон +380..." oninput="orderPhoneLookup()">
+          <div class="client-hint" id="oClientHint">Новий клієнт</div>
         </div>
-        <input id="oClient" type="hidden">
-        <input id="oPhone" type="tel" placeholder="Телефон +380..." oninput="orderPhoneLookup()">
-        <div class="client-hint" id="oClientHint">Новий клієнт</div>
-        <div class="cart-row-2">
-          <input id="oCar" placeholder="Авто (марка, модель)">
-          <input id="oPlate" placeholder="Держномер" oninput="orderPlateLookup()">
+
+        <div class="ofgroup g-car">
+          <div class="ofgroup-t">🚗 Авто</div>
+          <div class="cart-row-2">
+            <input id="oCar" placeholder="Авто (марка, модель)">
+            <input id="oPlate" placeholder="Держномер" oninput="orderPlateLookup()">
+          </div>
         </div>
-        <select id="oPayType" style="display:none"><option value="cash">Готівка</option><option value="cashless">Безготівка</option><option value="cashless_vat">Безготівка з ПДВ</option></select>
-        <div class="pay-toggle">
-          <button type="button" class="pay-btn cash" id="payCashBtn" onclick="setOrderPayType('cash')">💵 Нал</button>
-          <button type="button" class="pay-btn card" id="payCardBtn" onclick="setOrderPayType('cashless')">💳 Безнал</button>
-          <button type="button" class="pay-btn vat" id="payVatBtn" onclick="setOrderPayType('cashless_vat')">🧾 з ПДВ</button>
+
+        <div class="ofgroup g-pay">
+          <div class="ofgroup-t">💰 Оплата</div>
+          <select id="oPayType" style="display:none"><option value="cash">Готівка</option><option value="cashless">Безготівка</option><option value="cashless_vat">Безготівка з ПДВ</option></select>
+          <div class="pay-toggle">
+            <button type="button" class="pay-btn cash" id="payCashBtn" onclick="setOrderPayType('cash')">💵 Нал</button>
+            <button type="button" class="pay-btn card" id="payCardBtn" onclick="setOrderPayType('cashless')">💳 Безнал</button>
+            <button type="button" class="pay-btn vat" id="payVatBtn" onclick="setOrderPayType('cashless_vat')">🧾 з ПДВ</button>
+          </div>
+          <input id="oPaid" type="number" placeholder="Оплачено ₴ (порожнє = повна)">
+          <div class="pay-summary is-empty" id="oPaySummary">До сплати: 0₴</div>
         </div>
-        <input id="oPaid" type="number" placeholder="Оплачено ₴ (порожнє = повна)">
-        <div class="pay-summary is-empty" id="oPaySummary">До сплати: 0₴</div>
-        <textarea id="oNotes" rows="1" placeholder="Нотатки"></textarea>
-        <div class="odate-row">
-          <label class="odate-lbl" for="oDate">Дата</label>
-          <input id="oDate" type="datetime-local" class="odate-inp">
-          <button type="button" class="odate-now" onclick="setOrderDateNow()" title="Поточний час">зараз</button>
+
+        <div class="ofgroup g-note">
+          <div class="ofgroup-t">📝 Деталі</div>
+          <textarea id="oNotes" rows="1" placeholder="Нотатки"></textarea>
+          <div class="odate-row">
+            <label class="odate-lbl" for="oDate">Дата</label>
+            <input id="oDate" type="datetime-local" class="odate-inp">
+            <button type="button" class="odate-now" onclick="setOrderDateNow()" title="Поточний час">зараз</button>
+          </div>
         </div>
       </div>
       <div id="oSelectedSvcs" class="cart-list"></div>
@@ -470,7 +491,7 @@
   <div class="modal" id="modalContent"></div>
 </div>
 
-<script src="app.js?v=33"></script>
+<script src="app.js?v=34"></script>
 <script src="print.js?v=3"></script>
 <script src="top-secret-panel.js?v=2"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>

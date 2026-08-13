@@ -375,6 +375,7 @@ function loadOrderDraft(){ try{ return JSON.parse(localStorage.getItem(ORDER_DRA
 function saveOrderDraft(){
   if(window._editOrderId) return;
   const draft={
+    walkIn:(typeof isWalkIn==='function' && isWalkIn()),
     clientName:(document.getElementById('oClient')||{}).value||'',
     company:(document.getElementById('oCompany')||{}).value||'',
     phone:(document.getElementById('oPhone')||{}).value||'',
@@ -397,6 +398,7 @@ function applyOrderDraft(draft){
   if(!draft || window._editOrderId) return false;
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=(v==null?'':v); };
   set('oClient',draft.clientName); setClientNameFields(draft.clientName); set('oCompany',draft.company); set('oPhone',draft.phone); set('oCar',draft.car); set('oPlate',draft.plate);
+  resetWalkIn(!!draft.walkIn);
   set('oNotes',draft.notes); set('oPaid',draft.paid);
   window._orderCatFilter=(typeof draft.catFilter==='number' && draft.catCount===CAT_META.length)?draft.catFilter:0;
   window._orderRadius=draft.radius||null;
@@ -723,40 +725,9 @@ function setOrderFieldInvalid(id,on){
   if(el) el.classList.toggle('is-invalid', !!on);
 }
 function getOrderFormIssues(markFields){
-  const mark=markFields!==false;
-  if(mark) ['oClient','oPhone','oCar','oPlate'].forEach(id=>setOrderFieldInvalid(id,false));
-  const issues=[];
-  const client=((document.getElementById('oClient')||{}).value||'').trim();
-  const phone=((document.getElementById('oPhone')||{}).value||'').trim();
-  const car=((document.getElementById('oCar')||{}).value||'').trim();
-  const plate=((document.getElementById('oPlate')||{}).value||'').trim();
-  if(!client && !phone && !plate){
-    issues.push('Вкажіть клієнта, телефон або держномер');
-    if(mark){ setOrderFieldInvalid('oClient',true); setOrderFieldInvalid('oPhone',true); setOrderFieldInvalid('oPlate',true); }
-  }
-  if(client && client.length<2){
-    issues.push("Ім'я клієнта закоротке");
-    if(mark) setOrderFieldInvalid('oClient',true);
-  }
-  if(phone){
-    const digits=phone.replace(/\D/g,'');
-    if(digits.length!==12 || !digits.startsWith('380')){
-      issues.push('Телефон має бути у форматі +380 XX XXX XX XX');
-      if(mark) setOrderFieldInvalid('oPhone',true);
-    }
-  }
-  if(car && car.length<2){
-    issues.push('Уточніть авто');
-    if(mark) setOrderFieldInvalid('oCar',true);
-  }
-  if(plate){
-    const norm=normPlate(plate);
-    if(norm.length<6 || norm.length>10){
-      issues.push('Перевірте держномер');
-      if(mark) setOrderFieldInvalid('oPlate',true);
-    }
-  }
-  return issues;
+  // Обмеження знято: дані клієнта (ПІБ, телефон, авто, держномер) не обовʼязкові.
+  if(markFields!==false) ['oClient','oPhone','oCar','oPlate'].forEach(id=>setOrderFieldInvalid(id,false));
+  return [];
 }
 function updateOrderSubmitState(){
   const btn=document.querySelector('[data-order-submit]'); if(!btn) return;
@@ -776,6 +747,7 @@ function splitClientName(full){
   return [parts[0], parts.slice(1).join(' ')];
 }
 function syncClientNameField(){
+  if(typeof isWalkIn==='function' && isWalkIn()) return;
   const ln=(document.getElementById('oLastName')||{}).value||'';
   const fn=(document.getElementById('oFirstName')||{}).value||'';
   const ce=document.getElementById('oClient');
@@ -791,6 +763,43 @@ function setClientNameFields(full){
   const le=document.getElementById('oLastName'); if(le) le.value=ln;
   const fe=document.getElementById('oFirstName'); if(fe) fe.value=fn;
   const ce=document.getElementById('oClient'); if(ce) ce.value=(full||'').trim();
+}
+const WALKIN_NAME='Кінцевий споживач';
+const WALKIN_FIELDS=['oCompany','oLastName','oFirstName','oPhone','oCar','oPlate'];
+function isWalkIn(){ const e=document.getElementById('oWalkIn'); return !!(e&&e.checked); }
+function setWalkInUI(on){
+  const set=(id,v)=>{const e=document.getElementById(id); if(e) e.value=v;};
+  if(on){
+    if(!window._walkInBackup){
+      window._walkInBackup={};
+      WALKIN_FIELDS.forEach(id=>{const e=document.getElementById(id); if(e) window._walkInBackup[id]=e.value;});
+    }
+    set('oCompany',''); set('oLastName',WALKIN_NAME); set('oFirstName','');
+    set('oPhone',''); set('oCar','—'); set('oPlate','');
+    const ce=document.getElementById('oClient'); if(ce) ce.value=WALKIN_NAME;
+    WALKIN_FIELDS.forEach(id=>{const e=document.getElementById(id); if(e){e.disabled=true; e.style.opacity='0.45';}});
+    const h=document.getElementById('oClientHint'); if(h) h.textContent='Зальотний — в базу клієнтів не пишемо';
+  } else {
+    const b=window._walkInBackup||{};
+    WALKIN_FIELDS.forEach(id=>{const e=document.getElementById(id); if(e){e.disabled=false; e.style.opacity=''; if(window._walkInBackup) e.value=b[id]||'';}});
+    window._walkInBackup=null;
+    const ln=(document.getElementById('oLastName')||{}).value||'';
+    const fn=(document.getElementById('oFirstName')||{}).value||'';
+    const ce=document.getElementById('oClient'); if(ce) ce.value=(ln+' '+fn).trim();
+    syncOrderClientHint(false);
+  }
+}
+function toggleWalkIn(){
+  setWalkInUI(isWalkIn());
+  clearOrderFeedback();
+  saveOrderDraft();
+  updateOrderSubmitState();
+}
+function resetWalkIn(on){
+  const cb=document.getElementById('oWalkIn');
+  window._walkInBackup=null;
+  if(cb) cb.checked=!!on;
+  setWalkInUI(!!on);
 }
 function initOrderInteractions(){
   ['oClient','oCompany','oCar','oPlate','oPaid','oNotes','oSvcSearch'].forEach(id=>{
@@ -855,7 +864,9 @@ function openNewOrder(edit){
   if(edit){
     window._editOrderId=edit.id;
     const set=(id,v)=>{const e=document.getElementById(id); if(e) e.value=(v==null?'':v);};
+    resetWalkIn(false);
     set('oClient',edit.clientName); setClientNameFields(edit.clientName); set('oCompany',edit.company||''); set('oPhone',edit.phone); set('oCar',edit.car); set('oPlate',edit.plate);
+    resetWalkIn(!!edit.walkIn);
     setOrderPayType(payTypeUI(edit)); set('oPaid',edit.paidAmount!=null?edit.paidAmount:''); set('oNotes',edit.notes);
     setOrderDateValue(edit.date);
     window._orderSvcs=(edit.services||[]).map(s=>({id:s.id,name:s.name,price:s.price,qty:s.qty}));
@@ -865,6 +876,7 @@ function openNewOrder(edit){
     const sb=document.querySelector('[data-order-submit]'); if(sb) sb.textContent='💾 Зберегти зміни';
   } else {
     window._editOrderId=null;
+    resetWalkIn(false);
     ['oClient','oLastName','oFirstName','oCompany','oPhone','oCar','oPlate','oPaid','oNotes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
     setOrderPayType('cash');
     setOrderDateNow();
@@ -1214,6 +1226,7 @@ function saveNewOrder(){
     services, total,
     notes: document.getElementById('oNotes').value.trim(),
     status: 'new',
+    walkIn: isWalkIn(),
     materials: (window._orderMats||[]).map(m=>({id:m.id,name:m.name,qty:m.qty,src:m.src}))
   };
   const matIssues=getOrderMaterialIssues(order.materials, []);
@@ -1233,7 +1246,7 @@ function saveNewOrder(){
   upsertOrderBasePayment(order, order.paidAmount, order.date);
   (order.materials||[]).forEach(mt=>{ const arr=(mt.src==='tires')?tires:warehouse; const it=arr.find(x=>x.id===mt.id); if(it){ it.qty=Math.max(0,(+it.qty||0)-(+mt.qty||0)); } }); if((order.materials||[]).length){ save('tires',tires); save('warehouse',warehouse); if(typeof renderTires==='function')renderTires(); if(typeof renderWarehouse==='function')renderWarehouse(); }
   // auto-add client (or update existing)
-  if((order.clientName||'').trim() || order.phone){
+  if(!order.walkIn && ((order.clientName||'').trim() || order.phone)){
     let existing = order.phone ? findClientByPhone(order.phone) : null;
     if(!existing && order.clientName) existing = findClientByName(order.clientName);
     if(existing){
@@ -2532,6 +2545,7 @@ function saveEditedOrder(oid){
     const moved = shiftOrderCashDates(o.id, prevDate, newDate);
     if (moved) console.log('[order] перенесено касових записів:', moved);
   }
+  o.walkIn=isWalkIn();
   o.clientName=g('oClient').trim();
   o.phone=g('oPhone').trim();
   o.car=g('oCar').trim();
