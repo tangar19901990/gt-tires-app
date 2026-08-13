@@ -894,3 +894,53 @@ body.ts-open .ts-wrap{transform:none}
   .order-pick{padding:11px;border-radius:14px}
   .ofgroup{padding:8px 9px 9px}
 }
+
+/* ====== v16: акцент на блоці заказ-наряду ====== */
+
+/* Верхня червона смуга + сильніше свічення */
+.order-cart{position:sticky;overflow:hidden;
+  border:1px solid rgba(224,31,38,.55)!important;border-radius:20px!important;padding:18px 16px 16px!important;
+  background:linear-gradient(168deg,#15161C 0%,#0E0F14 55%,#0A0A0D 100%)!important;
+  box-shadow:0 24px 52px -22px rgba(0,0,0,.95),0 0 0 1px rgba(224,31,38,.09),
+             0 0 46px -16px rgba(224,31,38,.55),inset 0 1px 0 rgba(255,255,255,.06)!important}
+.order-cart::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--red-dark),var(--red) 35%,var(--red-light) 55%,var(--red) 75%,var(--red-dark));
+  box-shadow:0 0 16px rgba(224,31,38,.85)}
+.order-cart::after{content:'';position:absolute;top:-70px;right:-70px;width:190px;height:190px;pointer-events:none;
+  background:radial-gradient(circle,rgba(224,31,38,.16),transparent 68%)}
+
+/* Заголовок наряду — крупніший, з червоною плашкою */
+.cart-head{font-size:1.12rem!important;text-transform:uppercase;font-weight:700;
+  padding:0 0 11px!important;margin-bottom:13px!important;
+  border-bottom:1px solid rgba(224,31,38,.3)!important}
+.cart-head span{color:#fff!important;text-shadow:0 0 22px rgba(224,31,38,.6)}
+.cart-head::after{content:'';flex:1;height:1px;margin-left:2px;
+  background:linear-gradient(90deg,rgba(224,31,38,.45),transparent)}
+
+/* Ліва панель — тихіша, щоб наряд домінував */
+.order-pick{background:linear-gradient(170deg,rgba(255,255,255,.012),rgba(0,0,0,.2))!important;
+  border-color:#1A1C23!important}
+.pick-head{opacity:.72}
+
+/* Групи полів — виразніші, з кольоровим світінням у фокусі */
+.ofgroup{border-left-width:4px!important;border-radius:13px!important;
+  background:rgba(255,255,255,.03)!important}
+.ofgroup-t{font-size:.66rem!important;opacity:1!important}
+.ofgroup:focus-within{background:rgba(255,255,255,.06)!important;
+  box-shadow:0 0 0 1px var(--accent),0 0 22px -8px var(--accent)}
+
+/* Підсумок — яскравіший */
+.cart-total{border-color:rgba(79,206,90,.45)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 30px -14px rgba(79,206,90,.75),0 16px 36px -22px #000!important}
+.cart-total b{text-shadow:0 0 26px rgba(79,206,90,.55)}
+
+/* Поява блоку */
+@keyframes gtCartIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.order-cart{animation:gtCartIn .32s cubic-bezier(.22,1,.36,1)}
+
+@media(max-width:820px){
+  .order-cart{border-radius:16px!important;padding:15px 13px 13px!important}
+  .cart-head{font-size:1rem!important}
+  .order-cart::after{display:none}
+}
+@media print{ .order-cart::before,.order-cart::after{display:none} }
