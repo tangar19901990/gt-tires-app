@@ -994,3 +994,34 @@ body.ts-open .ts-wrap{transform:none}
 .svcpal-act .btn{flex:1}
 
 @media print{ .svc-tools,.svcpal-wrap{display:none!important} }
+
+/* ====== v18: кнопки послуги — окремим рядом ВНИЗУ картки ====== */
+
+/* більше не поверх назви — у потоці, під ціною */
+.svc-tools{position:static!important;display:flex;justify-content:flex-end;align-items:center;
+  gap:6px;margin-top:6px;padding-top:6px;width:100%;
+  border-top:1px solid rgba(255,255,255,.09)}
+.osvc-btn .svc-tools,.osvc-slide .svc-tools{position:static!important;top:auto;right:auto}
+
+/* самі іконки — крупніші, з рамкою, зручно влучати */
+.svc-tool{font-size:.92rem;padding:4px 7px;border-radius:8px;opacity:.9;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
+.svc-tool:hover{opacity:1;transform:scale(1.12);background:rgba(255,255,255,.15)}
+
+/* картка: назва зверху, ціна, потім ряд кнопок */
+.osvc-btn{justify-content:flex-start!important}
+.osvc-btn .sn{padding-right:0}
+
+/* список: кнопки праворуч у тому ж рядку, без верхньої лінії */
+.osvc-row .svc-tools{width:auto;margin-top:0;padding-top:0;border-top:none;flex:0 0 auto}
+
+/* слайдер: ряд кнопок під ціною */
+.osvc-slide .svc-tools{justify-content:center}
+
+/* мітка «приховано» — ліворуч у тому ж нижньому ряду */
+.is-hidden::before{bottom:7px;left:8px}
+.osvc-row.is-hidden::before{display:none}
+
+@media(max-width:820px){
+  .svc-tool{font-size:1rem;padding:5px 8px}
+}
