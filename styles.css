@@ -944,3 +944,53 @@ body.ts-open .ts-wrap{transform:none}
   .order-cart::after{display:none}
 }
 @media print{ .order-cart::before,.order-cart::after{display:none} }
+
+/* ====== v17: кольори та приховування послуг ====== */
+
+/* Іконки-інструменти на картці (тільки в режимі редагування) */
+.svc-tools{position:absolute;top:3px;right:4px;display:flex;gap:2px;z-index:3}
+.svc-tool{font-size:.8rem;line-height:1;padding:3px 4px;border-radius:6px;cursor:pointer;
+  background:rgba(0,0,0,.6);opacity:.8;transition:opacity .12s ease,transform .12s ease}
+.svc-tool:hover{opacity:1;transform:scale(1.18);background:rgba(0,0,0,.85)}
+.osvc-btn,.osvc-row,.osvc-slide{position:relative}
+.osvc-btn .svc-tools{top:2px;right:3px}
+.osvc-row .svc-tools{position:static;margin-left:2px}
+.osvc-slide .svc-tools{top:4px;right:5px}
+
+/* Послуга з кольором */
+.has-color{border-color:var(--sc)!important;
+  background:color-mix(in srgb,var(--sc) 13%,#0C0D12)!important;
+  box-shadow:inset 3px 0 0 var(--sc),0 0 18px -10px var(--sc)}
+.osvc-btn.has-color .sn{color:#fff}
+.osvc-btn.has-color:hover{background:color-mix(in srgb,var(--sc) 22%,#0C0D12)!important;
+  box-shadow:inset 3px 0 0 var(--sc),0 10px 22px -10px var(--sc)}
+.has-color.added{box-shadow:inset 3px 0 0 var(--sc),0 0 0 1px var(--green)}
+@supports not (background:color-mix(in srgb,red 10%,blue)){
+  .has-color{background:#141018!important}
+}
+
+/* Прихована послуга — видно лише в режимі редагування */
+.is-hidden{opacity:.34;filter:grayscale(.75)}
+.is-hidden::before{content:'приховано';position:absolute;left:6px;bottom:3px;
+  font-size:.55rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);z-index:2}
+.is-hidden:hover{opacity:.6}
+
+/* Палітра кольорів */
+.svcpal-wrap{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
+.svcpal-bg{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(3px)}
+.svcpal{position:relative;width:100%;max-width:330px;padding:18px;border-radius:18px;
+  background:linear-gradient(168deg,#15161C,#0B0B0F);border:1px solid rgba(224,31,38,.4);
+  box-shadow:0 30px 70px -25px #000,0 0 40px -18px rgba(224,31,38,.5);
+  animation:gtCartIn .22s cubic-bezier(.22,1,.36,1)}
+.svcpal-h{font-family:'Oswald',sans-serif;font-size:1rem;color:#fff;margin-bottom:14px;
+  display:flex;flex-direction:column;gap:3px}
+.svcpal-h span{font-family:inherit;font-size:.76rem;color:var(--text-dim);font-weight:400}
+.svcpal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:15px}
+.svcpal-c{aspect-ratio:1;border-radius:11px;cursor:pointer;background:var(--c);
+  border:2px solid transparent;box-shadow:0 6px 16px -8px var(--c);transition:transform .13s ease}
+.svcpal-c:hover{transform:scale(1.12)}
+.svcpal-c.on{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.22),0 6px 16px -8px var(--c)}
+.svcpal-act{display:flex;gap:8px}
+.svcpal-act .btn{flex:1}
+
+@media print{ .svc-tools,.svcpal-wrap{display:none!important} }

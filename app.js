@@ -251,6 +251,50 @@ function findSvc(id){ id=+id; let it=PRICE_LIST.find(i=>i.id===id); if(it) retur
 function togglePriceEdit(v){ priceEditOn=!!v; localStorage.setItem(LS_KEY+'priceEditOn', priceEditOn?'1':'0'); if(document.getElementById('oSvcPickList')) renderOrderPickList(); }
 function editPrice(id){ id=+id; const cur=findSvc(id); if(!cur) return; const v=prompt('Нова ціна для «'+cur.name+'»:', cur.price); if(v===null) return; const n=parseFloat(v); if(isNaN(n)||n<0){ alert('Невірна ціна'); return; } priceOverrides[id]=n; localStorage.setItem(LS_KEY+'priceOverrides',JSON.stringify(priceOverrides)); if(typeof renderPrice==='function') renderPrice(); if(document.getElementById('oSvcPickList')) renderOrderPickList(); if(window._orderSvcs){ const it2=window._orderSvcs.find(x=>x.id===id); if(it2){ it2.price=n; if(typeof renderSelectedSvcs==='function') renderSelectedSvcs(); } } }
 function resetPrice(id){ id=+id; delete priceOverrides[id]; localStorage.setItem(LS_KEY+'priceOverrides',JSON.stringify(priceOverrides)); renderPrice(); }
+
+/* ====== Кольори та приховування окремих послуг ====== */
+let svcHidden = (()=>{ try{ return JSON.parse(localStorage.getItem(LS_KEY+'svcHidden')||'[]')||[]; }catch(e){ return []; } })();
+let svcColors = (()=>{ try{ return JSON.parse(localStorage.getItem(LS_KEY+'svcColors')||'{}')||{}; }catch(e){ return {}; } })();
+const SVC_PALETTE=[['#E01F26','Червоний'],['#F0A53A','Помаранч'],['#F0C24A','Жовтий'],['#4FCE5A','Зелений'],['#2FC7B4','Бірюза'],['#4A9BFF','Синій'],['#A96BFF','Фіолет'],['#FF6FA5','Рожевий']];
+function saveSvcMeta(){ try{ localStorage.setItem(LS_KEY+'svcHidden',JSON.stringify(svcHidden)); localStorage.setItem(LS_KEY+'svcColors',JSON.stringify(svcColors)); }catch(e){} }
+function isSvcHidden(id){ return svcHidden.indexOf(+id)>=0; }
+function svcColor(id){ return svcColors[+id]||''; }
+function toggleSvcHidden(id){ id=+id;
+  if(isSvcHidden(id)) svcHidden=svcHidden.filter(x=>x!==id); else svcHidden.push(id);
+  saveSvcMeta(); if(typeof gtHaptic==='function') gtHaptic(12); renderOrderPickList(); }
+function setSvcColor(id,c){ id=+id; if(c) svcColors[id]=c; else delete svcColors[id];
+  saveSvcMeta(); closeSvcColorPicker(); renderOrderPickList(); }
+function closeSvcColorPicker(){ const m=document.getElementById('svcColorModal'); if(m) m.remove(); }
+function pickSvcColor(id){ id=+id; closeSvcColorPicker();
+  const cur=svcColor(id); const it=findSvc(id); const nm=it?it.name:'послуга';
+  const sw=SVC_PALETTE.map(([c,label])=>
+    `<button type="button" class="svcpal-c${cur===c?' on':''}" style="--c:${c}" title="${label}" onclick="setSvcColor(${id},'${c}')"></button>`).join('');
+  const d=document.createElement('div'); d.id='svcColorModal'; d.className='svcpal-wrap';
+  d.innerHTML=`<div class="svcpal-bg" onclick="closeSvcColorPicker()"></div>
+    <div class="svcpal">
+      <div class="svcpal-h">🎨 Колір послуги<span>${nm}</span></div>
+      <div class="svcpal-grid">${sw}</div>
+      <div class="svcpal-act">
+        <button type="button" class="btn btn-dark btn-sm" onclick="setSvcColor(${id},'')">Без кольору</button>
+        <button type="button" class="btn btn-dark btn-sm" onclick="closeSvcColorPicker()">Закрити</button>
+      </div>
+    </div>`;
+  document.body.appendChild(d); }
+function svcTools(id){ if(!priceEditOn) return '';
+  const hid=isSvcHidden(id);
+  return `<span class="svc-tools">`+
+    `<span class="svc-tool" title="Ціна" onclick="event.stopPropagation();editPrice(${id})">✏️</span>`+
+    `<span class="svc-tool" title="Колір" onclick="event.stopPropagation();pickSvcColor(${id})">🎨</span>`+
+    `<span class="svc-tool" title="${hid?'Показати':'Приховати'}" onclick="event.stopPropagation();toggleSvcHidden(${id})">${hid?'👁️':'🙈'}</span>`+
+  `</span>`; }
+function svcCls(id){ let c=''; if(svcColor(id)) c+=' has-color'; if(isSvcHidden(id)) c+=' is-hidden'; return c; }
+function svcVar(id){ const c=svcColor(id); return c?` --sc:${c};`:''; }
+function showAllHiddenSvc(){ if(!svcHidden.length){ alert('Прихованих послуг немає'); return; }
+  if(!confirm('Показати всі приховані послуги ('+svcHidden.length+')?')) return;
+  svcHidden=[]; saveSvcMeta(); renderOrderPickList(); }
+function clearAllSvcColors(){ const n=Object.keys(svcColors).length; if(!n){ alert('Кольорів не задано'); return; }
+  if(!confirm('Прибрати всі кольори ('+n+')?')) return;
+  svcColors={}; saveSvcMeta(); renderOrderPickList(); }
 function addCustomService(){ const name=prompt('Назва нової послуги:'); if(!name) return; const price=parseFloat(prompt('Ціна, ₴:','0'))||0; const maxId=(customServices||[]).reduce((m,x)=>Math.max(m,x.id),9000); customServices.push({id:maxId+1,name:name.trim(),price}); save('customSvc',customServices); renderPrice(); }
 function delCustomService(id){ id=+id; if(!confirm('Видалити власну послугу?'))return; customServices=customServices.filter(x=>x.id!==id); save('customSvc',customServices); quickServices=quickServices.filter(q=>q!==id); save('quickSvc',quickServices); renderPrice(); }
 function toggleQuick(id){ id=+id; if(quickServices.includes(id)) quickServices=quickServices.filter(q=>q!==id); else quickServices.push(id); save('quickSvc',quickServices); renderPrice(); if(document.getElementById('oQuick')) renderOrderQuick(); }
@@ -954,20 +998,21 @@ function renderOrderPickList(){
   else { el.style.cssText=''; el.className='osvc-grid'; }
   let h=''; let currentCat=-1; let count=0;
   const mkGrid=(item)=>{ const p=effPrice(item); const added=window._orderSvcs.some(s=>s.id===item.id);
-    return `<button type="button" class="osvc-btn${added?' added':''}" onclick="addOrderSvc(${item.id})"><span class="sn">${item.name}</span><span class="sp">${fmtMoney(p)}${added?' ✓':''}</span>${priceEditOn?`<span class="osvc-edit" onclick="event.stopPropagation();editPrice(${item.id})">✏️</span>`:''}</button>`; };
+    return `<button type="button" class="osvc-btn${added?' added':''}${svcCls(item.id)}" style="${svcVar(item.id)}" onclick="addOrderSvc(${item.id})"><span class="sn">${item.name}</span><span class="sp">${fmtMoney(p)}${added?' ✓':''}</span>${svcTools(item.id)}</button>`; };
   const mkList=(item)=>{ const p=effPrice(item); const added=window._orderSvcs.some(s=>s.id===item.id); const r=svcRadius(item.name);
-    return `<button type="button" onclick="addOrderSvc(${item.id})" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:${added?'rgba(224,31,38,.15)':'#141414'};border:1px solid ${added?'var(--red,#e01f26)':'#2a2a2a'};border-radius:10px;padding:10px 12px;color:#fff">${r?`<span style="font-family:'Oswald';font-weight:700;font-size:1.3rem;color:var(--red,#e01f26);min-width:52px">${r}</span>`:''}<span style="flex:1;font-size:0.86rem;line-height:1.25">${item.name}</span><span style="font-weight:700;color:#4ade80;white-space:nowrap">${fmtMoney(p)}${added?' ✓':''}</span>${priceEditOn?`<span onclick="event.stopPropagation();editPrice(${item.id})">✏️</span>`:''}</button>`; };
+    return `<button type="button" onclick="addOrderSvc(${item.id})" class="osvc-row${added?' added':''}${svcCls(item.id)}" style="${svcVar(item.id)}display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:${added?'rgba(224,31,38,.15)':'#141414'};border:1px solid ${added?'var(--red,#e01f26)':'#2a2a2a'};border-radius:10px;padding:10px 12px;color:#fff">${r?`<span style="font-family:'Oswald';font-weight:700;font-size:1.3rem;color:var(--red,#e01f26);min-width:52px">${r}</span>`:''}<span style="flex:1;font-size:0.86rem;line-height:1.25">${item.name}</span><span style="font-weight:700;color:#4ade80;white-space:nowrap">${fmtMoney(p)}${added?' ✓':''}</span>${svcTools(item.id)}</button>`; };
   const mkSlider=(item)=>{ const p=effPrice(item); const added=window._orderSvcs.some(s=>s.id===item.id); const r=svcRadius(item.name);
-    return `<button type="button" onclick="addOrderSvc(${item.id})" style="flex:0 0 auto;width:128px;display:flex;flex-direction:column;align-items:center;gap:6px;background:${added?'rgba(224,31,38,.15)':'#141414'};border:1px solid ${added?'var(--red,#e01f26)':'#2a2a2a'};border-radius:12px;padding:12px 8px;color:#fff">${r?`<span style="font-family:'Oswald';font-weight:700;font-size:1.4rem;color:var(--red,#e01f26)">${r}</span>`:''}<span style="font-size:0.76rem;text-align:center;line-height:1.2;min-height:2.2em">${item.name}</span><span style="font-weight:700;color:#4ade80">${fmtMoney(p)}${added?' ✓':''}</span></button>`; };
+    return `<button type="button" onclick="addOrderSvc(${item.id})" class="osvc-slide${added?' added':''}${svcCls(item.id)}" style="${svcVar(item.id)}flex:0 0 auto;width:128px;display:flex;flex-direction:column;align-items:center;gap:6px;background:${added?'rgba(224,31,38,.15)':'#141414'};border:1px solid ${added?'var(--red,#e01f26)':'#2a2a2a'};border-radius:12px;padding:12px 8px;color:#fff">${r?`<span style="font-family:'Oswald';font-weight:700;font-size:1.4rem;color:var(--red,#e01f26)">${r}</span>`:''}<span style="font-size:0.76rem;text-align:center;line-height:1.2;min-height:2.2em">${item.name}</span><span style="font-weight:700;color:#4ade80">${fmtMoney(p)}${added?' ✓':''}</span>${svcTools(item.id)}</button>`; };
   const mk = mode==='list'?mkList : mode==='slider'?mkSlider : mkGrid;
   PRICE_LIST.forEach(item=>{
     if(item.id===undefined && item.cat!==undefined){ currentCat=item.cat; return; }
     if(!item.id) return;
+    if(!priceEditOn && isSvcHidden(item.id)) return;
     if(q){ if(!item.name.toLowerCase().includes(q)) return; }
     else { if(cf<0 || currentCat!==cf) return; if(window._orderRadius && svcRadius(item.name)!==window._orderRadius) return; }
     h+=mk(item); count++;
   });
-  if(q){ (customServices||[]).forEach(item=>{ if(item.name.toLowerCase().includes(q)){ h+=mk(item); count++; } }); }
+  if(q){ (customServices||[]).forEach(item=>{ if(!priceEditOn && isSvcHidden(item.id)) return; if(item.name.toLowerCase().includes(q)){ h+=mk(item); count++; } }); }
   if(!count) h=`<div style="grid-column:1/-1;padding:18px;text-align:center;color:var(--text-dim);font-size:0.84rem">${q?'Нічого не знайдено':'Оберіть категорію вгорі'}</div>`;
   el.innerHTML = h;
 }
