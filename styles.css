@@ -1025,3 +1025,60 @@ body.ts-open .ts-wrap{transform:none}
 @media(max-width:820px){
   .svc-tool{font-size:1rem;padding:5px 8px}
 }
+
+/* ====== v19: обʼємний текст на картках послуг ====== */
+
+/* Назва послуги — 3D-рельєф: світла грань зверху, тінь знизу */
+.osvc-btn .sn{font-size:.86rem;font-weight:700;letter-spacing:.005em;color:#EFF1F4;
+  text-shadow:0 1px 0 rgba(255,255,255,.16),0 -1px 0 rgba(0,0,0,.55),
+              0 2px 3px rgba(0,0,0,.7),0 0 14px rgba(255,255,255,.05)}
+.osvc-btn:hover .sn{color:#fff;text-shadow:0 1px 0 rgba(255,255,255,.28),0 -1px 0 rgba(0,0,0,.6),
+              0 3px 5px rgba(0,0,0,.8),0 0 18px rgba(224,31,38,.35)}
+
+/* Ціна — крупніша, вигравіювана, з зеленим сяйвом */
+.osvc-btn .sp{font-family:'Oswald',sans-serif;font-size:1.42rem;font-weight:700;
+  letter-spacing:.01em;line-height:1.05;
+  background:linear-gradient(180deg,#B6FFC2 0%,#4FCE5A 55%,#2E9E3C 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.75)) drop-shadow(0 0 12px rgba(79,206,90,.45))}
+.osvc-btn:hover .sp{filter:drop-shadow(0 1px 0 rgba(0,0,0,.8)) drop-shadow(0 0 20px rgba(79,206,90,.75))}
+
+/* Ціна у списку та слайдері — теж крупніша й обʼємна */
+.osvc-row span[style*="4ade80"],.osvc-slide span[style*="4ade80"]{
+  font-family:'Oswald',sans-serif!important;font-size:1.32rem!important;
+  color:#7BE88A!important;text-shadow:0 1px 0 rgba(0,0,0,.75),0 0 14px rgba(79,206,90,.5)}
+.osvc-row span[style*="flex:1"]{font-size:.9rem!important;font-weight:600;
+  text-shadow:0 1px 0 rgba(255,255,255,.12),0 2px 3px rgba(0,0,0,.65)}
+.osvc-slide span[style*="text-align:center"]{font-weight:600;
+  text-shadow:0 1px 0 rgba(255,255,255,.12),0 2px 3px rgba(0,0,0,.65)}
+
+/* Радіус у списку/слайдері — обʼємний червоний */
+.osvc-row span[style*="min-width:52px"],.osvc-slide span[style*="1.4rem"]{
+  text-shadow:0 1px 0 rgba(0,0,0,.8),0 0 16px rgba(224,31,38,.7)}
+
+/* Картка: легкий обʼєм — верхня світла грань і нижня тінь */
+.osvc-btn{box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.5),
+  0 3px 8px -4px rgba(0,0,0,.8)}
+.osvc-btn:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 -1px 0 rgba(0,0,0,.55),
+  0 12px 24px -10px rgba(224,31,38,.45)}
+.osvc-btn:active{transform:translateY(1px);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.65),inset 0 -1px 0 rgba(255,255,255,.05)}
+
+/* Кольорова картка — ціна лишається зеленою, назва бере відтінок */
+.osvc-btn.has-color .sn{color:#fff;
+  text-shadow:0 1px 0 rgba(255,255,255,.2),0 -1px 0 rgba(0,0,0,.6),
+              0 2px 4px rgba(0,0,0,.75),0 0 16px var(--sc)}
+
+/* Додана послуга — ціна золотиста */
+.osvc-btn.added .sp{background:linear-gradient(180deg,#FFF0B8,#F0C24A 55%,#B8892A);
+  -webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.75)) drop-shadow(0 0 14px rgba(240,194,74,.6))}
+
+@media(max-width:820px){
+  .osvc-btn .sp{font-size:1.3rem}
+  .osvc-btn .sn{font-size:.82rem}
+}
+@media print{
+  .osvc-btn .sp,.osvc-btn .sn{text-shadow:none;filter:none;
+    -webkit-text-fill-color:initial;background:none;color:#000}
+}
