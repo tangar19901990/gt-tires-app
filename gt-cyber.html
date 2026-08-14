@@ -40,21 +40,19 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
   background:repeating-linear-gradient(180deg,transparent 0 3px,rgba(255,255,255,.014) 3px 4px)}
 
 /* Центральна сцена */
-.scene{position:absolute;left:50%;top:11%;transform:translateX(-50%);
-  width:60%;max-width:900px;z-index:1;pointer-events:none;
-  -webkit-mask-image:radial-gradient(ellipse 78% 82% at 50% 45%,#000 52%,transparent 88%);
-  mask-image:radial-gradient(ellipse 78% 82% at 50% 45%,#000 52%,transparent 88%);
-  filter:saturate(1.12) contrast(1.05)}
+.scene{position:absolute;left:50%;top:12%;transform:translateX(-50%);
+  width:57%;max-width:860px;z-index:1;pointer-events:none;
+  filter:saturate(1.15) contrast(1.04) drop-shadow(0 18px 44px rgba(0,0,0,.75))}
 
-.layer{position:relative;z-index:3;display:grid;
+.layer{position:relative;z-index:3;display:grid;align-items:start;
   grid-template-columns:minmax(250px,24%) 1fr minmax(250px,24%);
-  gap:11px;padding:13px}
+  gap:9px;padding:11px}
 
 /* ── Шапка ── */
 .hdr{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:13px}
 .panel{background:var(--glass);border:1px solid var(--edge);border-radius:13px;
   backdrop-filter:blur(10px);box-shadow:0 8px 26px -12px #000,inset 0 1px 0 rgba(255,255,255,.06)}
-.chip{display:flex;align-items:center;gap:10px;padding:9px 15px}
+.chip{display:flex;align-items:center;gap:10px;padding:8px 14px}
 .chip .ic{width:24px;height:24px;flex:0 0 auto;color:var(--red)}
 .chip b{display:block;font-size:.8rem;font-weight:800;letter-spacing:.04em;line-height:1.25}
 .chip small{display:block;font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--cyan)}
@@ -81,12 +79,12 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
 .hud i{color:var(--green);font-style:normal}
 
 /* ── Картки ── */
-.col{display:flex;flex-direction:column;gap:11px}
-.col.mid{justify-content:flex-end;gap:11px}
+.col{display:flex;flex-direction:column;gap:9px}
+.col.mid{align-self:stretch;justify-content:flex-end;gap:9px}
 
 .card{position:relative;display:block;text-decoration:none;color:inherit;overflow:hidden;
   background:var(--glass);border:1px solid var(--edge);border-radius:15px;
-  backdrop-filter:blur(10px);padding:13px 14px 12px;
+  backdrop-filter:blur(10px);padding:11px 13px 10px;
   box-shadow:0 10px 30px -14px #000,inset 0 1px 0 rgba(255,255,255,.06);
   transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s,border-color .2s}
 .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
@@ -96,18 +94,18 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
 .card:hover{transform:translateY(-3px);border-color:var(--ac);
   box-shadow:0 20px 44px -16px #000,0 0 30px -10px var(--ac),inset 0 1px 0 rgba(255,255,255,.1)}
 
-.top{display:flex;align-items:flex-start;gap:11px;margin-bottom:9px}
-.icn{width:42px;height:42px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;
+.top{display:flex;align-items:flex-start;gap:10px;margin-bottom:7px}
+.icn{width:38px;height:38px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;
   background:rgba(255,255,255,.05);border:1px solid var(--ac);
   box-shadow:0 0 18px -6px var(--ac),inset 0 0 14px -6px var(--ac)}
-.icn svg{width:24px;height:24px;color:var(--ac)}
+.icn svg{width:22px;height:22px;color:var(--ac)}
 .tt{min-width:0;flex:1}
-.name{display:block;font-size:.95rem;font-weight:900;letter-spacing:.03em;color:#fff;line-height:1.1}
-.sub{display:block;margin-top:2px;font-size:.72rem;font-weight:800;letter-spacing:.05em;color:var(--ac)}
-.desc{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:.05em;
-  color:var(--dim);text-transform:uppercase;margin-bottom:10px}
+.name{display:block;font-size:.88rem;font-weight:900;letter-spacing:.03em;color:#fff;line-height:1.1}
+.sub{display:block;margin-top:1px;font-size:.68rem;font-weight:800;letter-spacing:.05em;color:var(--ac)}
+.desc{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.04em;
+  color:var(--dim);text-transform:uppercase;margin-bottom:8px}
 
-.btn{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:8px;
+.btn{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:8px;
   font-size:.62rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase;
   color:#fff;background:linear-gradient(135deg,var(--ac),color-mix(in srgb,var(--ac) 45%,#000));
   box-shadow:0 6px 18px -8px var(--ac);transition:transform .18s,box-shadow .18s}
@@ -121,8 +119,8 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
 .a-blue{--ac:#4A7BFF} .a-orange{--ac:#FF8A1E}
 
 /* ── Маркетплейс ── */
-.market{position:relative;display:flex;align-items:center;gap:13px;overflow:hidden;
-  border-radius:15px;padding:13px 17px;text-decoration:none;color:#fff;
+.market{position:relative;display:flex;align-items:center;gap:12px;overflow:hidden;
+  border-radius:15px;padding:11px 16px;text-decoration:none;color:#fff;
   background:linear-gradient(118deg,rgba(255,45,142,.9),rgba(168,85,247,.85));
   border:1px solid rgba(255,255,255,.3);
   box-shadow:0 16px 42px -14px rgba(255,45,142,.7),inset 0 1px 0 rgba(255,255,255,.35);
@@ -152,9 +150,9 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
   100%{opacity:0;transform:translate3d(var(--dx,25px),-470px,0) rotate(var(--rot,190deg)) scale(1.1)}}
 
 /* ── Показники ── */
-.stats{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;
+.stats{display:flex;flex-wrap:wrap;justify-content:center;gap:5px;
   background:var(--glass);border:1px solid var(--edge);border-radius:15px;
-  padding:11px 13px;backdrop-filter:blur(10px);
+  padding:9px 12px;backdrop-filter:blur(10px);
   box-shadow:0 10px 30px -14px #000,inset 0 1px 0 rgba(255,255,255,.06)}
 .stat{display:flex;align-items:center;gap:8px;padding:0 10px}
 .stat svg{width:25px;height:25px;flex:0 0 auto;color:var(--cyan)}
@@ -164,8 +162,8 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
 
 /* ── Нижня панель ── */
 .bar{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:2px}
-.bar a{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
-  border-radius:11px;padding:13px 8px;color:#fff;border:1px solid rgba(255,255,255,.16);
+.bar a{display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;
+  border-radius:10px;padding:11px 7px;color:#fff;border:1px solid rgba(255,255,255,.16);
   font-size:.63rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase;
   background:linear-gradient(150deg,color-mix(in srgb,var(--ac) 72%,#000),color-mix(in srgb,var(--ac) 32%,#000));
   box-shadow:0 8px 22px -12px var(--ac),inset 0 1px 0 rgba(255,255,255,.2);
