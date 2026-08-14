@@ -84,7 +84,7 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
 
 .card{position:relative;display:block;text-decoration:none;color:inherit;overflow:hidden;
   background:var(--glass);border:1px solid var(--edge);border-radius:15px;
-  backdrop-filter:blur(10px);padding:11px 13px 10px;
+  backdrop-filter:blur(10px);padding:11px 13px 10px;min-height:104px;
   box-shadow:0 10px 30px -14px #000,inset 0 1px 0 rgba(255,255,255,.06);
   transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s,border-color .2s}
 .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
@@ -94,6 +94,15 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
 .card:hover{transform:translateY(-3px);border-color:var(--ac);
   box-shadow:0 20px 44px -16px #000,0 0 30px -10px var(--ac),inset 0 1px 0 rgba(255,255,255,.1)}
 
+.pic{position:absolute;right:0;top:0;bottom:0;width:46%;object-fit:cover;z-index:0;
+  opacity:.72;filter:saturate(1.15) contrast(1.06);
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.7) 40%,#000 78%);
+  mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.7) 40%,#000 78%)}
+.card:hover .pic{opacity:.9}
+.pic-tint{position:absolute;right:0;top:0;bottom:0;width:46%;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--ac) 26%,transparent));
+  mix-blend-mode:screen;opacity:.5}
+.top,.desc,.btn{position:relative;z-index:2}
 .top{display:flex;align-items:flex-start;gap:10px;margin-bottom:7px}
 .icn{width:38px;height:38px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;
   background:rgba(255,255,255,.05);border:1px solid var(--ac);
@@ -102,7 +111,8 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--txt);
 .tt{min-width:0;flex:1}
 .name{display:block;font-size:.88rem;font-weight:900;letter-spacing:.03em;color:#fff;line-height:1.1}
 .sub{display:block;margin-top:1px;font-size:.68rem;font-weight:800;letter-spacing:.05em;color:var(--ac)}
-.desc{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.04em;
+.desc{max-width:none;font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:.01em;
+  white-space:nowrap;
   color:var(--dim);text-transform:uppercase;margin-bottom:8px}
 
 .btn{display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:8px;
@@ -235,6 +245,7 @@ a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
     <!-- Ліва колонка -->
     <div class="col">
       <a class="card a-red" href="gt-tires-v4-supabase-ready.html?v=20">
+        <img class="pic" src="img/mod-tires.webp" alt=""><span class="pic-tint"></span>
         <div class="top">
           <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/>
@@ -246,6 +257,7 @@ a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
       </a>
 
       <div class="card soon a-green">
+        <img class="pic" src="img/mod-agro.webp" alt=""><span class="pic-tint"></span>
         <span class="tag">СКОРО</span>
         <div class="top">
           <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -258,6 +270,7 @@ a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
       </div>
 
       <div class="card soon a-cyan">
+        <img class="pic" src="img/mod-accounting.webp" alt=""><span class="pic-tint"></span>
         <span class="tag">СКОРО</span>
         <div class="top">
           <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -269,6 +282,7 @@ a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
       </div>
 
       <div class="card soon a-blue">
+        <img class="pic" src="img/mod-finance.webp" alt=""><span class="pic-tint"></span>
         <span class="tag">СКОРО</span>
         <div class="top">
           <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -323,6 +337,7 @@ a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
     <!-- Права колонка -->
     <div class="col">
       <div class="card soon a-pink">
+        <img class="pic" src="img/mod-logistics.webp" alt=""><span class="pic-tint"></span>
         <span class="tag">СКОРО</span>
         <div class="top">
           <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -334,6 +349,7 @@ a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
       </div>
 
       <div class="card soon a-orange">
+        <img class="pic" src="img/mod-service.webp" alt=""><span class="pic-tint"></span>
         <span class="tag">СКОРО</span>
         <div class="top">
           <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -346,6 +362,7 @@ a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
       </div>
 
       <div class="card soon a-amber">
+        <img class="pic" src="img/mod-ai.webp" alt=""><span class="pic-tint"></span>
         <span class="tag">СКОРО</span>
         <div class="top">
           <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -358,6 +375,7 @@ a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
       </div>
 
       <div class="card soon a-violet">
+        <img class="pic" src="img/mod-hunt.webp" alt=""><span class="pic-tint"></span>
         <span class="tag">СКОРО</span>
         <div class="top">
           <span class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
