@@ -3,37 +3,254 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#060608">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>GT Tires Service</title>
+<title>GT Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Fira+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Fira+Sans:wght@400;600;700&display=swap');
+:root{
+  --bg:#060608; --panel:#0F1116; --panel-2:#0A0B0F;
+  --red:#E01F26; --red-lt:#FF5A52; --red-dk:#8F1015;
+  --steel:#8E99AE; --steel-lt:#C9CFDA;
+  --green:#4FCE5A; --amber:#F0A53A; --ice:#4A9BFF;
+  --line:#1C1F27; --line-lt:#272B35;
+  --txt:#F2F3F5; --dim:#7C8494;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Fira Sans',sans-serif;background:#070a12;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;background-image:radial-gradient(circle at 20% 0%,rgba(255,45,45,.22),transparent 35%),radial-gradient(circle at 90% 10%,rgba(255,20,147,.14),transparent 35%)}
-.card{width:100%;max-width:520px;background:#10141d;border:1px solid #242b3a;border-radius:24px;padding:28px 22px;text-align:center;box-shadow:0 0 45px rgba(255,45,45,.16)}
-h1{font-family:'Oswald',sans-serif;font-size:48px;line-height:1;color:#ff2d2d;text-shadow:0 0 22px rgba(255,45,45,.65);letter-spacing:1px}
-.sub{margin-top:8px;color:#aab2c5;font-size:13px;letter-spacing:2px;text-transform:uppercase}
-.badge{display:inline-block;margin:18px 0 12px;padding:7px 12px;border-radius:999px;background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.45);color:#4ade80;font-weight:700;font-size:12px}
-.links{display:grid;gap:12px;margin-top:14px}
-a{display:block;text-decoration:none;color:#fff;border-radius:16px;padding:17px;background:#151b27;border:1px solid #2b3446;font-weight:800;box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)}
-a.primary{background:linear-gradient(135deg,#ff3b3b,#c91515);box-shadow:0 0 28px rgba(255,45,45,.36)}
-a.ts{background:#0d1018;border:1px dashed #3a2530;color:#9aa3b6;font-size:14px}
-.small{margin-top:16px;color:#7f889c;font-size:12px;line-height:1.4}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:'Fira Sans',system-ui,sans-serif;background:var(--bg);color:var(--txt);
+  min-height:100vh;padding:20px 16px 40px;
+  background-image:
+    radial-gradient(ellipse 70% 45% at 50% -8%,rgba(224,31,38,.16),transparent 70%),
+    repeating-linear-gradient(180deg,transparent 0 3px,rgba(255,255,255,.011) 3px 4px);
+}
+.wrap{max-width:1080px;margin:0 auto}
+
+/* ── Шапка ── */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  padding-bottom:14px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand h1{font-family:'Oswald',sans-serif;font-size:clamp(2.1rem,8vw,3.1rem);font-weight:700;
+  letter-spacing:.04em;line-height:.9;
+  background:linear-gradient(178deg,#fff 0%,#E9EDF4 38%,#96A1B4 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(0,0,0,.85))}
+.brand .pl{font-family:'Oswald',sans-serif;font-size:clamp(2.1rem,8vw,3.1rem);font-weight:700;
+  letter-spacing:.04em;line-height:.9;color:var(--red);
+  text-shadow:0 0 26px rgba(224,31,38,.75),0 2px 0 rgba(0,0,0,.8)}
+.meta{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--dim);
+  letter-spacing:.12em;text-transform:uppercase;text-align:right;line-height:1.7;white-space:nowrap}
+.meta b{color:var(--steel-lt);font-weight:600}
+
+/* ── Рядок живлення ── */
+.rail{display:flex;align-items:center;gap:10px;margin:0 0 26px;
+  font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.14em;color:var(--dim)}
+.rail .bar{flex:1;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--red),rgba(224,31,38,.15) 40%,transparent);
+  box-shadow:0 0 12px rgba(224,31,38,.5)}
+
+/* ── Сітка модулів ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+
+.mod{position:relative;display:flex;flex-direction:column;text-decoration:none;color:inherit;
+  background:linear-gradient(168deg,var(--panel) 0%,var(--panel-2) 100%);
+  border:1px solid var(--line-lt);border-radius:16px;padding:18px 17px 15px;overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 26px -16px #000;
+  transition:transform .22s cubic-bezier(.22,1,.36,1),border-color .22s,box-shadow .22s}
+.mod::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--line-lt)}
+
+/* Робочий модуль */
+.mod.live{border-color:rgba(224,31,38,.5)}
+.mod.live::before{background:linear-gradient(90deg,var(--red-dk),var(--red) 40%,var(--red-lt) 60%,var(--red-dk));
+  box-shadow:0 0 14px rgba(224,31,38,.8)}
+.mod.live:hover{transform:translateY(-3px);border-color:var(--red);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 40px -18px rgba(224,31,38,.6)}
+.mod.live:active{transform:translateY(0)}
+
+/* Модулі в роботі / плані */
+.mod.soon,.mod.plan{cursor:default}
+.mod.soon::after,.mod.plan::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(135deg,transparent 0 9px,rgba(255,255,255,.016) 9px 18px)}
+.mod.soon{border-color:rgba(240,165,58,.28)}
+.mod.soon::before{background:linear-gradient(90deg,transparent,rgba(240,165,58,.55),transparent)}
+.mod.plan{opacity:.68}
+
+/* Головка модуля */
+.mhead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:11px}
+.code{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.16em;
+  color:var(--dim);padding-top:3px}
+.mod.live .code{color:var(--red-lt)}
+
+.led{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.led.on{color:var(--green)}
+.led.on .dot{background:var(--green);box-shadow:0 0 9px var(--green);animation:pulse 2.4s ease-in-out infinite}
+.led.work{color:var(--amber)}
+.led.work .dot{background:var(--amber);box-shadow:0 0 9px var(--amber)}
+.led.idle{color:var(--dim)}
+.led.idle .dot{background:#3A3F4B;border:1px solid #4A505E}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+.mname{font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:600;letter-spacing:.02em;
+  line-height:1.05;margin-bottom:7px;
+  background:linear-gradient(178deg,#FFFFFF 0%,#E4E9F2 40%,#9BA6B9 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.75))}
+.mdesc{font-size:.83rem;color:var(--dim);line-height:1.5;margin-bottom:13px}
+
+.parts{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto;padding-top:12px;
+  border-top:1px solid var(--line)}
+.part{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.05em;
+  padding:3px 7px;border-radius:5px;background:rgba(255,255,255,.045);
+  border:1px solid var(--line-lt);color:var(--steel)}
+.mod.live .part{background:rgba(224,31,38,.09);border-color:rgba(224,31,38,.24);color:#D8B4B6}
+
+.go{display:flex;align-items:center;gap:7px;margin-top:13px;
+  font-family:'Oswald',sans-serif;font-size:.95rem;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--red-lt)}
+.go .arw{transition:transform .22s cubic-bezier(.22,1,.36,1)}
+.mod.live:hover .go .arw{transform:translateX(5px)}
+.note{margin-top:13px;font-family:'JetBrains Mono',monospace;font-size:.62rem;
+  letter-spacing:.06em;color:var(--dim)}
+
+/* ── Нижні швидкі посилання ── */
+.tools{margin-top:30px;padding-top:18px;border-top:1px solid var(--line)}
+.tlabel{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);margin-bottom:11px}
+.trow{display:flex;flex-wrap:wrap;gap:9px}
+.tool{display:flex;align-items:center;gap:8px;text-decoration:none;
+  padding:10px 14px;border-radius:11px;background:rgba(255,255,255,.035);
+  border:1px solid var(--line-lt);color:var(--steel-lt);font-size:.83rem;font-weight:500;
+  transition:background .18s,border-color .18s,color .18s}
+.tool:hover{background:rgba(255,255,255,.08);border-color:#3A4050;color:#fff}
+.tool.lock{border-style:dashed;color:var(--dim)}
+
+.foot{margin-top:28px;font-family:'JetBrains Mono',monospace;font-size:.6rem;
+  letter-spacing:.1em;color:#4E5563;text-align:center;line-height:1.9}
+
+@media(max-width:620px){
+  body{padding:16px 13px 34px}
+  .top{flex-direction:column;align-items:flex-start;gap:7px}
+  .meta{text-align:left}
+  .grid{grid-template-columns:1fr;gap:12px}
+  .mname{font-size:1.35rem}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+a:focus-visible,.mod:focus-visible{outline:2px solid var(--red-lt);outline-offset:3px}
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>GT TIRES</h1>
-  <div class="sub">Service · Велика Димерка</div>
-  <div class="badge">Головну сторінку відновлено</div>
-  <div class="links">
-    <a class="primary" href="gt-tires-v4-supabase-ready.html?v=18">🔧 Відкрити адмін-панель V4</a>
-    <a href="gt-tires-miniapp.html?v=3001">📱 Відкрити Telegram MiniApp</a>
-    <a href="pricing.html?v=2">💳 Тарифи (сторінка продажу)</a>
-    <a href="top-secret.html?v=1" class="ts">🔒 top_secret</a>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <h1>GT</h1><span class="pl">PLATFORM</span>
+    </div>
+    <div class="meta">
+      Велика Димерка<br>
+      Модулів активних <b id="cnt">1</b> з <b>4</b>
+    </div>
+  </header>
+
+  <div class="rail">
+    <span>СИСТЕМА</span><span class="bar"></span><span id="clock">—</span>
   </div>
-  <div class="small">Якщо бачиш стару версію, відкрий посилання з v=3001. Це примусово обходить кеш.</div>
+
+  <main class="grid">
+
+    <a class="mod live" href="gt-tires-v4-supabase-ready.html?v=20">
+      <div class="mhead">
+        <span class="code">МОДУЛЬ 01 · TIRES</span>
+        <span class="led on"><span class="dot"></span>Працює</span>
+      </div>
+      <div class="mname">Шиномонтаж</div>
+      <p class="mdesc">Заказ-наряди, каса, склад, клієнти й звіти. Робоче місце майстра на кожен день.</p>
+      <div class="parts">
+        <span class="part">ЗАМОВЛЕННЯ</span><span class="part">КАСА</span><span class="part">СКЛАД</span>
+        <span class="part">КЛІЄНТИ</span><span class="part">ЗВІТИ</span><span class="part">ДРУК A4</span>
+      </div>
+      <div class="go">Відкрити <span class="arw">→</span></div>
+    </a>
+
+    <div class="mod soon">
+      <div class="mhead">
+        <span class="code">МОДУЛЬ 02 · ACCT</span>
+        <span class="led work"><span class="dot"></span>У розробці</span>
+      </div>
+      <div class="mname">Бухгалтерія</div>
+      <p class="mdesc">Договори, рахунки й акти одним натисканням. Звірка оплат із банком і нагадування про борги.</p>
+      <div class="parts">
+        <span class="part">ДОГОВОРИ</span><span class="part">РАХУНКИ</span><span class="part">АКТИ</span>
+        <span class="part">ОПЛАТИ</span><span class="part">ПОДАТКИ</span><span class="part">КЕП</span>
+      </div>
+      <div class="note">Перший реліз — генератор документів</div>
+    </div>
+
+    <div class="mod plan">
+      <div class="mhead">
+        <span class="code">МОДУЛЬ 03 · AGRO</span>
+        <span class="led idle"><span class="dot"></span>У плані</span>
+      </div>
+      <div class="mname">Агросектор</div>
+      <p class="mdesc">Розрахунок норм добрив на площу, план внесення по полях і облік витрат за сезон.</p>
+      <div class="parts">
+        <span class="part">ПОЛЯ</span><span class="part">ДОБРИВА</span><span class="part">НОРМИ</span>
+        <span class="part">СЕЗОН</span><span class="part">ВИТРАТИ</span>
+      </div>
+    </div>
+
+    <div class="mod plan">
+      <div class="mhead">
+        <span class="code">МОДУЛЬ 04 · HUNT</span>
+        <span class="led idle"><span class="dot"></span>У плані</span>
+      </div>
+      <div class="mname">Закупівлі</div>
+      <p class="mdesc">Моніторинг цін постачальників і пошук вигідних позицій з сигналом у Telegram.</p>
+      <div class="parts">
+        <span class="part">ПОСТАЧАЛЬНИКИ</span><span class="part">ЦІНИ</span>
+        <span class="part">МОНІТОРИНГ</span><span class="part">TELEGRAM</span>
+      </div>
+    </div>
+
+  </main>
+
+  <section class="tools">
+    <div class="tlabel">Сервіси</div>
+    <div class="trow">
+      <a class="tool" href="gt-tires-miniapp.html?v=3001">📱 Telegram MiniApp</a>
+      <a class="tool" href="pricing.html?v=2">💳 Тарифи</a>
+      <a class="tool" href="licenses.html?v=1">🗝️ Ліцензії</a>
+      <a class="tool" href="gt-tires-qr.html">📷 QR-код</a>
+      <a class="tool lock" href="top-secret.html?v=1">🔒 top_secret</a>
+    </div>
+  </section>
+
+  <div class="foot">
+    GT PLATFORM · вул. Соборна 106, Велика Димерка<br>
+    Бачиш стару версію — онови сторінку з Ctrl+F5
+  </div>
+
 </div>
+
+<script>
+(function(){
+  var t=document.getElementById('clock');
+  function tick(){
+    var d=new Date();
+    var p=function(n){return n<10?'0'+n:''+n};
+    t.textContent=p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+'  '+p(d.getHours())+':'+p(d.getMinutes());
+  }
+  tick(); setInterval(tick,30000);
+  document.getElementById('cnt').textContent=document.querySelectorAll('.mod.live').length;
+})();
+</script>
 </body>
 </html>
