@@ -62,10 +62,16 @@ body{font-family:'Montserrat',system-ui,sans-serif;background:#0B0D11;color:var(
 .col.mid{justify-content:flex-end;gap:12px}
 
 .card{position:relative;display:flex;flex-direction:column;text-decoration:none;color:inherit;
-  background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--sh);
-  backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.7);
+  background:rgba(255,255,255,.95);border-radius:16px;overflow:hidden;
+  backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 14px 34px -12px rgba(20,25,40,.55),0 2px 6px -2px rgba(20,25,40,.3),
+             inset 0 1px 0 rgba(255,255,255,.95);
   transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s}
-.card:hover{transform:translateY(-3px);box-shadow:0 16px 34px -12px rgba(20,25,40,.5)}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;z-index:4;
+  background:currentColor;opacity:.9}
+.card:hover{transform:translateY(-4px);
+  box-shadow:0 26px 50px -16px rgba(20,25,40,.65),0 4px 10px -3px rgba(20,25,40,.35),
+             inset 0 1px 0 #fff}
 .card:active{transform:translateY(0)}
 
 .body{position:relative;display:flex;gap:10px;padding:12px 13px 8px;min-height:104px}
@@ -80,29 +86,67 @@ body{font-family:'Montserrat',system-ui,sans-serif;background:#0B0D11;color:var(
 
 .name{font-size:.98rem;font-weight:900;font-style:italic;letter-spacing:.01em;margin-bottom:5px}
 .list{list-style:none;display:flex;flex-direction:column;gap:2px}
-.list li{position:relative;padding-left:11px;font-size:.68rem;font-weight:700;color:var(--ink);
+.list li{position:relative;padding-left:11px;font-size:.68rem;font-weight:700;color:var(--ink)!important;
   letter-spacing:.02em;text-transform:uppercase;line-height:1.3}
 .list li::before{content:'';position:absolute;left:0;top:.42em;width:4px;height:4px;
   border-radius:50%;background:currentColor;opacity:.55}
 
-.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;
+.foot{position:relative;z-index:2;background:rgba(255,255,255,.55);display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:9px 13px;border-top:1px solid var(--line);
-  font-size:.63rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2)}
-.foot .arw{font-size:.95rem;transition:transform .2s}
+  font-size:.63rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2)!important}
+.foot .arw{font-size:.95rem;transition:transform .2s;color:inherit}
 .card:hover .foot .arw{transform:translateX(5px)}
 
 /* Кольори модулів */
-.c-red   .name,.c-red   .foot .arw{color:var(--red)}    .c-red   .icn svg{color:var(--red)}
-.c-green .name,.c-green .foot .arw{color:var(--green)}  .c-green .icn svg{color:var(--green)}
-.c-orange .name,.c-orange .foot .arw{color:var(--orange)} .c-orange .icn svg{color:var(--orange)}
-.c-blue  .name,.c-blue  .foot .arw{color:var(--blue)}   .c-blue  .icn svg{color:var(--blue)}
-.c-violet .name,.c-violet .foot .arw{color:var(--violet)} .c-violet .icn svg{color:var(--violet)}
-.c-ink   .name,.c-ink   .foot .arw{color:var(--ink)}    .c-ink   .icn svg{color:var(--ink)}
+.c-red{color:var(--red)}    .c-red   .name,.c-red   .foot .arw,.c-red   .icn svg{color:var(--red)}
+.c-green{color:var(--green)}  .c-green .name,.c-green .foot .arw,.c-green .icn svg{color:var(--green)}
+.c-orange{color:var(--orange)} .c-orange .name,.c-orange .foot .arw,.c-orange .icn svg{color:var(--orange)}
+.c-blue{color:var(--blue)}   .c-blue  .name,.c-blue  .foot .arw,.c-blue  .icn svg{color:var(--blue)}
+.c-violet{color:var(--violet)} .c-violet .name,.c-violet .foot .arw,.c-violet .icn svg{color:var(--violet)}
+.c-ink{color:var(--ink)}    .c-ink   .name,.c-ink   .foot .arw,.c-ink   .icn svg{color:var(--ink)}
 
 .card.soon .body{opacity:.94}
 .card.soon::after{content:'СКОРО';position:absolute;top:9px;right:9px;z-index:3;
   font-size:.52rem;font-weight:900;letter-spacing:.14em;padding:3px 7px;border-radius:5px;
   background:rgba(22,24,29,.82);color:#fff}
+
+/* ── Літаючі товари навколо авто ── */
+.fly{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.fly i{position:absolute;display:block;width:var(--sz,42px);height:var(--sz,42px);
+  opacity:0;will-change:transform,opacity;
+  animation:flyUp var(--dur,11s) linear var(--dly,0s) infinite}
+.fly i svg{width:100%;height:100%;
+  filter:drop-shadow(0 6px 14px rgba(20,25,40,.45)) drop-shadow(0 0 10px rgba(255,255,255,.5))}
+@keyframes flyUp{
+  0%{opacity:0;transform:translate3d(0,40px,0) rotate(0deg) scale(.7)}
+  12%{opacity:.92}
+  80%{opacity:.85}
+  100%{opacity:0;transform:translate3d(var(--dx,20px),-460px,0) rotate(var(--rot,180deg)) scale(1.06)}
+}
+
+/* ── Картка маркетплейсу в центрі ── */
+.market{position:relative;display:flex;align-items:center;gap:13px;overflow:hidden;
+  background:linear-gradient(120deg,rgba(224,31,38,.96),rgba(160,14,20,.94));
+  border-radius:18px;padding:14px 18px;text-decoration:none;color:#fff;
+  border:1px solid rgba(255,255,255,.28);
+  box-shadow:0 16px 40px -14px rgba(224,31,38,.75),inset 0 1px 0 rgba(255,255,255,.3);
+  transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s}
+.market:hover{transform:translateY(-3px);
+  box-shadow:0 24px 50px -16px rgba(224,31,38,.9),inset 0 1px 0 rgba(255,255,255,.4)}
+.market::after{content:'';position:absolute;top:-40%;right:-8%;width:220px;height:220px;
+  background:radial-gradient(circle,rgba(255,255,255,.22),transparent 68%)}
+.market .micn{width:46px;height:46px;flex:0 0 auto;border-radius:13px;display:grid;place-items:center;
+  background:rgba(255,255,255,.96);box-shadow:0 4px 12px -4px rgba(0,0,0,.45)}
+.market .micn svg{width:27px;height:27px;color:var(--red)}
+.market .mtxt{position:relative;z-index:2;flex:1;min-width:0}
+.market .mname{display:block;font-size:1.08rem;font-weight:900;font-style:italic;letter-spacing:.02em;
+  text-shadow:0 2px 6px rgba(0,0,0,.35)}
+.market .msub{display:block;margin-top:3px;font-size:.63rem;font-weight:800;letter-spacing:.11em;
+  text-transform:uppercase;opacity:.94}
+.market .mgo{position:relative;z-index:2;font-size:1.3rem;transition:transform .2s}
+.market:hover .mgo{transform:translateX(6px)}
+.market .tag{position:absolute;top:9px;right:12px;z-index:3;font-size:.5rem;font-weight:900;
+  letter-spacing:.14em;padding:3px 7px;border-radius:5px;background:rgba(0,0,0,.4)}
 
 /* ── Показники ── */
 .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
@@ -143,16 +187,31 @@ body{font-family:'Montserrat',system-ui,sans-serif;background:#0B0D11;color:var(
   .chip.user{flex-direction:row-reverse;justify-content:flex-end;text-align:left;
     padding-right:15px;padding-left:9px}
   .stage::after{background:rgba(255,255,255,.4)}
+  .fly{display:none}
+  .market{padding:12px 14px;gap:10px}
+  .market .mname{font-size:.98rem}
+  .market .msub{font-size:.56rem;letter-spacing:.07em}
   .bar{grid-template-columns:repeat(2,1fr)}
   .bar a{font-size:.6rem;padding:12px 6px}
   .stat{padding:0 5px}
 }
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}
+  .fly{display:none}}
 a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
 </style>
 </head>
 <body>
 <div class="stage">
+
+  <div class="fly" aria-hidden="true">
+    <i style="--sz:44px;left:30%;bottom:8%;--dx:-40px;--rot:200deg;--dur:12s;--dly:0s"><svg viewBox="0 0 24 24" fill="none" stroke="#E01F26" stroke-width="1.9"><path d="M3 7.6 12 3l9 4.6v8.8L12 21l-9-4.6z" fill="#fff"/><path d="M3 7.6 12 12l9-4.4M12 12v9"/></svg></i>
+    <i style="--sz:38px;left:38%;bottom:4%;--dx:55px;--rot:-160deg;--dur:14s;--dly:2.2s"><svg viewBox="0 0 24 24" fill="#16181D" stroke="#fff" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4" fill="#E01F26"/></svg></i>
+    <i style="--sz:36px;left:55%;bottom:6%;--dx:-30px;--rot:150deg;--dur:13s;--dly:4.5s"><svg viewBox="0 0 24 24" fill="#fff" stroke="#2C7BE5" stroke-width="1.7"><rect x="5" y="7" width="14" height="13" rx="1.8"/><path d="M9 7V4.5h6V7M8 12h8M8 16h5"/></svg></i>
+    <i style="--sz:40px;left:63%;bottom:3%;--dx:38px;--rot:-190deg;--dur:15s;--dly:1.3s"><svg viewBox="0 0 24 24" fill="#fff" stroke="#F08C1E" stroke-width="1.8"><path d="M14.4 6.1a3.9 3.9 0 0 0 5.1 5.1l-8.4 8.4a2.4 2.4 0 0 1-3.4-3.4z"/></svg></i>
+    <i style="--sz:34px;left:46%;bottom:2%;--dx:-58px;--rot:170deg;--dur:16s;--dly:6.8s"><svg viewBox="0 0 24 24" fill="#fff" stroke="#2FA84F" stroke-width="1.7"><rect x="3" y="8" width="18" height="10" rx="1.8"/><path d="M7 8V6h4v2M14 13h4M16 11v4"/></svg></i>
+    <i style="--sz:42px;left:70%;bottom:9%;--dx:-25px;--rot:210deg;--dur:12.5s;--dly:8.4s"><svg viewBox="0 0 24 24" fill="none" stroke="#E01F26" stroke-width="1.9"><path d="M3 7.6 12 3l9 4.6v8.8L12 21l-9-4.6z" fill="#fff"/><path d="M3 7.6 12 12l9-4.4M12 12v9"/></svg></i>
+    <i style="--sz:32px;left:34%;bottom:12%;--dx:64px;--rot:-140deg;--dur:17s;--dly:3.6s"><svg viewBox="0 0 24 24" fill="#16181D" stroke="#fff" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4" fill="#F5C518"/></svg></i>
+  </div>
 
   <div class="layer">
 
@@ -189,7 +248,7 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
             <ul class="list"><li>Замовлення</li><li>Каса</li><li>Склад</li><li>Клієнти</li></ul>
           </div>
         </div>
-        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw" style="color:currentColor">→</span></div>
       </a>
 
       <div class="card soon c-green">
@@ -203,7 +262,7 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
             <ul class="list"><li>Облік полів</li><li>Добрива</li><li>Урожайність</li><li>Планування</li></ul>
           </div>
         </div>
-        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw" style="color:currentColor">→</span></div>
       </div>
 
       <div class="card soon c-orange">
@@ -216,7 +275,7 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
             <ul class="list"><li>Договори</li><li>Рахунки</li><li>Акти</li><li>Оплати</li><li>Податки</li></ul>
           </div>
         </div>
-        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw" style="color:currentColor">→</span></div>
       </div>
 
       <div class="card soon c-blue">
@@ -229,12 +288,23 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
             <ul class="list"><li>Доходи / витрати</li><li>Аналітика</li><li>Звіти</li><li>Прибуток</li></ul>
           </div>
         </div>
-        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw" style="color:currentColor">→</span></div>
       </div>
     </div>
 
     <!-- Центр -->
     <div class="col mid">
+      <a class="market" href="#" onclick="return false">
+        <span class="tag">СКОРО</span>
+        <span class="micn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2.6 3.4h2.6l2.3 11.2a1.7 1.7 0 0 0 1.7 1.3h8.4a1.7 1.7 0 0 0 1.7-1.3l1.5-7.1H6.2"/>
+          <circle cx="9.6" cy="20" r="1.5"/><circle cx="17.8" cy="20" r="1.5"/></svg></span>
+        <span class="mtxt">
+          <span class="mname">MARKETPLACE</span>
+          <span class="msub">Шини · Диски · Запчастини · Доставка</span>
+        </span>
+        <span class="mgo">→</span>
+      </a>
       <div class="stats">
         <div class="stat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -273,7 +343,7 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
             <ul class="list"><li>Маршрути</li><li>Моніторинг</li><li>Витрати палива</li><li>Доставки</li></ul>
           </div>
         </div>
-        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw" style="color:currentColor">→</span></div>
       </div>
 
       <div class="card soon c-orange">
@@ -287,7 +357,7 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
             <ul class="list"><li>СТО / сервіс</li><li>Замовлення</li><li>Майстри</li><li>Запчастини</li></ul>
           </div>
         </div>
-        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw" style="color:currentColor">→</span></div>
       </div>
 
       <div class="card soon c-green">
@@ -300,7 +370,7 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
             <ul class="list"><li>Розумна автоматизація</li><li>Прогнози</li><li>Рекомендації</li><li>Сповіщення</li></ul>
           </div>
         </div>
-        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw" style="color:currentColor">→</span></div>
       </div>
 
       <div class="card soon c-ink">
@@ -314,7 +384,7 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
             <ul class="list"><li>Постачальники</li><li>Моніторинг цін</li><li>Вигідні позиції</li><li>Telegram</li></ul>
           </div>
         </div>
-        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw" style="color:currentColor">→</span></div>
       </div>
     </div>
 
@@ -339,7 +409,7 @@ a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
   function tick(){var d=new Date();
     c.textContent=p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' | '+p(d.getHours())+':'+p(d.getMinutes());}
   tick();setInterval(tick,30000);
-  document.getElementById('modcount').textContent=document.querySelectorAll('.card').length;
+  document.getElementById('modcount').textContent=document.querySelectorAll('.card,.market').length;
 })();
 </script>
 </body>
