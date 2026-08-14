@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#EDEFF3">
+<title>GT LABORATORY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#E01F26; --yellow:#F5C518; --ink:#16181D; --ink-2:#3A4049;
+  --card:rgba(255,255,255,.92); --line:rgba(0,0,0,.08);
+  --green:#2FA84F; --orange:#F08C1E; --blue:#2C7BE5; --violet:#7B5BD6;
+  --sh:0 8px 26px -10px rgba(20,25,40,.4);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Montserrat',system-ui,sans-serif;background:#0B0D11;color:var(--ink);
+  min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:14px}
+
+.stage{position:relative;width:100%;max-width:1500px;border-radius:22px;overflow:hidden;
+  background:#DDE3EA url('img/bg-station.webp') center 22%/cover no-repeat;
+  box-shadow:0 30px 80px -30px #000}
+.stage::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,.1) 26%,transparent 42%,transparent 58%,rgba(255,255,255,.1) 74%,rgba(255,255,255,.55) 100%)}
+
+
+.layer{position:relative;z-index:3;display:grid;
+  grid-template-columns:minmax(260px,25%) 1fr minmax(260px,25%);
+  gap:12px;padding:14px}
+
+/* ── Шапка ── */
+.hdr{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr auto;align-items:start;gap:14px}
+.chip{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:14px;
+  padding:9px 15px;box-shadow:var(--sh);backdrop-filter:blur(6px)}
+.chip .ic{width:26px;height:26px;flex:0 0 auto}
+.chip b{display:block;font-size:.82rem;font-weight:800;letter-spacing:.03em;line-height:1.25}
+.chip small{display:block;font-size:.7rem;color:var(--ink-2);font-weight:600}
+.chip.user{text-align:right;padding-right:9px}
+.chip.user>div{min-width:0}
+.chip.user b{white-space:nowrap}
+.chip.user b{color:var(--red)}
+.ava{width:40px;height:40px;flex:0 0 auto;border-radius:50%;object-fit:cover;
+  object-position:center 32%;border:2px solid var(--red);box-shadow:0 2px 8px -2px rgba(0,0,0,.4)}
+
+.title{text-align:center;padding-top:2px}
+.title h1{font-size:clamp(1.6rem,4.4vw,3.1rem);font-weight:900;font-style:italic;
+  letter-spacing:-.01em;line-height:.95;color:var(--ink);text-shadow:0 2px 12px rgba(255,255,255,.6)}
+.title h1 em{font-style:italic;color:var(--yellow);
+  -webkit-text-stroke:1px rgba(0,0,0,.28);text-shadow:0 3px 10px rgba(0,0,0,.25)}
+.title h2{font-size:clamp(1rem,2.7vw,1.9rem);font-weight:900;font-style:italic;color:var(--red);
+  letter-spacing:.01em;line-height:1.1;text-shadow:0 2px 10px rgba(255,255,255,.55)}
+.title p{display:inline-block;margin-top:7px;padding:5px 14px;border-radius:999px;
+  font-size:clamp(.55rem,1.02vw,.75rem);font-weight:800;letter-spacing:.2em;
+  color:var(--ink);text-transform:uppercase;background:rgba(255,255,255,.82);
+  box-shadow:0 4px 14px -6px rgba(20,25,40,.45);backdrop-filter:blur(5px)}
+
+/* ── Колонки з картками ── */
+.col{display:flex;flex-direction:column;gap:12px}
+.col.mid{justify-content:flex-end;gap:12px}
+
+.card{position:relative;display:flex;flex-direction:column;text-decoration:none;color:inherit;
+  background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--sh);
+  backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.7);
+  transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 16px 34px -12px rgba(20,25,40,.5)}
+.card:active{transform:translateY(0)}
+
+.body{position:relative;display:flex;gap:10px;padding:12px 13px 8px;min-height:104px}
+.pic{position:absolute;right:0;top:0;bottom:0;width:47%;object-fit:cover;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%);
+  mask-image:linear-gradient(90deg,transparent,#000 22%)}
+.txt{position:relative;z-index:2;flex:1;min-width:0}
+
+.icn{width:38px;height:38px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;
+  background:#fff;box-shadow:0 3px 10px -3px rgba(0,0,0,.28)}
+.icn svg{width:23px;height:23px}
+
+.name{font-size:.98rem;font-weight:900;font-style:italic;letter-spacing:.01em;margin-bottom:5px}
+.list{list-style:none;display:flex;flex-direction:column;gap:2px}
+.list li{position:relative;padding-left:11px;font-size:.68rem;font-weight:700;color:var(--ink);
+  letter-spacing:.02em;text-transform:uppercase;line-height:1.3}
+.list li::before{content:'';position:absolute;left:0;top:.42em;width:4px;height:4px;
+  border-radius:50%;background:currentColor;opacity:.55}
+
+.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:9px 13px;border-top:1px solid var(--line);
+  font-size:.63rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2)}
+.foot .arw{font-size:.95rem;transition:transform .2s}
+.card:hover .foot .arw{transform:translateX(5px)}
+
+/* Кольори модулів */
+.c-red   .name,.c-red   .foot .arw{color:var(--red)}    .c-red   .icn svg{color:var(--red)}
+.c-green .name,.c-green .foot .arw{color:var(--green)}  .c-green .icn svg{color:var(--green)}
+.c-orange .name,.c-orange .foot .arw{color:var(--orange)} .c-orange .icn svg{color:var(--orange)}
+.c-blue  .name,.c-blue  .foot .arw{color:var(--blue)}   .c-blue  .icn svg{color:var(--blue)}
+.c-violet .name,.c-violet .foot .arw{color:var(--violet)} .c-violet .icn svg{color:var(--violet)}
+.c-ink   .name,.c-ink   .foot .arw{color:var(--ink)}    .c-ink   .icn svg{color:var(--ink)}
+
+.card.soon .body{opacity:.94}
+.card.soon::after{content:'СКОРО';position:absolute;top:9px;right:9px;z-index:3;
+  font-size:.52rem;font-weight:900;letter-spacing:.14em;padding:3px 7px;border-radius:5px;
+  background:rgba(22,24,29,.82);color:#fff}
+
+/* ── Показники ── */
+.stats{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
+  background:var(--card);border-radius:16px;padding:11px 14px;box-shadow:var(--sh);
+  backdrop-filter:blur(6px)}
+.stat{display:flex;align-items:center;gap:8px;padding:0 10px}
+.stat svg{width:26px;height:26px;color:var(--red);flex:0 0 auto}
+.stat b{display:block;font-size:1.05rem;font-weight:900;line-height:1}
+.stat small{display:block;font-size:.56rem;font-weight:700;letter-spacing:.12em;
+  color:var(--ink-2);text-transform:uppercase;margin-top:2px}
+
+/* ── Нижня панель ── */
+.bar{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);gap:9px;margin-top:2px}
+.bar a{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
+  background:var(--card);border-radius:13px;padding:13px 8px;box-shadow:var(--sh);
+  backdrop-filter:blur(6px);color:var(--ink);
+  font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  transition:background .18s,transform .18s}
+.bar a:hover{background:#fff;transform:translateY(-2px)}
+.bar a svg{width:19px;height:19px;flex:0 0 auto}
+.bar a.exit{color:var(--red)} .bar a.exit svg{color:var(--red)}
+
+@media(max-width:1100px){
+  .layer{grid-template-columns:1fr 1fr}
+  .col.mid{grid-column:1/-1;order:9}
+  .bar{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:680px){
+  body{padding:8px}
+  .layer{grid-template-columns:1fr;padding:10px;gap:10px}
+  .hdr{order:-2}
+  .col.mid{order:-1}
+  .stats{justify-content:space-around;gap:4px;padding:10px 8px}
+  .stat{padding:0 2px;gap:6px}
+  .stat svg{width:22px;height:22px}
+  .stat b{font-size:.92rem}
+  .hdr{grid-template-columns:1fr;gap:9px}
+  .chip.user{flex-direction:row-reverse;justify-content:flex-end;text-align:left;
+    padding-right:15px;padding-left:9px}
+  .stage::after{background:rgba(255,255,255,.4)}
+  .bar{grid-template-columns:repeat(2,1fr)}
+  .bar a{font-size:.6rem;padding:12px 6px}
+  .stat{padding:0 5px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="layer">
+
+    <!-- Шапка -->
+    <header class="hdr">
+      <div class="chip">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#E01F26" stroke-width="2.2">
+          <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
+        <div><b>ВЕЛИКА ДИМЕРКА</b><small id="clock">—</small></div>
+      </div>
+
+      <div class="title">
+        <h1><em>GT</em> LABORATORY</h1>
+        <h2>TOP SECRET</h2>
+        <p>Люди. Можливості. Результат.</p>
+      </div>
+
+      <div class="chip user">
+        <div><b>🔒 TOP_SECRET</b><small>ВЛАСНИК</small></div>
+        <img class="ava" src="img/avatar.webp" alt="Аватар власника">
+      </div>
+    </header>
+
+    <!-- Ліва колонка -->
+    <div class="col">
+      <a class="card c-red" href="gt-tires-v4-supabase-ready.html?v=20">
+        <div class="body">
+          <img class="pic" src="img/mod-tires.webp" alt="">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/>
+            <path d="M12 3v5.8M12 15.2V21M3 12h5.8M15.2 12H21"/></svg></div>
+          <div class="txt">
+            <div class="name">ШИНОМОНТАЖ</div>
+            <ul class="list"><li>Замовлення</li><li>Каса</li><li>Склад</li><li>Клієнти</li></ul>
+          </div>
+        </div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+      </a>
+
+      <div class="card soon c-green">
+        <div class="body">
+          <img class="pic" src="img/mod-agro.webp" alt="">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="7" cy="17" r="3.4"/><circle cx="17.5" cy="17.8" r="2.4"/>
+            <path d="M4 13V7h6l2 4M10 7h4l2 6"/></svg></div>
+          <div class="txt">
+            <div class="name">AGRO</div>
+            <ul class="list"><li>Облік полів</li><li>Добрива</li><li>Урожайність</li><li>Планування</li></ul>
+          </div>
+        </div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+      </div>
+
+      <div class="card soon c-orange">
+        <div class="body">
+          <img class="pic" src="img/mod-accounting.webp" alt="">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v3h6V3M8.5 11h7M8.5 15h4"/></svg></div>
+          <div class="txt">
+            <div class="name">ACCOUNTING</div>
+            <ul class="list"><li>Договори</li><li>Рахунки</li><li>Акти</li><li>Оплати</li><li>Податки</li></ul>
+          </div>
+        </div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+      </div>
+
+      <div class="card soon c-blue">
+        <div class="body">
+          <img class="pic" src="img/mod-finance.webp" alt="">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 20V11M9.3 20V6M14.7 20v-6M20 20V4"/></svg></div>
+          <div class="txt">
+            <div class="name">FINANCE</div>
+            <ul class="list"><li>Доходи / витрати</li><li>Аналітика</li><li>Звіти</li><li>Прибуток</li></ul>
+          </div>
+        </div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+      </div>
+    </div>
+
+    <!-- Центр -->
+    <div class="col mid">
+      <div class="stats">
+        <div class="stat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/>
+            <circle cx="17.5" cy="9" r="2.4"/><path d="M16 20a5.6 5.6 0 0 1 5.5-5.6"/></svg>
+          <div><b>10 000+</b><small>клієнтів</small></div>
+        </div>
+        <div class="stat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2.6 21 7v10l-9 4.4L3 17V7z"/><path d="M3 7l9 4.4L21 7M12 11.4V21.4"/></svg>
+          <div><b id="modcount">8</b><small>модулів</small></div>
+        </div>
+        <div class="stat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2.6 20 6v6c0 5-3.4 8.3-8 9.4-4.6-1.1-8-4.4-8-9.4V6z"/><path d="M9 12l2.2 2.2L15.4 10"/></svg>
+          <div><b>100%</b><small>безпека</small></div>
+        </div>
+        <div class="stat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.6" y="13" width="4.2" height="6" rx="1.6"/>
+            <rect x="17.2" y="13" width="4.2" height="6" rx="1.6"/><path d="M20 19v.7a2.6 2.6 0 0 1-2.6 2.6H13"/></svg>
+          <div><b>24/7</b><small>підтримка</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Права колонка -->
+    <div class="col">
+      <div class="card soon c-blue">
+        <div class="body">
+          <img class="pic" src="img/mod-logistics.webp" alt="">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          <div class="txt">
+            <div class="name">LOGISTICS</div>
+            <ul class="list"><li>Маршрути</li><li>Моніторинг</li><li>Витрати палива</li><li>Доставки</li></ul>
+          </div>
+        </div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+      </div>
+
+      <div class="card soon c-orange">
+        <div class="body">
+          <img class="pic" src="img/mod-service.webp" alt="">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.5 6.2a3.9 3.9 0 0 0 5.1 5.1l-8.4 8.4a2.4 2.4 0 0 1-3.4-3.4z"/>
+            <path d="M6.3 4.2l2.6 2.6-2 2-2.6-2.6a1.4 1.4 0 0 1 2-2z"/></svg></div>
+          <div class="txt">
+            <div class="name">SERVICE</div>
+            <ul class="list"><li>СТО / сервіс</li><li>Замовлення</li><li>Майстри</li><li>Запчастини</li></ul>
+          </div>
+        </div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+      </div>
+
+      <div class="card soon c-green">
+        <div class="body">
+          <img class="pic" src="img/mod-ai.webp" alt="">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9.5 3.4A3.2 3.2 0 0 1 12 8.6a3.2 3.2 0 0 1 2.5-5.2 3.3 3.3 0 0 1 3.2 3.4 3.4 3.4 0 0 1 .8 6.3A3.4 3.4 0 0 1 15 20a3.3 3.3 0 0 1-3-2 3.3 3.3 0 0 1-3 2 3.4 3.4 0 0 1-3.5-6.9 3.4 3.4 0 0 1 .8-6.3 3.3 3.3 0 0 1 3.2-3.4z"/></svg></div>
+          <div class="txt">
+            <div class="name">AI SERVICE</div>
+            <ul class="list"><li>Розумна автоматизація</li><li>Прогнози</li><li>Рекомендації</li><li>Сповіщення</li></ul>
+          </div>
+        </div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+      </div>
+
+      <div class="card soon c-ink">
+        <div class="body">
+          <img class="pic" src="img/mod-hunt.webp" alt="">
+          <div class="icn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>
+            <path d="M12 1.6v3.2M12 19.2v3.2M1.6 12h3.2M19.2 12h3.2"/></svg></div>
+          <div class="txt">
+            <div class="name">HUNT</div>
+            <ul class="list"><li>Постачальники</li><li>Моніторинг цін</li><li>Вигідні позиції</li><li>Telegram</li></ul>
+          </div>
+        </div>
+        <div class="foot"><span>Перейти до модуля</span><span class="arw">→</span></div>
+      </div>
+    </div>
+
+    <!-- Нижня панель -->
+    <nav class="bar">
+      <a href="gt-tires-miniapp.html?v=3001"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.7 3.3 2.9 10.6c-1 .4-1 1.8 0 2.2l4.7 1.6 1.8 5.5c.3.9 1.4 1.1 2 .4l2.6-2.7 4.7 3.5c.7.5 1.7.1 1.9-.7l3-15c.2-.9-.7-1.6-1.5-1.3z"/></svg>MiniApp</a>
+      <a href="pricing.html?v=2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.4"/><path d="M2.5 10h19"/></svg>Тарифи</a>
+      <a href="licenses.html?v=1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M17.5 12v3.4M20.4 12v2.4"/></svg>Ліцензії</a>
+      <a href="gt-tires-qr.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><path d="M14 14h3v3h-3zM20 14v3M17 20h4"/></svg>QR-код</a>
+      <a href="top-secret.html?v=1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 2.9 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9L4 8a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2 2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1A2 2 0 1 1 20 8l-.1.1a1.7 1.7 0 0 0 1.2 2.9 2 2 0 1 1 0 4z"/></svg>Налаштування</a>
+      <a href="https://t.me/GTTiresService_bot" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.6" y="13" width="4.2" height="6" rx="1.6"/><rect x="17.2" y="13" width="4.2" height="6" rx="1.6"/></svg>Підтримка</a>
+      <a class="exit" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 4h3.4A1.6 1.6 0 0 1 20 5.6v12.8a1.6 1.6 0 0 1-1.6 1.6H15M10 8l-4 4 4 4M6 12h9"/></svg>Вихід</a>
+    </nav>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  var c=document.getElementById('clock');
+  function p(n){return n<10?'0'+n:''+n}
+  function tick(){var d=new Date();
+    c.textContent=p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' | '+p(d.getHours())+':'+p(d.getMinutes());}
+  tick();setInterval(tick,30000);
+  document.getElementById('modcount').textContent=document.querySelectorAll('.card').length;
+})();
+</script>
+</body>
+</html>
